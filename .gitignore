@@ -21,3 +21,4 @@ rangkuman_diskusi_*.md
 # graphify artifact
 graphify-out/
 *.egg-info/
+cookies*.txt

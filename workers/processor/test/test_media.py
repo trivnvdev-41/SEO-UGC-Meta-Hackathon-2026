@@ -1,8 +1,10 @@
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from processor.media import (
     audio_cmd,
+    cookies_file,
     download_cmd,
     frames_cmd,
     job_dir,
@@ -14,8 +16,28 @@ from processor.media import (
 class MediaTest(unittest.TestCase):
     def test_download_cmd_pin_output(self):
         cmd = download_cmd("https://vt.tiktok.com/x/", Path("/tmp/j1/video.mp4"))
-        self.assertEqual(cmd[:3], ["yt-dlp", "-o", "/tmp/j1/video.mp4"])
+        self.assertEqual(cmd, ["yt-dlp", "-o", "/tmp/j1/video.mp4",
+                               "https://vt.tiktok.com/x/"])
+
+    def test_download_cmd_pakai_cookies(self):
+        cmd = download_cmd("https://vt.tiktok.com/x/",
+                           Path("/tmp/j1/video.mp4"), "/tmp/ck.txt")
         self.assertEqual(cmd[-1], "https://vt.tiktok.com/x/")
+        self.assertEqual(cmd[-3:], ["--cookies", "/tmp/ck.txt", cmd[-1]])
+
+    def test_cookies_file_env(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertIsNone(cookies_file())
+        with patch.dict("os.environ", {"YTDLP_COOKIES_FILE": ""}, clear=True):
+            self.assertIsNone(cookies_file())
+
+    def test_cookies_file_hilang_gagal_cepat(self):
+        env = {"YTDLP_COOKIES_FILE": "/tmp/tidak-ada-cookies.txt"}
+        with patch.dict("os.environ", env, clear=True), \
+                self.assertRaises(RuntimeError) as cm:
+            cookies_file()
+        self.assertIn("YTDLP_COOKIES_FILE", str(cm.exception))
+        self.assertNotIn("/tmp/tidak-ada", str(cm.exception))
 
     def test_audio_cmd_mp3_lame(self):
         cmd = audio_cmd(Path("/tmp/j1/video.mp4"), Path("/tmp/j1/audio.mp3"))

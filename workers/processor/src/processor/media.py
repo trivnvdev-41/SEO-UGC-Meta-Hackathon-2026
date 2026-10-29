@@ -6,6 +6,7 @@ Urutan produksi: pipeline() -> upload still images ke S3 -> purge().
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -29,8 +30,22 @@ def job_dir(job_id: str) -> Path:
     return TMP_ROOT / _check_job_id(job_id)
 
 
-def download_cmd(url: str, out: Path) -> list[str]:
-    return ["yt-dlp", "-o", str(out), url]
+def download_cmd(url: str, out: Path, cookies: str | None = None) -> list[str]:
+    cmd = ["yt-dlp", "-o", str(out)]
+    if cookies:
+        cmd += ["--cookies", cookies]
+    cmd.append(url)
+    return cmd
+
+
+def cookies_file() -> str | None:
+    """Path cookie jar dari env; None kalau tidak diset. Gagal cepat kalau hilang."""
+    raw = os.environ.get("YTDLP_COOKIES_FILE", "").strip()
+    if not raw:
+        return None
+    if not Path(raw).is_file():
+        raise RuntimeError("missing_file:YTDLP_COOKIES_FILE")
+    return raw
 
 
 def audio_cmd(video: Path, audio: Path) -> list[str]:
@@ -45,11 +60,12 @@ def frames_cmd(video: Path, pattern: Path) -> list[str]:
 
 def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     """Unduh video ke /tmp/{job_id}, ekstrak audio.mp3 + frame_*.jpg."""
+    cookies = cookies_file()  # validasi sebelum membuat direktori job
     d = job_dir(job_id)
     d.mkdir(parents=True, exist_ok=True)
     video = d / VIDEO_NAME
     audio = d / AUDIO_NAME
-    run(download_cmd(url, video), check=True)
+    run(download_cmd(url, video, cookies), check=True)
     run(audio_cmd(video, audio), check=True)
     run(frames_cmd(video, d / FRAME_PATTERN), check=True)
     return {"job_id": job_id, "video": str(video),

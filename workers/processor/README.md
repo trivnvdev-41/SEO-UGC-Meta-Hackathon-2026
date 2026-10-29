@@ -11,6 +11,10 @@ uv venv workers/processor/.venv
 uv pip install --python workers/processor/.venv/bin/python -e workers/processor
 ```
 
+Opsional: `YTDLP_COOKIES_FILE` (path absolut cookie jar Netscape) kalau TikTok/IG
+minta login. Kosong = perilaku normal; path tidak ada = worker gagal cepat dengan
+`missing_file:YTDLP_COOKIES_FILE`. File cookie ada di `.gitignore`.
+
 Butuh `ffmpeg` di PATH saat runtime. Tanpa sudo:
 `uv pip install --python workers/processor/.venv/bin/python imageio-ffmpeg`, lalu
 symlink `$(python -c 'import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())')`

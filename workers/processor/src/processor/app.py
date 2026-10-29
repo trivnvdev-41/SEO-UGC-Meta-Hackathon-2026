@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from processor.ai import settings
+from processor.ai import enrich, settings
 from processor.media import pipeline, purge
 
 
@@ -28,7 +28,8 @@ class ConvertJob(BaseModel):
 
 @app.post("/process")
 def process(job: ConvertJob):
-    out = pipeline(job.job_id, job.url)
-    # shortcut: purge langsung; pindah ke setelah-upload-S3 saat S3 wiring ada.
+    media = pipeline(job.job_id, job.url)
+    bundle = enrich(media["audio"], media["frames"])
+    # shortcut: upload S3 belum ada; setelah itu purge dipindah ke paling akhir.
     purge(job.job_id)
-    return {"ok": True, **out}
+    return {"job_id": job.job_id, "url": job.url, **bundle}

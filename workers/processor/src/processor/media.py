@@ -68,8 +68,9 @@ def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     run(download_cmd(url, video, cookies), check=True)
     run(audio_cmd(video, audio), check=True)
     run(frames_cmd(video, d / FRAME_PATTERN), check=True)
+    frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
     return {"job_id": job_id, "video": str(video),
-            "audio": str(audio), "frames": str(d / FRAME_PATTERN)}
+            "audio": str(audio), "frames": frames}
 
 
 def purge(job_id: str) -> None:

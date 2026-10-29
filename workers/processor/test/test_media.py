@@ -54,7 +54,22 @@ class MediaTest(unittest.TestCase):
                        run=lambda cmd, **kw: seen.append(cmd) or None)
         self.assertEqual(len(seen), 3)
         self.assertTrue(out["audio"].endswith("audio.mp3"))
+        self.assertIsInstance(out["frames"], list)
         purge("testjob1")
+
+    def test_pipeline_frames_list_dari_glob(self):
+        import tempfile
+        from processor import media
+
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "frames"
+            d.mkdir()
+            (d / "frame_001.jpg").write_bytes(b"x")
+            (d / "frame_002.jpg").write_bytes(b"x")
+            got = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
+        self.assertEqual([Path(p).name for p in got],
+                         ["frame_001.jpg", "frame_002.jpg"])
+        self.assertTrue(media.FRAME_PATTERN.endswith(".jpg"))
 
     def test_purge_removes_dir(self):
         d = job_dir("testjob2")

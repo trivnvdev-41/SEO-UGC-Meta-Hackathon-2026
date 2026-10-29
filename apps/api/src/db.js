@@ -52,5 +52,12 @@ export function createDb(client = prisma) {
           jsonLd: a.json_ld,
         },
       }),
+
+    setJobStatus: async (id, status, { url, error = null, articleId = null } = {}) =>
+      client.job.upsert({
+        where: { id },
+        create: { id, url: url ?? '', status, error, articleId },
+        update: { status, error, articleId },
+      }),
   };
 }

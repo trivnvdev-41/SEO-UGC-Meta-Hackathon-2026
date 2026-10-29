@@ -17,3 +17,7 @@ dist/
 AGENTS.md
 orchestrator.md
 rangkuman_diskusi_*.md
+
+# graphify artifact
+graphify-out/
+*.egg-info/

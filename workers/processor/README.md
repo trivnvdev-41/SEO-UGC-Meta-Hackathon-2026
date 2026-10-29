@@ -7,11 +7,14 @@ Ephemeral media pipeline: `yt-dlp` → `ffmpeg` audio + frames → `purge /tmp`.
 ```bash
 export UV_CACHE_DIR=/tmp/uv-cache
 uv venv workers/processor/.venv
-source workers/processor/.venv/bin/activate
-uv pip install fastapi uvicorn yt-dlp
+# editable install: ambil dependency dari pyproject.toml
+uv pip install --python workers/processor/.venv/bin/python -e workers/processor
 ```
 
-Butuh `ffmpeg` di PATH saat runtime (`apt install ffmpeg`).
+Butuh `ffmpeg` di PATH saat runtime. Tanpa sudo:
+`uv pip install --python workers/processor/.venv/bin/python imageio-ffmpeg`, lalu
+symlink `$(python -c 'import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())')`
+sebagai `ffmpeg` di direktori yang ada di PATH.
 
 ## AI provider (dua peran, boleh beda provider)
 

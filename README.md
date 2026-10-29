@@ -15,7 +15,21 @@ Konversi link video UGC (TikTok / IG Reels) menjadi artikel web SEO + **JSON-LD 
 
 1. Copy env: `cp .env.example .env`
 2. Isi blok `AI_STT_*` (transcribe) dan `AI_LLM_*` (artikel) di `.env` — dua provider/key boleh beda (jangan commit).
-3. Ikuti README tiap `apps/*` / `workers/*` per tahap guide.
+3. Install dependency:
+   ```bash
+   npm install --prefix apps/api
+   npm install --prefix apps/web
+   UV_CACHE_DIR=/tmp/uv-cache uv pip install --python workers/processor/.venv/bin/python -e workers/processor
+   ```
+4. Butuh `ffmpeg` + `yt-dlp` di `PATH` (tanpa sudo: `uv pip install imageio-ffmpeg`, lalu symlink binernya sebagai `ffmpeg`).
+5. Jalankan (port default `4301` API, `4302` worker, `3000` web — lihat `.env`):
+   ```bash
+   node --env-file=.env apps/api/src/server.js
+   set -a; source .env; set +a
+   workers/processor/.venv/bin/uvicorn processor.app:app --app-dir workers/processor/src --port 4302
+   npm run dev --prefix apps/web
+   ```
+6. Ikuti README tiap `apps/*` / `workers/*` untuk detail per tahap.
 
 ## Built During Hackathon
 

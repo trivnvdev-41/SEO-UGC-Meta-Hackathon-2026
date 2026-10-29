@@ -30,10 +30,34 @@ function readJson(req) {
   });
 }
 
-// enqueue: async ({url}) => {id}. Diinject agar route ter-test tanpa Redis.
-export function makeApp(enqueue) {
+// enqueue: async ({url}) => {id}. db: lihat src/db.js. Diinject agar route ter-test tanpa Redis/DB.
+export function makeApp(enqueue, db) {
   return async (req, res) => {
-    if (req.method !== 'POST' || req.url !== '/v1/convert') {
+    const { pathname } = new URL(req.url, 'http://localhost');
+
+    if (req.method === 'GET' && pathname === '/v1/articles') {
+      if (!db) return send(res, 503, { error: 'db_unavailable' });
+      try {
+        return send(res, 200, { ids: await db.listArticleIds() });
+      } catch {
+        return send(res, 503, { error: 'db_unavailable' });
+      }
+    }
+
+    if (req.method === 'GET' && pathname.startsWith('/v1/articles/')) {
+      if (!db) return send(res, 503, { error: 'db_unavailable' });
+      const id = decodeURIComponent(pathname.slice('/v1/articles/'.length));
+      if (!id) return send(res, 400, { error: 'invalid_id' });
+      try {
+        const article = await db.getArticle(id);
+        if (!article) return send(res, 404, { error: 'not_found' });
+        return send(res, 200, article);
+      } catch {
+        return send(res, 503, { error: 'db_unavailable' });
+      }
+    }
+
+    if (req.method !== 'POST' || pathname !== '/v1/convert') {
       return send(res, 404, { error: 'not_found' });
     }
     let body;

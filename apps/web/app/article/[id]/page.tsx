@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Embed } from "../../../components/Embed";
-import { getArticle, pickBody, type Lang } from "../../../lib/articles";
+import { getArticle, listArticleIds, pickBody, type Lang } from "../../../lib/articles";
 
 export const revalidate = 3600;
 
@@ -9,10 +9,14 @@ function langOf(sp: { lang?: string }): Lang {
   return sp.lang === "en" ? "en" : "id";
 }
 
+export async function generateStaticParams() {
+  return (await listArticleIds()).map((id) => ({ id }));
+}
+
 export async function generateMetadata(
   { params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lang?: string }> },
 ): Promise<Metadata> {
-  const a = getArticle((await params).id);
+  const a = await getArticle((await params).id);
   if (!a) return {};
   const body = pickBody(a, langOf(await searchParams));
   return {
@@ -48,7 +52,7 @@ function renderMd(md: string) {
 export default async function ArticlePage(
   { params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lang?: string }> },
 ) {
-  const a = getArticle((await params).id);
+  const a = await getArticle((await params).id);
   if (!a) notFound();
   const body = pickBody(a, langOf(await searchParams));
   return (

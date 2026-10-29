@@ -15,35 +15,24 @@ export interface Article {
   json_ld: Record<string, unknown>;
 }
 
-// shortcut: fixture lokal; ganti query Postgres saat DB wiring ada.
-const FIXTURE: Article = {
-  id: "contoh-review",
-  images: [],
-  videoUrl: "https://www.tiktok.com/@contoh/video/123",
-  id_body: {
-    title: "Review Jujur Produk X — Kelebihan dan Kekurangan",
-    meta: "Ulasan jujur Produk X dari video kreator: kelebihan, kekurangan, dan kesimpulan.",
-    body_md: "## Kelebihan\n\n- Bahan solid\n\n## Kekurangan\n\n- Harga premium",
-  },
-  en_body: {
-    title: "Honest Review of Product X — Pros and Cons",
-    meta: "Honest review of Product X from a creator video: pros, cons, and verdict.",
-    body_md: "## Pros\n\n- Solid build\n\n## Cons\n\n- Premium price",
-  },
-  json_ld: {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: "Produk X",
-    review: {
-      "@type": "Review",
-      reviewRating: { "@type": "Rating", ratingValue: "4" },
-      author: { "@type": "Person", name: "Kreator" },
-    },
-  },
-};
+const API_BASE = process.env.API_BASE_URL ?? "http://localhost:4301";
+const CACHE = { next: { revalidate: 3600 } };
 
-export function getArticle(id: string): Article | null {
-  return id === FIXTURE.id ? FIXTURE : null;
+export async function getArticle(id: string): Promise<Article | null> {
+  const res = await fetch(
+    `${API_BASE}/v1/articles/${encodeURIComponent(id)}`,
+    CACHE,
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`api_${res.status}`);
+  return (await res.json()) as Article;
+}
+
+export async function listArticleIds(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/v1/articles`, CACHE);
+  if (!res.ok) throw new Error(`api_${res.status}`);
+  const body = (await res.json()) as { ids: string[] };
+  return body.ids;
 }
 
 export function pickBody(a: Article, lang: Lang): ArticleBody {

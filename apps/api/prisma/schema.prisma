@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Article {
+  id        String   @id
+  videoUrl  String
+  images    String[]
+  idTitle   String
+  idMeta    String
+  idBody    String
+  enTitle   String
+  enMeta    String
+  enBody    String
+  jsonLd    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  job       Job?
+}
+
+model Job {
+  id        String   @id
+  url       String
+  status    String   @default("queued")
+  error     String?
+  articleId String?  @unique
+  article   Article? @relation(fields: [articleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

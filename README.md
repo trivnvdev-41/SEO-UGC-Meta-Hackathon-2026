@@ -15,21 +15,30 @@ Konversi link video UGC (TikTok / IG Reels) menjadi artikel web SEO + **JSON-LD 
 
 1. Copy env: `cp .env.example .env`
 2. Isi blok `AI_STT_*` (transcribe) dan `AI_LLM_*` (artikel) di `.env` — dua provider/key boleh beda (jangan commit).
-3. Install dependency:
+3. Database (Postgres 16 via Docker, port `55432`):
+   ```bash
+   docker run -d --name seougc-pg -p 55432:5432 \
+     -e POSTGRES_USER=seougc -e POSTGRES_PASSWORD=seougc -e POSTGRES_DB=seougc \
+     postgres:16-alpine
+   set -a; source .env; set +a           # Prisma CLI butuh DATABASE_URL
+   npm run db:migrate --prefix apps/api
+   npm run db:seed --prefix apps/api
+   ```
+4. Install dependency:
    ```bash
    npm install --prefix apps/api
    npm install --prefix apps/web
    UV_CACHE_DIR=/tmp/uv-cache uv pip install --python workers/processor/.venv/bin/python -e workers/processor
    ```
-4. Butuh `ffmpeg` + `yt-dlp` di `PATH` (tanpa sudo: `uv pip install imageio-ffmpeg`, lalu symlink binernya sebagai `ffmpeg`).
-5. Jalankan (port default `4301` API, `4302` worker, `3000` web — lihat `.env`):
+5. Butuh `ffmpeg` + `yt-dlp` di `PATH` (tanpa sudo: `uv pip install imageio-ffmpeg`, lalu symlink binernya sebagai `ffmpeg`).
+6. Jalankan (port default `4301` API, `4302` worker, `3000` web — lihat `.env`):
    ```bash
    node --env-file=.env apps/api/src/server.js
    set -a; source .env; set +a
    workers/processor/.venv/bin/uvicorn processor.app:app --app-dir workers/processor/src --port 4302
    npm run dev --prefix apps/web
    ```
-6. Ikuti README tiap `apps/*` / `workers/*` untuk detail per tahap.
+7. Ikuti README tiap `apps/*` / `workers/*` untuk detail per tahap.
 
 ## Built During Hackathon
 

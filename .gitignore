@@ -1,0 +1,19 @@
+.env
+.env.local
+node_modules/
+__pycache__/
+.tmp/
+tmp/
+.venv/
+.uv-cache/
+
+# build artifact
+.next/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# dokumen internal (repo publik)
+AGENTS.md
+orchestrator.md
+rangkuman_diskusi_*.md

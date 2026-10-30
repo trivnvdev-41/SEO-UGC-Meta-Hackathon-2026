@@ -2,6 +2,7 @@ package dev.seougc.seo_ugc
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -33,7 +34,9 @@ class MainActivity : FlutterActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        extract(intent)?.let { dispatch(it) }
+        val text = extract(intent)
+        Log.d(TAG, "onNewIntent action=${intent.action} type=${intent.type} text=${text != null}")
+        if (text != null) dispatch(text)
     }
 
     private fun extract(intent: Intent?): String? =
@@ -43,12 +46,15 @@ class MainActivity : FlutterActivity() {
             null
         }
 
+    // pendingText tetap disimpan: kalau channel belum siap, Dart mengambilnya
+    // lewat getInitialSharedText saat app resume.
     private fun dispatch(text: String) {
+        pendingText = text
         channel?.invokeMethod("shared", text)
-        pendingText = null
     }
 
     companion object {
         private const val CHANNEL = "dev.seougc/share"
+        private const val TAG = "SEOUGC"
     }
 }

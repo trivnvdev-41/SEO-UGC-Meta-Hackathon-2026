@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { cn } from "@/lib/utils";
 
 const TIKTOK_ID = /tiktok\.com\/@[^/]+\/(?:video|photo)\/(\d+)/;
 const INSTAGRAM = /instagram\.com\/(?:reel|reels|p|tv)\/([\w-]+)/;
@@ -20,7 +21,7 @@ export function Embed({ url }: { url: string }) {
   if (yt) {
     return (
       <iframe
-        className="embed-video"
+        className="my-4 aspect-video w-full rounded-lg border-0"
         src={`https://www.youtube-nocookie.com/embed/${yt}`}
         title="Video YouTube"
         loading="lazy"
@@ -35,7 +36,7 @@ export function Embed({ url }: { url: string }) {
     return (
       <>
         <blockquote
-          className="tiktok-embed"
+          className={cn("tiktok-embed my-4")}
           cite={url}
           data-video-id={tiktok[1]}
         >
@@ -54,7 +55,7 @@ export function Embed({ url }: { url: string }) {
     return (
       <>
         <blockquote
-          className="instagram-media"
+          className="instagram-media my-4"
           data-instgrm-permalink={url}
           data-instgrm-version="14"
         >
@@ -69,7 +70,7 @@ export function Embed({ url }: { url: string }) {
 
   // URL short (vt.tiktok.com) / tanpa id: jangan render widget rusak.
   return (
-    <p>
+    <p className="my-4 font-sans text-sm">
       <a href={url} target="_blank" rel="noreferrer">
         Tonton video asli
       </a>

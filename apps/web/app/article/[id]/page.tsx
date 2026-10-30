@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Embed } from "../../../components/Embed";
+import { Badge } from "../../../components/ui/badge";
+import { Card, CardContent } from "../../../components/ui/card";
 import { getArticle, listArticleIds, pickBody, type Lang } from "../../../lib/articles";
 import { articleUrl } from "../../../lib/site";
 
@@ -64,7 +66,9 @@ function inline(text: string, keyPrefix: string): React.ReactNode[] {
     if (m.index > last) out.push(text.slice(last, m.index));
     out.push(
       m[1] ? (
-        <strong key={`${keyPrefix}-b${i}`}>{m[1]}</strong>
+        <strong key={`${keyPrefix}-b${i}`} className="font-bold">
+          {m[1]}
+        </strong>
       ) : (
         <a key={`${keyPrefix}-a${i}`} href={m[3]} rel="nofollow noopener">
           {m[2]}
@@ -83,19 +87,25 @@ function renderMd(md: string) {
   // ganti markdown lib saat butuh tabel/gfm.
   return md.split("\n\n").map((block, i) => {
     const lines = block.split("\n");
-    if (block.startsWith("## ")) return <h2 key={i}>{inline(block.slice(3), `h${i}`)}</h2>;
-    // H1 sudah dipakai judul artikel, jadi heading level 1 dari model jadi h2.
-    if (block.startsWith("# ")) return <h2 key={i}>{inline(block.slice(2), `h${i}`)}</h2>;
+    if (block.startsWith("## ") || block.startsWith("# ")) {
+      // H1 sudah dipakai judul artikel, jadi heading level 1 dari model jadi h2.
+      const text = block.startsWith("## ") ? block.slice(3) : block.slice(2);
+      return <h2 key={i}>{inline(text, `h${i}`)}</h2>;
+    }
     if (lines.every((l) => l.startsWith("- "))) {
       return (
-        <ul key={i}>
+        <ul key={i} className="my-3 list-disc space-y-1 pl-5">
           {lines.map((li, j) => (
             <li key={j}>{inline(li.slice(2), `l${i}-${j}`)}</li>
           ))}
         </ul>
       );
     }
-    return <p key={i}>{inline(block, `p${i}`)}</p>;
+    return (
+      <p key={i} className="my-3">
+        {inline(block, `p${i}`)}
+      </p>
+    );
   });
 }
 
@@ -105,21 +115,42 @@ export default async function ArticlePage(
   const id = (await params).id;
   const a = await getArticle(id);
   if (!a) notFound();
-  const body = pickBody(a, langOf(await searchParams));
+  const lang = langOf(await searchParams);
+  const body = pickBody(a, lang);
   const ld = JSON.stringify(a.json_ld).replace(/</g, "\\u003c");
   return (
-    <main className="article">
-      <p className="lang-switch">
-        <a href="?lang=id">ID</a> · <a href="?lang=en">EN</a>
-      </p>
+    <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
+      <nav className="mb-6 flex items-center gap-2 font-sans text-xs">
+        <a href="?lang=id">
+          <Badge variant={lang === "id" ? "default" : "outline"}>ID</Badge>
+        </a>
+        <a href="?lang=en">
+          <Badge variant={lang === "en" ? "default" : "outline"}>EN</Badge>
+        </a>
+      </nav>
+
       <h1>{body.title}</h1>
-      <p className="meta">{body.meta}</p>
-      <Embed url={a.videoUrl} />
+      <p className="mt-2 font-sans text-base text-muted">{body.meta}</p>
+
+      <Card className="my-6 overflow-hidden">
+        <CardContent className="p-3">
+          <Embed url={a.videoUrl} />
+        </CardContent>
+      </Card>
+
       {a.images.map((src) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={src} src={src} alt={body.title} loading="lazy" />
+        <img
+          key={src}
+          src={src}
+          alt={body.title}
+          loading="lazy"
+          className="my-4 w-full rounded-lg"
+        />
       ))}
+
       {renderMd(body.body_md)}
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ld }}

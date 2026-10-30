@@ -43,12 +43,19 @@ Konversi link video UGC (TikTok / IG Reels) menjadi artikel web SEO + **JSON-LD 
 
 ## Built During Hackathon
 
-- [x] Mobile Share Receiver
-- [x] API Gateway + BullMQ queue
-- [x] Python worker: yt-dlp + FFmpeg + `/tmp` purge
-- [x] STT + artikel multimodal, dua provider terpisah (mock-tested)
-- [x] Next.js artikel + JSON-LD + oEmbed
+- [x] Mobile Share Receiver (Flutter, Android `ACTION_SEND`; iOS extension masih sumber, belum ter-wire)
+- [x] API Gateway + BullMQ queue + consumer (queue → worker → persist)
+- [x] Python worker: yt-dlp + FFmpeg + `/tmp` purge (`finally`)
+- [x] STT + artikel multimodal, dua provider terpisah via env (`AI_STT_*`, `AI_LLM_*`)
+- [x] Next.js artikel + JSON-LD + oEmbed (TikTok, Instagram, YouTube)
+- [x] SEO: canonical/hreflang, sitemap, robots, JSON-LD di-escape
+- [x] Security: allowlist domain, token internal, rate limit, batas ukuran/durasi video
+- [x] Prisma/PostgreSQL (Article + Job)
+- [x] Playwright E2E (3 test)
+- [ ] Upload gambar ke S3/R2 (kode + test siap, menunggu credential)
 
 ## Pre-existing Dependencies
 
-Next.js, Tailwind, NestJS/Express, Redis/BullMQ, FastAPI, yt-dlp, FFmpeg, Prisma/PostgreSQL, S3/R2.
+Next.js 15, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Prisma + PostgreSQL,
+Redis + BullMQ, FastAPI + Pydantic, yt-dlp, FFmpeg, boto3, Flutter 3.44,
+Playwright. HTTP gateway memakai `node:http` (bukan Express/NestJS).

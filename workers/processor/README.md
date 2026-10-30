@@ -33,7 +33,15 @@ pernah dicetak). Base URL harus berakhir `/v1`. Env dibaca saat dipanggil,
 jadi `source .env` sebelum start sudah cukup.
 Modul: `src/processor/ai.py` (`settings`, `transcribe_audio`, `generate_article`, `enrich`).
 
-## Test (stdlib only, tanpa network)
+## Object storage (opsional)
+
+`upload_images()` mengunggah 2-3 frame pilihan LLM (`selected_image_indices`,
+fallback 2 frame pertama) ke S3/R2. Butuh `S3_BUCKET_NAME`, `S3_ENDPOINT`,
+`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (+ `S3_PUBLIC_BASE_URL`, `S3_REGION`).
+Env kosong = upload dilewati; env lengkap tapi upload gagal = job failed
+(dan `/tmp` tetap dibersihkan).
+
+## Test (tanpa network)
 
 ```bash
 PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python \

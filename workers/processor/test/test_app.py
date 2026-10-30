@@ -17,11 +17,14 @@ class AppTest(unittest.TestCase):
                       side_effect=lambda *a: order.append("enrich") or {
                           "articles": {"id": {}, "en": {}}, "json_ld": {}}), \
                 patch("processor.app.purge",
-                      side_effect=lambda *a: order.append("purge")):
+                      side_effect=lambda *a: order.append("purge")), \
+                patch("processor.app.upload_images",
+                      side_effect=lambda *a: order.append("upload") or ["https://cdn/x.jpg"]):
             out = process(JOB)
-        self.assertEqual(order, ["pipeline", "enrich", "purge"])
+        self.assertEqual(order, ["pipeline", "enrich", "upload", "purge"])
         self.assertEqual(out["job_id"], "j1")
         self.assertIn("articles", out)
+        self.assertEqual(out["images"], ["https://cdn/x.jpg"])
 
     def test_purge_tetap_jalan_walau_pipeline_gagal(self):
         with patch("processor.app.pipeline", side_effect=RuntimeError("yt-dlp")), \

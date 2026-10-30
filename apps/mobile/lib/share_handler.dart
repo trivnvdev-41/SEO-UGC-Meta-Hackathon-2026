@@ -1,8 +1,9 @@
 // Share handler: ekstrak URL pertama dari teks Share Sheet,
 // lalu dikirim sebagai {url} ke POST /v1/convert (lihat main.dart).
 final _urlRe = RegExp(r'https?://\S+');
-final _allowedHost =
-    RegExp(r'(^|\.)(tiktok\.com|instagram\.com)$', caseSensitive: false);
+final _allowedHost = RegExp(
+    r'(^|\.)(tiktok\.com|instagram\.com|youtube\.com|youtu\.be)$',
+    caseSensitive: false);
 
 String? extractSharedUrl(String? text) {
   if (text == null) return null;

@@ -2,8 +2,34 @@ import Script from "next/script";
 
 const TIKTOK_ID = /tiktok\.com\/@[^/]+\/(?:video|photo)\/(\d+)/;
 const INSTAGRAM = /instagram\.com\/(?:reel|reels|p|tv)\/([\w-]+)/;
+const YOUTUBE_ID = [
+  /youtu\.be\/([\w-]{11})/,
+  /youtube\.com\/(?:watch\?v=|shorts\/|embed\/)([\w-]{11})/,
+];
+
+function youtubeId(url: string): string | null {
+  for (const re of YOUTUBE_ID) {
+    const m = url.match(re);
+    if (m) return m[1];
+  }
+  return null;
+}
 
 export function Embed({ url }: { url: string }) {
+  const yt = youtubeId(url);
+  if (yt) {
+    return (
+      <iframe
+        className="embed-video"
+        src={`https://www.youtube-nocookie.com/embed/${yt}`}
+        title="Video YouTube"
+        loading="lazy"
+        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    );
+  }
+
   const tiktok = url.match(TIKTOK_ID);
   if (tiktok) {
     return (

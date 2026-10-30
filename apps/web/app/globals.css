@@ -45,3 +45,11 @@ body {
   height: auto;
   margin: 1rem 0;
 }
+
+.article .embed-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 8px;
+  margin: 1rem 0;
+}

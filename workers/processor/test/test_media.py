@@ -9,6 +9,7 @@ from processor.media import (
     download_cmd,
     frames_cmd,
     is_convertible_url,
+    max_seconds_for,
     job_dir,
     pipeline,
     purge,
@@ -38,6 +39,12 @@ class MediaTest(unittest.TestCase):
                 check_size(video, max_mb=1)
             self.assertEqual(str(cm.exception), "video_too_large")
             check_size(video, max_mb=2)  # lolos
+
+    def test_batas_durasi_per_platform(self):
+        self.assertEqual(max_seconds_for("https://www.tiktok.com/@a/video/1"), 180)
+        self.assertEqual(max_seconds_for("https://www.youtube.com/shorts/x"), 600)
+        cmd = download_cmd("https://youtu.be/aBcD1234", Path("/tmp/v.mp4"))
+        self.assertEqual(cmd[cmd.index("--match-filter") + 1], "duration <= 600")
 
     def test_pipeline_pakai_timeout(self):
         seen = []
@@ -125,6 +132,9 @@ class MediaTest(unittest.TestCase):
 
     def test_url_allowlist(self):
         self.assertTrue(is_convertible_url("https://vt.tiktok.com/x/"))
+        self.assertTrue(is_convertible_url("https://www.youtube.com/shorts/aBcD1234"))
+        self.assertTrue(is_convertible_url("https://youtu.be/aBcD1234"))
+        self.assertFalse(is_convertible_url("https://youtube.com.evil.com/x"))
         self.assertTrue(is_convertible_url("https://www.instagram.com/reel/a/"))
         self.assertFalse(is_convertible_url("http://169.254.169.254/x"))
         self.assertFalse(is_convertible_url("https://evil.com/v/1"))

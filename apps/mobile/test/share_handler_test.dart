@@ -33,11 +33,16 @@ void main() {
           'https://vt.tiktok.com/ZSabc/');
       expect(supportedSharedUrl('https://www.instagram.com/reel/ABC/'),
           'https://www.instagram.com/reel/ABC/');
+      expect(supportedSharedUrl('https://www.youtube.com/shorts/abc123'),
+          'https://www.youtube.com/shorts/abc123');
+      expect(supportedSharedUrl('https://youtu.be/abc123'),
+          'https://youtu.be/abc123');
     });
 
     test('tolak host lain, http, dan userinfo', () {
       expect(supportedSharedUrl('https://evil.com/x'), isNull);
       expect(supportedSharedUrl('https://tiktok.com.evil.com/x'), isNull);
+      expect(supportedSharedUrl('https://youtube.com.evil.com/x'), isNull);
       expect(supportedSharedUrl('http://www.tiktok.com/@a/video/1'), isNull);
       expect(supportedSharedUrl('https://user:pw@tiktok.com/x'), isNull);
       expect(supportedSharedUrl('http://169.254.169.254/latest'), isNull);

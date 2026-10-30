@@ -1,6 +1,7 @@
-// URL konvertibel: https + host harus TikTok/Instagram (whitelist, bukan blacklist).
+// URL konvertibel: https + host harus TikTok/Instagram/YouTube (whitelist).
 // Ini sekaligus menutup SSRF: host internal/IP literal tidak mungkin lolos.
-const ALLOWED_HOST = /(^|\.)(tiktok\.com|instagram\.com)$/i;
+// Batas durasi YouTube (Shorts / ≤10 menit) ditegakkan di worker via yt-dlp.
+const ALLOWED_HOST = /(^|\.)(tiktok\.com|instagram\.com|youtube\.com|youtu\.be)$/i;
 
 export function isConvertibleUrl(url) {
   if (typeof url !== 'string') return false;

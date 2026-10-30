@@ -31,6 +31,8 @@ function call(app, { method = 'POST', url = '/v1/convert', body = {} } = {}) {
 test('URL valid lolos, host lain/format salah ditolak', () => {
   assert.equal(isConvertibleUrl('https://vt.tiktok.com/abc123/'), true);
   assert.equal(isConvertibleUrl('https://www.instagram.com/reel/abc/'), true);
+  assert.equal(isConvertibleUrl('https://www.youtube.com/shorts/abc123XYZ_-'), true);
+  assert.equal(isConvertibleUrl('https://youtu.be/abc123XYZ_-'), true);
   assert.equal(isConvertibleUrl('not-a-url'), false);
   assert.equal(isConvertibleUrl(''), false);
   assert.equal(isConvertibleUrl(null), false);
@@ -40,6 +42,7 @@ test('SSRF/domain lain ditolak', () => {
   assert.equal(isConvertibleUrl('http://169.254.169.254/latest/meta-data'), false);
   assert.equal(isConvertibleUrl('https://evil.com/video/1'), false);
   assert.equal(isConvertibleUrl('https://tiktok.com.evil.com/x'), false);
+  assert.equal(isConvertibleUrl('https://youtube.com.evil.com/x'), false);
   assert.equal(isConvertibleUrl('https://user:pw@tiktok.com/x'), false);
   assert.equal(isConvertibleUrl('http://www.tiktok.com/@a/video/1'), false);
 });

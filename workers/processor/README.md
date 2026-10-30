@@ -38,7 +38,8 @@ Modul: `src/processor/ai.py` (`settings`, `transcribe_audio`, `generate_article`
 | Env | Default | Efek |
 |---|---|---|
 | `MAX_VIDEO_MB` | 50 | `yt-dlp --max-filesize` + cek ukuran nyata setelah unduh (`video_too_large`) |
-| `MAX_VIDEO_SECONDS` | 180 | `yt-dlp --match-filter "duration <= N"` — tolak sebelum bandwidth terpakai |
+| `MAX_VIDEO_SECONDS` | 180 | `yt-dlp --match-filter "duration <= N"` — TikTok/IG |
+| `MAX_VIDEO_SECONDS_YOUTUBE` | 600 | batas khusus YouTube (Shorts & video ≤10 menit) |
 
 Timeout: yt-dlp 120s, ffmpeg 60s, `--socket-timeout 30` — proses menggantung
 akan gagal cepat, bukan menahan worker.

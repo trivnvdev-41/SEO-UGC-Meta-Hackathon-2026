@@ -20,9 +20,12 @@ FRAME_PATTERN = "frame_%03d.jpg"
 
 _JOB_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # Defense in depth: gateway sudah memfilter, worker menolak host lain juga.
-_ALLOWED_HOST = re.compile(r"(^|\.)(tiktok\.com|instagram\.com)$", re.I)
+_ALLOWED_HOST = re.compile(
+    r"(^|\.)(tiktok\.com|instagram\.com|youtube\.com|youtu\.be)$", re.I)
+_YOUTUBE_HOST = re.compile(r"(^|\.)(youtube\.com|youtu\.be)$", re.I)
 _DEFAULT_MAX_MB = 50
 _DEFAULT_MAX_SECONDS = 180
+_DEFAULT_MAX_SECONDS_YOUTUBE = 600
 _DOWNLOAD_TIMEOUT = 120
 _FFMPEG_TIMEOUT = 60
 _SOCKET_TIMEOUT = 30
@@ -55,6 +58,23 @@ def max_seconds() -> int:
     return int(raw) if raw.isdigit() and int(raw) > 0 else _DEFAULT_MAX_SECONDS
 
 
+def is_youtube(url: str) -> bool:
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return False
+    return bool(_YOUTUBE_HOST.search(host))
+
+
+def max_seconds_for(url: str) -> int:
+    """YouTube boleh lebih panjang (Shorts & video ≤10 menit), platform lain 180s."""
+    if not is_youtube(url):
+        return max_seconds()
+    raw = os.environ.get("MAX_VIDEO_SECONDS_YOUTUBE", "").strip()
+    return (int(raw) if raw.isdigit() and int(raw) > 0
+            else _DEFAULT_MAX_SECONDS_YOUTUBE)
+
+
 def check_size(video: Path, max_mb: int | None = None) -> None:
     """Guard terakhir: ukuran nyata di disk, bukan klaim extractor."""
     limit = (max_mb or max_filesize_mb()) * 1024 * 1024
@@ -72,7 +92,8 @@ def download_cmd(url: str, out: Path, cookies: str | None = None,
     cmd = ["yt-dlp", "-o", str(out),
            "--max-filesize", f"{max_mb or max_filesize_mb()}M",
            "--socket-timeout", str(_SOCKET_TIMEOUT),
-           "--match-filter", f"duration <= {max_sec or max_seconds()}"]
+           "--match-filter",
+           f"duration <= {max_sec or max_seconds_for(url)}"]
     if cookies:
         cmd += ["--cookies", cookies]
     cmd.append(url)

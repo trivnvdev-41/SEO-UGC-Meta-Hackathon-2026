@@ -28,8 +28,11 @@ class ConvertJob(BaseModel):
 
 @app.post("/process")
 def process(job: ConvertJob):
-    media = pipeline(job.job_id, job.url)
-    bundle = enrich(media["audio"], media["frames"])
-    # shortcut: upload S3 belum ada; setelah itu purge dipindah ke paling akhir.
-    purge(job.job_id)
+    try:
+        media = pipeline(job.job_id, job.url)
+        bundle = enrich(media["audio"], media["frames"])
+        # #5 menyisipkan upload S3 di sini, sebelum purge.
+    finally:
+        # Satu titik keluar: /tmp/{job_id} tidak bocor walau download/enrich gagal.
+        purge(job.job_id)
     return {"job_id": job.job_id, "url": job.url, **bundle}

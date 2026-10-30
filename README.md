@@ -57,6 +57,32 @@ Turn UGC video links (TikTok / IG Reels / YouTube) into SEO-ready web articles w
 CI (`.github/workflows/ci.yml`) runs the API, worker, web unit/typecheck, and
 mobile suites on every push. E2E needs Postgres + seed data, so it runs locally.
 
+## Local object storage (S3-compatible)
+
+MinIO images are no longer publicly pullable (Docker Hub repo removed, Quay requires
+login, dl.min.io returns 410), so the repo uses **s3proxy** with a filesystem backend:
+
+```bash
+mkdir -p /tmp/seougc-s3
+docker run -d --name seougc-s3 -p 9000:80 \
+  -e S3PROXY_AUTHORIZATION=none \
+  -e JCLOUDS_PROVIDER=filesystem \
+  -e JCLOUDS_FILESYSTEM_BASEDIR=/data \
+  -v /tmp/seougc-s3:/data andrewgaul/s3proxy
+```
+
+Then create the bucket once (any S3 client) and point `.env` at it:
+
+```env
+S3_BUCKET_NAME=seo-ugc-images
+S3_ENDPOINT=http://127.0.0.1:9000
+S3_REGION=us-east-1
+S3_PUBLIC_BASE_URL=http://127.0.0.1:9000/seo-ugc-images
+```
+
+`S3PROXY_AUTHORIZATION=none` means anonymous read/write — local demo only, never
+expose it publicly.
+
 ## Built During Hackathon
 
 - [x] Mobile Share Receiver (Flutter, Android `ACTION_SEND`; iOS extension is source only, not wired)
@@ -68,7 +94,7 @@ mobile suites on every push. E2E needs Postgres + seed data, so it runs locally.
 - [x] Security: domain allowlist, internal service token, rate limit, video size/duration caps
 - [x] Prisma/PostgreSQL (`Article` + `Job`)
 - [x] Playwright E2E (3 tests)
-- [ ] Image upload to S3/R2 (code + tests ready, waiting for credentials)
+- [x] Image upload to S3/R2 (verified against local s3proxy: 2 files uploaded, public URLs return 200)
 
 ## Pre-existing Dependencies
 

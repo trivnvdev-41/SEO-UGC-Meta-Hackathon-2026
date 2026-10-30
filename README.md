@@ -38,7 +38,8 @@ Konversi link video UGC (TikTok / IG Reels) menjadi artikel web SEO + **JSON-LD 
    workers/processor/.venv/bin/uvicorn processor.app:app --app-dir workers/processor/src --port 4302
    npm run dev --prefix apps/web
    ```
-7. Ikuti README tiap `apps/*` / `workers/*` untuk detail per tahap.
+7. Mobile (opsional): `cd apps/mobile && flutter run --dart-define=API_BASE=http://10.0.2.2:4301`
+8. Ikuti README tiap `apps/*` / `workers/*` untuk detail per tahap.
 
 ## Built During Hackathon
 

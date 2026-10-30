@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test": "vitest run"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -21,8 +22,10 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.3.0",
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^5.0.5"
   }
 }

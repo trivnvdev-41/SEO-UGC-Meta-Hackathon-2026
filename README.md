@@ -44,6 +44,19 @@ Turn UGC video links (TikTok / IG Reels / YouTube) into SEO-ready web articles w
 7. Mobile (optional): `cd apps/mobile && flutter run --dart-define=API_BASE=http://10.0.2.2:4301`
 8. See each `apps/*` and `workers/*` README for details.
 
+## Tests
+
+| Suite | Command | Count |
+|---|---|---|
+| API (node:test) | `npm test --prefix apps/api` | 12 |
+| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 35 |
+| Web unit (vitest) | `npm test --prefix apps/web` | 12 |
+| Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 4 |
+| Mobile (flutter) | `cd apps/mobile && flutter test` | 7 |
+
+CI (`.github/workflows/ci.yml`) runs the API, worker, web unit/typecheck, and
+mobile suites on every push. E2E needs Postgres + seed data, so it runs locally.
+
 ## Built During Hackathon
 
 - [x] Mobile Share Receiver (Flutter, Android `ACTION_SEND`; iOS extension is source only, not wired)

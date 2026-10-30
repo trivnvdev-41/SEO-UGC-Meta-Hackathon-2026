@@ -6,6 +6,8 @@ import { Card, CardContent } from "../../../components/ui/card";
 import { getArticle, listArticleIds, pickBody, type Lang } from "../../../lib/articles";
 import { articleUrl } from "../../../lib/site";
 import { videoObject } from "../../../lib/structured";
+import { escapeJsonLd } from "../../../lib/jsonld";
+import { renderMd } from "../../../lib/markdown";
 
 export const revalidate = 3600;
 
@@ -55,61 +57,6 @@ export async function generateMetadata(
   };
 }
 
-// Markdown minimal: heading, list, bold, link. Teks dirender sebagai node React
-// (auto-escaped), jadi tidak ada HTML mentah dari output model.
-function inline(text: string, keyPrefix: string): React.ReactNode[] {
-  const out: React.ReactNode[] = [];
-  const re = /\*\*(.+?)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let i = 0;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) out.push(text.slice(last, m.index));
-    out.push(
-      m[1] ? (
-        <strong key={`${keyPrefix}-b${i}`} className="font-bold">
-          {m[1]}
-        </strong>
-      ) : (
-        <a key={`${keyPrefix}-a${i}`} href={m[3]} rel="nofollow noopener">
-          {m[2]}
-        </a>
-      ),
-    );
-    last = m.index + m[0].length;
-    i += 1;
-  }
-  if (last < text.length) out.push(text.slice(last));
-  return out;
-}
-
-function renderMd(md: string) {
-  // shortcut: renderer md minimal (heading + list + bold/link),
-  // ganti markdown lib saat butuh tabel/gfm.
-  return md.split("\n\n").map((block, i) => {
-    const lines = block.split("\n");
-    if (block.startsWith("## ") || block.startsWith("# ")) {
-      // H1 sudah dipakai judul artikel, jadi heading level 1 dari model jadi h2.
-      const text = block.startsWith("## ") ? block.slice(3) : block.slice(2);
-      return <h2 key={i}>{inline(text, `h${i}`)}</h2>;
-    }
-    if (lines.every((l) => l.startsWith("- "))) {
-      return (
-        <ul key={i} className="my-3 list-disc space-y-1 pl-5">
-          {lines.map((li, j) => (
-            <li key={j}>{inline(li.slice(2), `l${i}-${j}`)}</li>
-          ))}
-        </ul>
-      );
-    }
-    return (
-      <p key={i} className="my-3">
-        {inline(block, `p${i}`)}
-      </p>
-    );
-  });
-}
-
 export default async function ArticlePage(
   { params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lang?: string }> },
 ) {
@@ -118,8 +65,7 @@ export default async function ArticlePage(
   if (!a) notFound();
   const lang = langOf(await searchParams);
   const body = pickBody(a, lang);
-  const esc = (v: unknown) => JSON.stringify(v).replace(/</g, "\\u003c");
-  const ld = esc(a.json_ld);
+  const ld = escapeJsonLd(a.json_ld);
   const video = videoObject(a, body);
   return (
     <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
@@ -161,7 +107,7 @@ export default async function ArticlePage(
       {video ? (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: esc(video) }}
+          dangerouslySetInnerHTML={{ __html: escapeJsonLd(video) }}
         />
       ) : null}
     </main>

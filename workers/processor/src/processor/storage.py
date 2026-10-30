@@ -20,21 +20,26 @@ def _env(name: str) -> str:
 
 
 def config() -> dict | None:
+    """None kalau bucket belum diset. Key opsional: tanpa key, boto3 pakai
+    default credential chain (AWS profile/env/instance role)."""
     bucket = _env("S3_BUCKET_NAME")
+    if not bucket:
+        return None
     endpoint = _env("S3_ENDPOINT")
     access = _env("S3_ACCESS_KEY_ID")
     secret = _env("S3_SECRET_ACCESS_KEY")
+    region = _env("S3_REGION") or "us-east-1"
     public = _env("S3_PUBLIC_BASE_URL")
-    if not (bucket and endpoint and access and secret):
-        return None
-    return {
-        "bucket": bucket,
-        "endpoint": endpoint,
-        "access": access,
-        "secret": secret,
-        "public": (public or f"{endpoint.rstrip('/')}/{bucket}").rstrip("/"),
-        "region": _env("S3_REGION") or "auto",
-    }
+    if not public:
+        public = (f"{endpoint.rstrip('/')}/{bucket}" if endpoint
+                  else f"https://{bucket}.s3.{region}.amazonaws.com")
+    cfg = {"bucket": bucket, "public": public.rstrip("/"), "region": region}
+    if endpoint:
+        cfg["endpoint"] = endpoint
+    if access and secret:
+        cfg["access"] = access
+        cfg["secret"] = secret
+    return cfg
 
 
 def pick_frames(frames: list[str], indices: list[int]) -> list[str]:
@@ -48,18 +53,21 @@ def upload_images(job_id: str, frames: list[str], indices: list[int],
     cfg = config()
     if not cfg or not frames:
         return []
-    s3 = client or boto3.client(
-        "s3",
-        endpoint_url=cfg["endpoint"],
-        aws_access_key_id=cfg["access"],
-        aws_secret_access_key=cfg["secret"],
-        region_name=cfg["region"],
-        config=Config(signature_version="s3v4"),
-    )
+    if client is None:
+        kwargs = {
+            "region_name": cfg["region"],
+            "config": Config(signature_version="s3v4"),
+        }
+        if cfg.get("endpoint"):
+            kwargs["endpoint_url"] = cfg["endpoint"]
+        if cfg.get("access"):
+            kwargs["aws_access_key_id"] = cfg["access"]
+            kwargs["aws_secret_access_key"] = cfg["secret"]
+        client = boto3.client("s3", **kwargs)
     urls = []
     for path in pick_frames(frames, indices):
         key = f"{job_id}/{Path(path).name}"
-        s3.upload_file(path, cfg["bucket"], key,
+        client.upload_file(path, cfg["bucket"], key,
                        ExtraArgs={"ContentType": "image/jpeg"})
         urls.append(f"{cfg['public']}/{key}")
     return urls

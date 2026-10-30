@@ -25,11 +25,21 @@ class FakeS3:
 
 
 class StorageTest(unittest.TestCase):
-    def test_config_kosong_jika_env_kurang(self):
+    def test_config_kosong_tanpa_bucket(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertIsNone(config())
-        with patch.dict(os.environ, {"S3_BUCKET_NAME": "b"}, clear=True):
+        with patch.dict(os.environ, {"S3_ENDPOINT": "https://s3.test"},
+                             clear=True):
             self.assertIsNone(config())
+
+    def test_config_aws_tanpa_key(self):
+        env = {"S3_BUCKET_NAME": "bucket", "S3_REGION": "ap-southeast-1"}
+        with patch.dict(os.environ, env, clear=True):
+            cfg = config()
+        self.assertEqual(cfg["public"],
+                         "https://bucket.s3.ap-southeast-1.amazonaws.com")
+        self.assertNotIn("endpoint", cfg)
+        self.assertNotIn("access", cfg)  # pakai default credential chain
 
     def test_upload_tanpa_config_dilewati(self):
         s3 = FakeS3()

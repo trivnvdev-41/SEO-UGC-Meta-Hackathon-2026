@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from processor.media import (
     audio_cmd,
+    check_size,
     cookies_file,
     download_cmd,
     frames_cmd,
@@ -23,8 +24,41 @@ class MediaTest(unittest.TestCase):
 
     def test_download_cmd_batas_ukuran(self):
         cmd = download_cmd("https://vt.tiktok.com/x/", Path("/tmp/v.mp4"),
-                           max_mb=12)
+                           max_mb=12, max_sec=90)
         self.assertEqual(cmd[cmd.index("--max-filesize") + 1], "12M")
+        self.assertEqual(cmd[cmd.index("--match-filter") + 1], "duration <= 90")
+        self.assertEqual(cmd[cmd.index("--socket-timeout") + 1], "30")
+
+    def test_check_size_tolak_file_raksasa(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            video = Path(tmp) / "video.mp4"
+            video.write_bytes(b"x" * (1024 * 1024 + 1))
+            with self.assertRaises(ValueError) as cm:
+                check_size(video, max_mb=1)
+            self.assertEqual(str(cm.exception), "video_too_large")
+            check_size(video, max_mb=2)  # lolos
+
+    def test_pipeline_pakai_timeout(self):
+        seen = []
+        pipeline("testjob4", "https://vt.tiktok.com/x/",
+                 run=lambda cmd, **kw: seen.append(kw.get("timeout")))
+        self.assertEqual(seen, [120, 60, 60])
+        purge("testjob4")
+
+    def test_pipeline_tolak_video_terlalu_besar(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            def fake_run(cmd, **kw):
+                if cmd[0] == "yt-dlp":
+                    Path(cmd[2]).write_bytes(b"x" * (2 * 1024 * 1024))
+            with patch.dict("os.environ", {"MAX_VIDEO_MB": "1"}, clear=True), \
+                    patch("processor.media.TMP_ROOT", root), \
+                    self.assertRaises(ValueError) as cm:
+                pipeline("toolarge", "https://vt.tiktok.com/x/", run=fake_run)
+            self.assertEqual(str(cm.exception), "video_too_large")
+            purge("toolarge")
 
     def test_download_cmd_pakai_cookies(self):
         cmd = download_cmd("https://vt.tiktok.com/x/",

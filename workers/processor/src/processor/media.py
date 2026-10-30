@@ -22,6 +22,10 @@ _JOB_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # Defense in depth: gateway sudah memfilter, worker menolak host lain juga.
 _ALLOWED_HOST = re.compile(r"(^|\.)(tiktok\.com|instagram\.com)$", re.I)
 _DEFAULT_MAX_MB = 50
+_DEFAULT_MAX_SECONDS = 180
+_DOWNLOAD_TIMEOUT = 120
+_FFMPEG_TIMEOUT = 60
+_SOCKET_TIMEOUT = 30
 
 
 def _check_job_id(job_id: str) -> str:
@@ -46,14 +50,29 @@ def max_filesize_mb() -> int:
     return int(raw) if raw.isdigit() and int(raw) > 0 else _DEFAULT_MAX_MB
 
 
+def max_seconds() -> int:
+    raw = os.environ.get("MAX_VIDEO_SECONDS", "").strip()
+    return int(raw) if raw.isdigit() and int(raw) > 0 else _DEFAULT_MAX_SECONDS
+
+
+def check_size(video: Path, max_mb: int | None = None) -> None:
+    """Guard terakhir: ukuran nyata di disk, bukan klaim extractor."""
+    limit = (max_mb or max_filesize_mb()) * 1024 * 1024
+    if video.exists() and video.stat().st_size > limit:
+        raise ValueError("video_too_large")
+
+
 def job_dir(job_id: str) -> Path:
     return TMP_ROOT / _check_job_id(job_id)
 
 
 def download_cmd(url: str, out: Path, cookies: str | None = None,
-                 max_mb: int | None = None) -> list[str]:
-    cmd = ["yt-dlp", "-o", str(out), "--max-filesize",
-           f"{max_mb or max_filesize_mb()}M"]
+                 max_mb: int | None = None,
+                 max_sec: int | None = None) -> list[str]:
+    cmd = ["yt-dlp", "-o", str(out),
+           "--max-filesize", f"{max_mb or max_filesize_mb()}M",
+           "--socket-timeout", str(_SOCKET_TIMEOUT),
+           "--match-filter", f"duration <= {max_sec or max_seconds()}"]
     if cookies:
         cmd += ["--cookies", cookies]
     cmd.append(url)
@@ -89,9 +108,10 @@ def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     d.mkdir(parents=True, exist_ok=True)
     video = d / VIDEO_NAME
     audio = d / AUDIO_NAME
-    run(download_cmd(url, video, cookies), check=True)
-    run(audio_cmd(video, audio), check=True)
-    run(frames_cmd(video, d / FRAME_PATTERN), check=True)
+    run(download_cmd(url, video, cookies), check=True, timeout=_DOWNLOAD_TIMEOUT)
+    check_size(video)
+    run(audio_cmd(video, audio), check=True, timeout=_FFMPEG_TIMEOUT)
+    run(frames_cmd(video, d / FRAME_PATTERN), check=True, timeout=_FFMPEG_TIMEOUT)
     frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
     return {"job_id": job_id, "video": str(video),
             "audio": str(audio), "frames": frames}

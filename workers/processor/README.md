@@ -33,6 +33,16 @@ pernah dicetak). Base URL harus berakhir `/v1`. Env dibaca saat dipanggil,
 jadi `source .env` sebelum start sudah cukup.
 Modul: `src/processor/ai.py` (`settings`, `transcribe_audio`, `generate_article`, `enrich`).
 
+## Batas resource
+
+| Env | Default | Efek |
+|---|---|---|
+| `MAX_VIDEO_MB` | 50 | `yt-dlp --max-filesize` + cek ukuran nyata setelah unduh (`video_too_large`) |
+| `MAX_VIDEO_SECONDS` | 180 | `yt-dlp --match-filter "duration <= N"` — tolak sebelum bandwidth terpakai |
+
+Timeout: yt-dlp 120s, ffmpeg 60s, `--socket-timeout 30` — proses menggantung
+akan gagal cepat, bukan menahan worker.
+
 ## Object storage (opsional)
 
 `upload_images()` mengunggah 2-3 frame pilihan LLM (`selected_image_indices`,

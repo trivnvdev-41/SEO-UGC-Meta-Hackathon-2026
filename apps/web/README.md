@@ -17,3 +17,13 @@ node apps/web/node_modules/next/dist/bin/next dev apps/web
 ```
 
 Buka di browser: `http://localhost:3000/article/contoh-review`
+
+## E2E (Playwright)
+
+```bash
+npm run test:e2e --prefix apps/web
+```
+
+Menjalankan API (`:4301`) + `next dev` sendiri, lalu uji: H1/embed/JSON-LD,
+switch bahasa, dan 404. Butuh Postgres (`seougc-pg`) + data seed.
+Screenshot tersimpan di `e2e/__screenshots__/` (gitignored).

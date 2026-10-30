@@ -130,11 +130,13 @@ def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     video = d / VIDEO_NAME
     audio = d / AUDIO_NAME
     run(download_cmd(url, video, cookies), check=True, timeout=_DOWNLOAD_TIMEOUT)
-    check_size(video)
-    run(audio_cmd(video, audio), check=True, timeout=_FFMPEG_TIMEOUT)
-    run(frames_cmd(video, d / FRAME_PATTERN), check=True, timeout=_FFMPEG_TIMEOUT)
+    # yt-dlp menambah ekstensi kontainer saat merge (video.mp4 -> video.mp4.webm).
+    dl = video if video.exists() else next(iter(sorted(d.glob("video.*"))), video)
+    check_size(dl)
+    run(audio_cmd(dl, audio), check=True, timeout=_FFMPEG_TIMEOUT)
+    run(frames_cmd(dl, d / FRAME_PATTERN), check=True, timeout=_FFMPEG_TIMEOUT)
     frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
-    return {"job_id": job_id, "video": str(video),
+    return {"job_id": job_id, "video": str(dl),
             "audio": str(audio), "frames": frames}
 
 

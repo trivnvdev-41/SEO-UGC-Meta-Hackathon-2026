@@ -93,6 +93,55 @@ def transcribe_audio(audio_path: str | Path, api_key: str | None = None,
     return {"text": data["text"], "language": data.get("language")}
 
 
+def _wav16k(audio: Path) -> Path:
+    """Meta ASR hanya terima WAV: konversi ke 16kHz mono di sebelah file asli."""
+    import subprocess
+    wav = audio.with_suffix(".wav")
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(audio),
+                    "-ar", "16000", "-ac", "1", str(wav)],
+                   check=True, timeout=60)
+    return wav
+
+
+def _meta_asr_parts(model: str, wav: Path) -> tuple[bytes, str]:
+    boundary = "----seougc" + secrets.token_hex(8)
+    buf = io.BytesIO()
+    buf.write(f'--{boundary}\r\nContent-Disposition: form-data; name="request"\r\n'
+              f'Content-Type: application/json\r\n\r\n'
+              f'{json.dumps({"model": model, "audioEncoding": "WAV"})}\r\n'.encode())
+    buf.write(f'--{boundary}\r\nContent-Disposition: form-data; name="audio"; '
+              f'filename="{wav.name}"\r\nContent-Type: audio/wav\r\n\r\n'.encode())
+    buf.write(wav.read_bytes())
+    buf.write(f"\r\n--{boundary}--\r\n".encode())
+    return buf.getvalue(), f"multipart/form-data; boundary={boundary}"
+
+
+def transcribe_meta_asr(audio_path: str | Path, api_key: str | None = None,
+                        model: str | None = None,
+                        endpoint: str | None = None) -> dict:
+    """audio -> {'text', None} via endpoint Meta ASR (bukan OpenAI-compatible).
+
+    AI_STT_BASE_URL diisi URL endpoint penuh (…/v1/asr/transcribe)."""
+    audio = Path(audio_path)
+    if endpoint is None:
+        endpoint = os.environ.get("AI_STT_BASE_URL", "")
+    if api_key is None:
+        api_key = os.environ.get("AI_STT_API_KEY", "")
+    if model is None:
+        model = os.environ.get("AI_STT_MODEL", "")
+    endpoint = _require("AI_STT_BASE_URL", endpoint).rstrip("/")
+    _require("AI_STT_API_KEY", api_key)
+    _require("AI_STT_MODEL", model)
+    body, ctype = _meta_asr_parts(model, _wav16k(audio))
+    data = _post(endpoint, api_key, body, ctype)
+    return {"text": data["transcript"], "language": None}
+
+
+def stt_mode() -> str:
+    """openai (default) atau meta-asr. Dibaca saat dipanggil seperti env lain."""
+    return os.environ.get("AI_STT_MODE", "").strip() or "openai"
+
+
 PROMPT = ("Kamu analis review produk. Dari TRANSKRIP + FOTO berikut, "
           "pilih foto produk paling jelas dan tulis artikel SEO dua bahasa. "
           "Balas HANYA JSON: "
@@ -126,7 +175,10 @@ def generate_article(transcript: str, images_b64: list[str],
 def enrich(audio_path: str | Path, frame_paths: list[str | Path],
            api_key: str | None = None) -> dict:
     """Satu pintu worker: STT dulu, lalu artikel + seleksi foto."""
-    stt = transcribe_audio(audio_path, api_key)
+    if stt_mode() == "meta-asr":
+        stt = transcribe_meta_asr(audio_path, api_key)
+    else:
+        stt = transcribe_audio(audio_path, api_key)
     images = [base64.b64encode(Path(p).read_bytes()).decode()
               for p in frame_paths]
     bundle = generate_article(stt["text"], images, api_key)

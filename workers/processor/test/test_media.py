@@ -141,6 +141,21 @@ class MediaTest(unittest.TestCase):
         self.assertFalse(is_convertible_url("https://tiktok.com.evil.com/x"))
         self.assertFalse(is_convertible_url("http://www.tiktok.com/@a/video/1"))
 
+    def test_pipeline_pakai_file_hasil_merge(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            def fake_run(cmd, **kw):
+                if cmd[0] == "yt-dlp":
+                    # yt-dlp merge: video.mp4 -> video.mp4.webm
+                    (root / "mergejob" / "video.mp4.webm").write_bytes(b"x")
+            with patch.dict("os.environ", {}, clear=True), \
+                    patch("processor.media.TMP_ROOT", root):
+                out = pipeline("mergejob", "https://www.youtube.com/shorts/aBcD1234",
+                               run=fake_run)
+                self.assertTrue(out["video"].endswith("video.mp4.webm"))
+                purge("mergejob")
+
     def test_pipeline_tolak_url_tidak_diizinkan(self):
         seen = []
         with self.assertRaises(ValueError):

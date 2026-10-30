@@ -54,6 +54,33 @@ class AiTest(unittest.TestCase):
         self.assertIn("multipart/form-data", cap["ctype"])
         self.assertIn(b"audio.mp3", cap["body"])
 
+    def test_meta_asr_posts_request_plus_wav(self):
+        cap = {}
+        payload = json.dumps(
+            {"transcript": "halo", "sessionId": "s"}).encode()
+        with tempfile.TemporaryDirectory() as tmp, patch(
+                "urllib.request.urlopen",
+                _fake_urlopen_factory(cap, payload)), patch.object(
+                ai, "_wav16k", return_value=Path(_mp3(tmp))):
+            out = ai.transcribe_meta_asr(
+                _mp3(tmp), "K", model="m-vox",
+                endpoint="https://m.test/v1/asr/transcribe")
+        self.assertEqual(out, {"text": "halo", "language": None})
+        self.assertEqual(cap["url"], "https://m.test/v1/asr/transcribe")
+        self.assertIn(b'name="request"', cap["body"])
+        self.assertIn(b'name="audio"', cap["body"])
+        self.assertIn(b'"audioEncoding": "WAV"', cap["body"])
+
+    def test_enrich_meta_asr_mode(self):
+        with patch.dict(os.environ, {"AI_STT_MODE": "meta-asr"}), \
+             patch.object(ai, "transcribe_meta_asr",
+                          return_value={"text": "t", "language": None}) as m, \
+             patch.object(ai, "transcribe_audio") as o, \
+             patch.object(ai, "generate_article", return_value={}):
+            ai.enrich("/tmp/j/audio.mp3", [])
+        m.assert_called_once()
+        o.assert_not_called()
+
     def test_generate_posts_images_json(self):
         cap = {}
         bundle = {"selected_image_indices": [1], "articles": {},

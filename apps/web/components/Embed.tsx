@@ -10,7 +10,7 @@ export function Embed({ url }: { url: string }) {
   if (yt) {
     return (
       <iframe
-        className="my-4 aspect-video w-full rounded-lg border-0"
+        className="my-4 aspect-video w-full rounded-2xl border-0"
         src={`https://www.youtube-nocookie.com/embed/${yt}`}
         title="Video YouTube"
         loading="lazy"

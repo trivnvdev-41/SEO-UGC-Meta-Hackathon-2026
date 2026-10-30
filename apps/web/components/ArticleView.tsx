@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Embed } from "@/components/Embed";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getArticle, pickBody, type Lang } from "@/lib/articles";
+import { getArticle, pickBody, ratingOf, type Lang } from "@/lib/articles";
 import { escapeJsonLd } from "@/lib/jsonld";
 import { renderMd } from "@/lib/markdown";
 import { articlePath, articleUrl } from "@/lib/site";
@@ -49,22 +50,36 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
 
   const body = pickBody(a, lang);
   const video = videoObject(a, body);
+  const rating = ratingOf(a.json_ld);
 
   return (
     <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
+      <header className="mb-8 border-b pb-4 font-sans">
+        <a href={lang === "en" ? "/en" : "/"} className="text-sm font-semibold">
+          SEO UGC
+        </a>
+      </header>
       <nav className="mb-6 flex items-center gap-2 font-sans text-xs">
-        <a href={articlePath(id, "id")}>
+        <Link href={articlePath(id, "id")}>
           <Badge variant={lang === "id" ? "default" : "outline"}>ID</Badge>
-        </a>
-        <a href={articlePath(id, "en")}>
+        </Link>
+        <Link href={articlePath(id, "en")}>
           <Badge variant={lang === "en" ? "default" : "outline"}>EN</Badge>
-        </a>
+        </Link>
       </nav>
 
       <h1>{body.title}</h1>
       <p className="mt-2 font-sans text-base text-muted">{body.meta}</p>
+      {rating ? (
+        <p className="mt-3 font-sans text-sm">
+          <Badge variant="default">
+            ★ {rating.value}/5
+            {rating.author ? ` · ${rating.author}` : null}
+          </Badge>
+        </p>
+      ) : null}
 
-      <Card className="my-6 overflow-hidden">
+      <Card className="my-6 overflow-hidden rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
         <CardContent className="p-3">
           <Embed url={a.videoUrl} />
         </CardContent>
@@ -77,7 +92,7 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
           src={src}
           alt={body.title}
           loading="lazy"
-          className="my-4 w-full rounded-lg"
+          className="my-4 w-full rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
         />
       ))}
 

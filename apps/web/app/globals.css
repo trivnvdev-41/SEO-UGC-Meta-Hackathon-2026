@@ -4,7 +4,7 @@
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: Georgia, "Times New Roman", serif;
   --color-ink: #1a1a1a;
-  --color-muted: #444;
+  --color-muted: #555;
 }
 
 @layer base {
@@ -15,11 +15,11 @@
   }
 
   h1 {
-    @apply text-3xl leading-tight tracking-tight font-bold;
+    @apply font-sans text-3xl leading-tight tracking-tight font-bold;
   }
 
   h2 {
-    @apply text-xl font-bold mt-8 mb-2;
+    @apply font-sans text-xl font-bold tracking-tight mt-8 mb-2;
   }
 
   a {

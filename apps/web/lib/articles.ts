@@ -39,3 +39,18 @@ export async function listArticleIds(): Promise<string[]> {
 export function pickBody(a: Article, lang: Lang): ArticleBody {
   return lang === "en" ? a.en_body : a.id_body;
 }
+
+export function ratingOf(json_ld: Record<string, unknown>): {
+  value: string;
+  author: string | null;
+} | null {
+  const review = (json_ld.review ?? {}) as Record<string, unknown>;
+  const rating = (review.reviewRating ?? {}) as Record<string, unknown>;
+  const author = (review.author ?? {}) as Record<string, unknown>;
+  const value = rating.ratingValue;
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  return {
+    value: String(value),
+    author: typeof author.name === "string" ? author.name : null,
+  };
+}

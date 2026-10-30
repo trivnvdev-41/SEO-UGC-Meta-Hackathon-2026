@@ -9,9 +9,14 @@ import 'share_handler.dart';
 
 // 10.0.2.2 = localhost mesin host dari Android emulator.
 // Override: flutter run --dart-define=API_BASE=https://api.example.com
+//   --dart-define=WEB_BASE=https://web.example.com
 const apiBase = String.fromEnvironment(
   'API_BASE',
   defaultValue: 'http://10.0.2.2:4301',
+);
+const webBase = String.fromEnvironment(
+  'WEB_BASE',
+  defaultValue: 'http://10.0.2.2:4320',
 );
 
 void main() {
@@ -31,6 +36,21 @@ class SeoUgcApp extends StatelessWidget {
   }
 }
 
+/// Satu entri riwayat convert (in-memory, terbaru dulu).
+class JobEntry {
+  JobEntry({required this.jobId, required this.url}) : at = DateTime.now();
+
+  final String jobId;
+  final String url;
+  final DateTime at;
+  String status = 'processing'; // processing | done | failed
+  String? articleUrl;
+  String? error;
+
+  String get time =>
+      '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+}
+
 class SharePage extends StatefulWidget {
   const SharePage({super.key});
 
@@ -41,9 +61,12 @@ class SharePage extends StatefulWidget {
 class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   static const _channel = MethodChannel('dev.seougc/share');
 
-  String _status = 'Bagikan video TikTok/IG ke SEO UGC untuk mulai.';
+  String _status = 'Bagikan video TikTok/IG/YouTube ke SEO UGC untuk mulai.';
   String? _lastUrl;
+  String? _articleUrl;
   bool _busy = false;
+  String? _error;
+  final List<JobEntry> _history = [];
 
   String? _lastHandled;
   DateTime? _lastHandledAt;
@@ -92,53 +115,295 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       _lastHandledAt = now;
     }
     if (url == null) {
-      _set(extractSharedUrl(text) == null
-          ? 'Tidak ada URL di teks yang dibagikan.'
-          : 'Link diabaikan: hanya TikTok/Instagram (https) yang didukung.');
+      _set(
+        extractSharedUrl(text) == null
+            ? 'Tidak ada URL di teks yang dibagikan.'
+            : 'Link diabaikan: hanya TikTok/Instagram/YouTube (https) yang didukung.',
+        isError: true,
+      );
       return;
     }
     setState(() {
       _busy = true;
+      _error = null;
       _lastUrl = url;
+      _articleUrl = null;
       _status = 'Mengirim $url ...';
     });
     try {
       final jobId = await postConvert(url);
-      _set('Job dibuat: $jobId');
+      final entry = JobEntry(jobId: jobId, url: url);
+      setState(() {
+        _history.insert(0, entry);
+        if (_history.length > 20) _history.removeLast();
+        _status = 'Job dibuat: $jobId — menunggu artikel...';
+      });
+      await _pollArticle(entry);
+      if (!mounted) return;
+      setState(() {
+        if (entry.status == 'done') {
+          _articleUrl = entry.articleUrl;
+          _status = 'Artikel jadi: $jobId';
+        } else {
+          _error = entry.error;
+          _status = 'Job $jobId gagal: ${entry.error}';
+        }
+        _busy = false;
+      });
     } catch (e) {
-      _set('Gagal: $e');
+      _set('Gagal: $e', isError: true);
     }
   }
 
-  void _set(String status) {
+  /// Poll `GET /v1/articles/<jobId>` sampai 200 (maks ~6 menit).
+  Future<void> _pollArticle(JobEntry entry) async {
+    for (var i = 0; i < 72; i++) {
+      if (!mounted) return;
+      try {
+        if (await fetchArticle(entry.jobId)) {
+          entry
+            ..status = 'done'
+            ..articleUrl = '$webBase/article/${entry.jobId}';
+          return;
+        }
+      } catch (_) {
+        // Jaringan sempat putus: coba lagi sampai batas poll.
+      }
+      await Future<void>.delayed(const Duration(seconds: 5));
+    }
+    entry
+      ..status = 'failed'
+      ..error = 'timeout: artikel belum jadi setelah 6 menit';
+  }
+
+  void _set(String status, {bool isError = false}) {
     if (!mounted) return;
     setState(() {
       _busy = false;
       _status = status;
+      _error = isError ? status : null;
     });
+  }
+
+  Future<void> _copyArticle(String articleUrl) async {
+    await Clipboard.setData(ClipboardData(text: articleUrl));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Link artikel disalin')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('SEO UGC')),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StatusCard(
+              busy: _busy,
+              status: _status,
+              url: _lastUrl,
+              isError: _error != null,
+            ),
+            if (_articleUrl != null) ...[
+              const SizedBox(height: 12),
+              Card(
+                color: theme.colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Artikel jadi!',
+                          style: theme.textTheme.titleSmall),
+                      const SizedBox(height: 4),
+                      SelectableText(_articleUrl!),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        onPressed: () => _copyArticle(_articleUrl!),
+                        icon: const Icon(Icons.copy),
+                        label: const Text('Salin link artikel'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text('Riwayat (${_history.length})',
+                    style: theme.textTheme.titleSmall),
+                const Spacer(),
+                if (_history.isNotEmpty)
+                  TextButton(
+                    onPressed: () => setState(_history.clear),
+                    child: const Text('Hapus'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Expanded(
+              child: _history.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Belum ada job. Share video dari TikTok/IG/YouTube.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: _history.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, i) {
+                        final e = _history[i];
+                        return _HistoryTile(
+                          entry: e,
+                          onCopy: () => _copyArticle(e.articleUrl!),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.busy,
+    required this.status,
+    required this.url,
+    required this.isError,
+  });
+
+  final bool busy;
+  final String status;
+  final String? url;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final icon = busy
+        ? Icons.hourglass_top
+        : isError
+            ? Icons.error_outline
+            : Icons.check_circle_outline;
+    final color = isError
+        ? theme.colorScheme.error
+        : theme.colorScheme.primary;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (_busy) const LinearProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(_status, style: Theme.of(context).textTheme.bodyLarge),
-            if (_lastUrl != null) ...[
+            Row(
+              children: [
+                Icon(icon, color: color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(status,
+                      style: theme.textTheme.bodyLarge),
+                ),
+              ],
+            ),
+            if (busy) ...[
               const SizedBox(height: 12),
-              SelectableText(_lastUrl!),
+              const LinearProgressIndicator(),
+            ],
+            if (url != null) ...[
+              const SizedBox(height: 8),
+              SelectableText(url!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  )),
             ],
           ],
         ),
       ),
     );
+  }
+}
+
+class _HistoryTile extends StatelessWidget {
+  const _HistoryTile({required this.entry, required this.onCopy});
+
+  final JobEntry entry;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chip = switch (entry.status) {
+      'done' => const Chip(
+          avatar: Icon(Icons.check, size: 16),
+          label: Text('done'),
+        ),
+      'failed' => Chip(
+          avatar: const Icon(Icons.close, size: 16),
+          label: const Text('failed'),
+          backgroundColor: theme.colorScheme.errorContainer,
+        ),
+      _ => const Chip(
+          avatar: SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          label: Text('processing'),
+        ),
+    };
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.movie_outlined),
+        title: Text(entry.url,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium),
+        subtitle: Text('${entry.jobId} · ${entry.time}'
+            '${entry.error != null ? '\n${entry.error}' : ''}'),
+        isThreeLine: entry.error != null,
+        trailing: Wrap(
+          spacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            chip,
+            if (entry.status == 'done')
+              IconButton(
+                tooltip: 'Salin link artikel',
+                icon: const Icon(Icons.copy),
+                onPressed: onCopy,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// `GET /v1/articles/<jobId>` → true jika 200 (artikel jadi).
+Future<bool> fetchArticle(String jobId) async {
+  final client = HttpClient();
+  try {
+    final req = await client
+        .getUrl(Uri.parse('$apiBase/v1/articles/$jobId'))
+        .timeout(const Duration(seconds: 20));
+    final res = await req.close().timeout(const Duration(seconds: 20));
+    await res.transform(utf8.decoder).join();
+    return res.statusCode == 200;
+  } finally {
+    client.close();
   }
 }
 

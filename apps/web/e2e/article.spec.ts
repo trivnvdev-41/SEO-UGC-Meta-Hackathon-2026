@@ -52,17 +52,19 @@ test("artikel: H1, embed, JSON-LD valid, tanpa console error", async ({ page }) 
   expect(ownErrors(errors)).toEqual([]);
 });
 
-test("switch bahasa: ?lang=en mengubah judul + canonical", async ({ page }) => {
+test("switch bahasa: /en/article/<id> mengubah judul, lang, canonical", async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto(ARTICLE);
 
   await page.getByRole("link", { name: "EN", exact: true }).click();
-  await expect(page).toHaveURL(/lang=en/);
+  await expect(page).toHaveURL(/\/en\/article\/contoh-review$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("h1")).toContainText("Honest Review of Product X");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    /lang=en$/,
+    /\/en\/article\/contoh-review$/,
   );
+  await expect(page.locator('link[rel="alternate"][hrefLang="id"]')).toHaveCount(1);
 
   await page.screenshot({
     path: "e2e/__screenshots__/article-en.png",
@@ -77,6 +79,12 @@ test("halaman tidak ada → 404", async ({ page }) => {
   expect(res?.status()).toBe(404);
 });
 
+test("URL lama ?lang=en diarahkan ke path /en", async ({ page }) => {
+  await page.goto(`${ARTICLE}?lang=en`);
+  await expect(page).toHaveURL(/\/en\/article\/contoh-review$/);
+  await expect(page.locator("h1")).toContainText("Honest Review");
+});
+
 test("llms.txt dan sitemap mengekspos artikel + hreflang", async ({ request }) => {
   const llms = await request.get("/llms.txt");
   expect(llms.status()).toBe(200);
@@ -86,5 +94,5 @@ test("llms.txt dan sitemap mengekspos artikel + hreflang", async ({ request }) =
   expect(sitemap.status()).toBe(200);
   const xml = await sitemap.text();
   expect(xml).toContain("xhtml:link");
-  expect(xml).toContain("?lang=en");
+  expect(xml).toContain("/en/article/contoh-review");
 });

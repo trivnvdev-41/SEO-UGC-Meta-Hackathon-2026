@@ -50,8 +50,8 @@ Turn UGC video links (TikTok / IG Reels / YouTube) into SEO-ready web articles w
 |---|---|---|
 | API (node:test) | `npm test --prefix apps/api` | 12 |
 | Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 35 |
-| Web unit (vitest) | `npm test --prefix apps/web` | 12 |
-| Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 4 |
+| Web unit (vitest) | `npm test --prefix apps/web` | 13 |
+| Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 5 |
 | Mobile (flutter) | `cd apps/mobile && flutter test` | 7 |
 
 CI (`.github/workflows/ci.yml`) runs the API, worker, web unit/typecheck, and
@@ -64,7 +64,7 @@ mobile suites on every push. E2E needs Postgres + seed data, so it runs locally.
 - [x] Python worker: yt-dlp + FFmpeg + `/tmp` purge (in `finally`)
 - [x] STT + multimodal article generation, two independent providers via env (`AI_STT_*`, `AI_LLM_*`)
 - [x] Next.js article pages + JSON-LD + oEmbed (TikTok, Instagram, YouTube)
-- [x] SEO: canonical/hreflang, sitemap, robots, escaped JSON-LD
+- [x] SEO: path-based i18n (`/en/article/<id>`), canonical/hreflang, sitemap, robots, escaped JSON-LD
 - [x] Security: domain allowlist, internal service token, rate limit, video size/duration caps
 - [x] Prisma/PostgreSQL (`Article` + `Job`)
 - [x] Playwright E2E (3 tests)

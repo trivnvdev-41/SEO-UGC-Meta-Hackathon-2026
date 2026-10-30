@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { escapeJsonLd } from "./jsonld";
 import { videoObject } from "./structured";
 import { youtubeId } from "./video";
-import { articleUrl } from "./site";
+import { articlePath, articleUrl } from "./site";
 import type { Article } from "./articles";
 
 describe("escapeJsonLd", () => {
@@ -58,8 +58,13 @@ describe("videoObject", () => {
 });
 
 describe("articleUrl", () => {
-  it("id default tanpa query, en pakai ?lang=en", () => {
+  it("id default, en pakai path /en/article", () => {
     expect(articleUrl("abc", "id")).toMatch(/\/article\/abc$/);
-    expect(articleUrl("abc", "en")).toMatch(/\/article\/abc\?lang=en$/);
+    expect(articleUrl("abc", "en")).toMatch(/\/en\/article\/abc$/);
+  });
+
+  it("articlePath relatif (aman untuk href & redirect)", () => {
+    expect(articlePath("abc", "id")).toBe("/article/abc");
+    expect(articlePath("abc", "en")).toBe("/en/article/abc");
   });
 });

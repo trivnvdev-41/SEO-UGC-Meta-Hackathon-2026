@@ -22,7 +22,7 @@ export async function GET() {
     "",
     "## Notes",
     "",
-    "- Language switch: append `?lang=en` to any article URL.",
+    "- English version lives under `/en/article/<id>` (hreflang pairs both URLs).",
     "- Structured data: `application/ld+json` (Product + Review; VideoObject for YouTube).",
     `- Sitemap: ${SITE_URL}/sitemap.xml`,
     "",

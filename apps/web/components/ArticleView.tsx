@@ -1,32 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Embed } from "../../../components/Embed";
-import { Badge } from "../../../components/ui/badge";
-import { Card, CardContent } from "../../../components/ui/card";
-import { getArticle, listArticleIds, pickBody, type Lang } from "../../../lib/articles";
-import { articleUrl } from "../../../lib/site";
-import { videoObject } from "../../../lib/structured";
-import { escapeJsonLd } from "../../../lib/jsonld";
-import { renderMd } from "../../../lib/markdown";
+import { Embed } from "@/components/Embed";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { getArticle, pickBody, type Lang } from "@/lib/articles";
+import { escapeJsonLd } from "@/lib/jsonld";
+import { renderMd } from "@/lib/markdown";
+import { articlePath, articleUrl } from "@/lib/site";
+import { videoObject } from "@/lib/structured";
 
-export const revalidate = 3600;
-
-function langOf(sp: { lang?: string }): Lang {
-  return sp.lang === "en" ? "en" : "id";
-}
-
-export async function generateStaticParams() {
-  return (await listArticleIds()).map((id) => ({ id }));
-}
-
-export async function generateMetadata(
-  { params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lang?: string }> },
-): Promise<Metadata> {
-  const id = (await params).id;
+export async function articleMetadata(id: string, lang: Lang): Promise<Metadata> {
   const a = await getArticle(id);
   if (!a) return {};
 
-  const lang = langOf(await searchParams);
   const body = pickBody(a, lang);
   const url = articleUrl(id, lang);
 
@@ -57,23 +43,20 @@ export async function generateMetadata(
   };
 }
 
-export default async function ArticlePage(
-  { params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lang?: string }> },
-) {
-  const id = (await params).id;
+export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
   const a = await getArticle(id);
   if (!a) notFound();
-  const lang = langOf(await searchParams);
+
   const body = pickBody(a, lang);
-  const ld = escapeJsonLd(a.json_ld);
   const video = videoObject(a, body);
+
   return (
     <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
       <nav className="mb-6 flex items-center gap-2 font-sans text-xs">
-        <a href="?lang=id">
+        <a href={articlePath(id, "id")}>
           <Badge variant={lang === "id" ? "default" : "outline"}>ID</Badge>
         </a>
-        <a href="?lang=en">
+        <a href={articlePath(id, "en")}>
           <Badge variant={lang === "en" ? "default" : "outline"}>EN</Badge>
         </a>
       </nav>
@@ -102,7 +85,7 @@ export default async function ArticlePage(
 
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: ld }}
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(a.json_ld) }}
       />
       {video ? (
         <script

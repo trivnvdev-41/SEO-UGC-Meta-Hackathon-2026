@@ -1,7 +1,7 @@
 # Web (Next.js SEO)
 
 Artikel SSR/ISR di `app/article/[id]` + **JSON-LD** + OG/Twitter tags + embed
-resmi (TikTok, Instagram, YouTube) + switch bahasa `?lang=id|en`.
+resmi (TikTok, Instagram, YouTube) + path bahasa `/article/<id>` (ID) dan `/en/article/<id>` (EN).
 Styling: **Tailwind CSS 4** + **shadcn/ui** (`components/ui`).
 
 ## Setup
@@ -34,7 +34,7 @@ Note: `next build` also needs a running API (for `generateStaticParams`).
 | `components/Embed.tsx` | iframe YouTube (`youtube-nocookie`), oEmbed TikTok/Instagram |
 | `components/ui/` | komponen shadcn (`card`, `badge`) |
 | `lib/articles.ts` | fetch artikel dari API (ISR 1 jam) |
-| `lib/site.ts` | URL kanonik + helper per bahasa |
+| `lib/site.ts` | URL kanonik + helper per bahasa (`/en/article/...`) |
 
 ## E2E (Playwright)
 

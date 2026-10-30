@@ -23,7 +23,7 @@ npm run dev --prefix apps/web -- -p 4320           # web  :4320
 
 Buka `http://localhost:4320/article/contoh-review`.
 
-Catatan: `next build` juga butuh API hidup (untuk `generateStaticParams`).
+Note: `next build` also needs a running API (for `generateStaticParams`).
 
 ## Struktur
 
@@ -44,5 +44,5 @@ npm run test:e2e --prefix apps/web
 
 Menjalankan API (`:4301`) + `next dev` (`:4320`) sendiri, lalu uji: H1/embed/JSON-LD,
 switch bahasa, dan 404. Butuh Postgres (`seougc-pg`) + data seed.
-Screenshot tersimpan di `e2e/__screenshots__/` (gitignored); salinan untuk issue
-ada di `docs/e2e/`.
+Screenshots land in `e2e/__screenshots__/` (gitignored); copies used for issues
+live in `docs/e2e/`.

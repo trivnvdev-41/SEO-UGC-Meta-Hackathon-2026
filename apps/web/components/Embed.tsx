@@ -1,10 +1,18 @@
 import Script from "next/script";
 
+const TIKTOK_ID = /tiktok\.com\/@[^/]+\/(?:video|photo)\/(\d+)/;
+const INSTAGRAM = /instagram\.com\/(?:reel|reels|p|tv)\/([\w-]+)/;
+
 export function Embed({ url }: { url: string }) {
-  if (url.includes("tiktok.com")) {
+  const tiktok = url.match(TIKTOK_ID);
+  if (tiktok) {
     return (
       <>
-        <blockquote className="tiktok-embed" cite={url} data-video-id="">
+        <blockquote
+          className="tiktok-embed"
+          cite={url}
+          data-video-id={tiktok[1]}
+        >
           <section>
             <a target="_blank" rel="noreferrer" href={url}>
               Tonton video asli di TikTok
@@ -15,7 +23,8 @@ export function Embed({ url }: { url: string }) {
       </>
     );
   }
-  if (url.includes("instagram.com")) {
+
+  if (INSTAGRAM.test(url)) {
     return (
       <>
         <blockquote
@@ -31,6 +40,8 @@ export function Embed({ url }: { url: string }) {
       </>
     );
   }
+
+  // URL short (vt.tiktok.com) / tanpa id: jangan render widget rusak.
   return (
     <p>
       <a href={url} target="_blank" rel="noreferrer">

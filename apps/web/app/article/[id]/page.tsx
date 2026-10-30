@@ -5,6 +5,7 @@ import { Badge } from "../../../components/ui/badge";
 import { Card, CardContent } from "../../../components/ui/card";
 import { getArticle, listArticleIds, pickBody, type Lang } from "../../../lib/articles";
 import { articleUrl } from "../../../lib/site";
+import { videoObject } from "../../../lib/structured";
 
 export const revalidate = 3600;
 
@@ -117,7 +118,9 @@ export default async function ArticlePage(
   if (!a) notFound();
   const lang = langOf(await searchParams);
   const body = pickBody(a, lang);
-  const ld = JSON.stringify(a.json_ld).replace(/</g, "\\u003c");
+  const esc = (v: unknown) => JSON.stringify(v).replace(/</g, "\\u003c");
+  const ld = esc(a.json_ld);
+  const video = videoObject(a, body);
   return (
     <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
       <nav className="mb-6 flex items-center gap-2 font-sans text-xs">
@@ -155,6 +158,12 @@ export default async function ArticlePage(
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ld }}
       />
+      {video ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: esc(video) }}
+        />
+      ) : null}
     </main>
   );
 }

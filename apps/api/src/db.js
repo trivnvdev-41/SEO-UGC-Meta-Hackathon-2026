@@ -9,6 +9,7 @@ const toArticle = (row) => ({
   id_body: { title: row.idTitle, meta: row.idMeta, body_md: row.idBody },
   en_body: { title: row.enTitle, meta: row.enMeta, body_md: row.enBody },
   json_ld: row.jsonLd,
+  createdAt: row.createdAt?.toISOString?.() ?? row.createdAt,
 });
 
 // client diinject agar route ter-test tanpa DB.

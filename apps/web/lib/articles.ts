@@ -13,6 +13,7 @@ export interface Article {
   id_body: ArticleBody;
   en_body: ArticleBody;
   json_ld: Record<string, unknown>;
+  createdAt?: string;
 }
 
 const API_BASE = process.env.API_BASE_URL ?? "http://localhost:4301";

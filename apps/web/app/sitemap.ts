@@ -13,6 +13,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: articleUrl(id, lang),
         lastModified: new Date(),
         priority: 0.8,
+        alternates: {
+          languages: {
+            id: articleUrl(id, "id"),
+            en: articleUrl(id, "en"),
+          },
+        },
       })),
     ),
   ];

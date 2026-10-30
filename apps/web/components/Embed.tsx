@@ -1,20 +1,9 @@
 import Script from "next/script";
 import { cn } from "@/lib/utils";
+import { youtubeId } from "@/lib/video";
 
 const TIKTOK_ID = /tiktok\.com\/@[^/]+\/(?:video|photo)\/(\d+)/;
 const INSTAGRAM = /instagram\.com\/(?:reel|reels|p|tv)\/([\w-]+)/;
-const YOUTUBE_ID = [
-  /youtu\.be\/([\w-]{11})/,
-  /youtube\.com\/(?:watch\?v=|shorts\/|embed\/)([\w-]{11})/,
-];
-
-function youtubeId(url: string): string | null {
-  for (const re of YOUTUBE_ID) {
-    const m = url.match(re);
-    if (m) return m[1];
-  }
-  return null;
-}
 
 export function Embed({ url }: { url: string }) {
   const yt = youtubeId(url);

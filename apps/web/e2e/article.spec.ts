@@ -76,3 +76,15 @@ test("halaman tidak ada → 404", async ({ page }) => {
   const res = await page.goto("/article/tidak-ada");
   expect(res?.status()).toBe(404);
 });
+
+test("llms.txt dan sitemap mengekspos artikel + hreflang", async ({ request }) => {
+  const llms = await request.get("/llms.txt");
+  expect(llms.status()).toBe(200);
+  expect(await llms.text()).toContain("/article/contoh-review");
+
+  const sitemap = await request.get("/sitemap.xml");
+  expect(sitemap.status()).toBe(200);
+  const xml = await sitemap.text();
+  expect(xml).toContain("xhtml:link");
+  expect(xml).toContain("?lang=en");
+});

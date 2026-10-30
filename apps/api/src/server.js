@@ -3,6 +3,7 @@ import { makeApp } from './makeApp.js';
 import { CONVERT_QUEUE, createConvertQueue } from './queue.js';
 import { createDb } from './db.js';
 import { startWorker } from './processor.js';
+import { makeRateLimiter } from './rateLimit.js';
 
 const PORT = Number(process.env.PORT ?? 4301);
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -19,7 +20,13 @@ const enqueue = async ({ url }) => {
   return job;
 };
 
-createServer(makeApp(enqueue, db)).listen(PORT, () => {
+createServer(
+  makeApp(enqueue, db, {
+    rateLimiter: makeRateLimiter({
+      limit: Number(process.env.RATE_LIMIT_PER_MIN ?? 5),
+    }),
+  }),
+).listen(PORT, () => {
   console.log(`api listening on :${PORT}`);
 });
 

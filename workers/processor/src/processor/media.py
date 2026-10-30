@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+from urllib.parse import urlparse
 
 TMP_ROOT = Path("/tmp")
 VIDEO_NAME = "video.mp4"
@@ -18,6 +19,9 @@ AUDIO_NAME = "audio.mp3"
 FRAME_PATTERN = "frame_%03d.jpg"
 
 _JOB_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+# Defense in depth: gateway sudah memfilter, worker menolak host lain juga.
+_ALLOWED_HOST = re.compile(r"(^|\.)(tiktok\.com|instagram\.com)$", re.I)
+_DEFAULT_MAX_MB = 50
 
 
 def _check_job_id(job_id: str) -> str:
@@ -26,12 +30,30 @@ def _check_job_id(job_id: str) -> str:
     return job_id
 
 
+def is_convertible_url(url: str) -> bool:
+    try:
+        p = urlparse(url)
+    except ValueError:
+        return False
+    if p.scheme != "https" or p.username or p.password:
+        return False
+    host = (p.hostname or "").lower()
+    return bool(_ALLOWED_HOST.search(host))
+
+
+def max_filesize_mb() -> int:
+    raw = os.environ.get("MAX_VIDEO_MB", "").strip()
+    return int(raw) if raw.isdigit() and int(raw) > 0 else _DEFAULT_MAX_MB
+
+
 def job_dir(job_id: str) -> Path:
     return TMP_ROOT / _check_job_id(job_id)
 
 
-def download_cmd(url: str, out: Path, cookies: str | None = None) -> list[str]:
-    cmd = ["yt-dlp", "-o", str(out)]
+def download_cmd(url: str, out: Path, cookies: str | None = None,
+                 max_mb: int | None = None) -> list[str]:
+    cmd = ["yt-dlp", "-o", str(out), "--max-filesize",
+           f"{max_mb or max_filesize_mb()}M"]
     if cookies:
         cmd += ["--cookies", cookies]
     cmd.append(url)
@@ -60,6 +82,8 @@ def frames_cmd(video: Path, pattern: Path) -> list[str]:
 
 def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     """Unduh video ke /tmp/{job_id}, ekstrak audio.mp3 + frame_*.jpg."""
+    if not is_convertible_url(url):
+        raise ValueError("invalid_url")
     cookies = cookies_file()  # validasi sebelum membuat direktori job
     d = job_dir(job_id)
     d.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,18 @@
-// Validasi URL konvertibel: harus http(s), panjang wajar.
+// URL konvertibel: https + host harus TikTok/Instagram (whitelist, bukan blacklist).
+// Ini sekaligus menutup SSRF: host internal/IP literal tidak mungkin lolos.
+const ALLOWED_HOST = /(^|\.)(tiktok\.com|instagram\.com)$/i;
+
 export function isConvertibleUrl(url) {
   if (typeof url !== 'string') return false;
-  const u = url.trim();
-  if (u.length < 12 || u.length > 2048) return false;
-  return /^https?:\/\/\S+$/i.test(u);
+  const raw = url.trim();
+  if (raw.length < 12 || raw.length > 2048) return false;
+  let u;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'https:') return false;
+  if (u.username || u.password) return false;
+  return ALLOWED_HOST.test(u.hostname);
 }

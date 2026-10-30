@@ -30,8 +30,9 @@ function readJson(req) {
   });
 }
 
-// enqueue: async ({url}) => {id}. db: lihat src/db.js. Diinject agar route ter-test tanpa Redis/DB.
-export function makeApp(enqueue, db) {
+// enqueue: async ({url}) => {id}. db: lihat src/db.js.
+// opts.rateLimiter: (key) => boolean. Diinject agar route ter-test tanpa Redis/DB.
+export function makeApp(enqueue, db, { rateLimiter } = {}) {
   return async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
 
@@ -60,6 +61,12 @@ export function makeApp(enqueue, db) {
     if (req.method !== 'POST' || pathname !== '/v1/convert') {
       return send(res, 404, { error: 'not_found' });
     }
+
+    if (rateLimiter) {
+      const ip = req.socket?.remoteAddress ?? 'unknown';
+      if (!rateLimiter(ip)) return send(res, 429, { error: 'rate_limited' });
+    }
+
     let body;
     try {
       body = await readJson(req);

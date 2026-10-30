@@ -1,11 +1,21 @@
 from contextlib import asynccontextmanager
+import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from processor.ai import enrich, settings
 from processor.media import pipeline, purge
 from processor.storage import upload_images
+
+
+def require_token(authorization: str | None = Header(default=None)) -> None:
+    """Gateway-only: /process tidak boleh bisa dipanggil tanpa API_INTERNAL_TOKEN."""
+    token = os.environ.get("API_INTERNAL_TOKEN", "").strip()
+    if not token:
+        raise HTTPException(status_code=500, detail="missing:API_INTERNAL_TOKEN")
+    if authorization != f"Bearer {token}":
+        raise HTTPException(status_code=401, detail="unauthorized")
 
 
 @asynccontextmanager
@@ -16,6 +26,8 @@ async def lifespan(_: FastAPI):
             settings(role)
         except RuntimeError as e:
             raise RuntimeError(f"worker config: {e}") from e
+    if not os.environ.get("API_INTERNAL_TOKEN", "").strip():
+        raise RuntimeError("worker config: missing:API_INTERNAL_TOKEN")
     yield
 
 
@@ -27,7 +39,7 @@ class ConvertJob(BaseModel):
     url: str
 
 
-@app.post("/process")
+@app.post("/process", dependencies=[Depends(require_token)])
 def process(job: ConvertJob):
     try:
         media = pipeline(job.job_id, job.url)
@@ -35,6 +47,8 @@ def process(job: ConvertJob):
         bundle["images"] = upload_images(
             job.job_id, media["frames"],
             bundle.get("selected_image_indices") or [])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     finally:
         # Satu titik keluar: /tmp/{job_id} tidak bocor walau download/enrich/upload gagal.
         purge(job.job_id)

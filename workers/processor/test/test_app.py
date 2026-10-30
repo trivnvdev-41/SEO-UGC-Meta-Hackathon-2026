@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from processor.app import ConvertJob, process
+from processor.app import ConvertJob, process, require_token
 
 
 JOB = ConvertJob(job_id="j1", url="https://vt.tiktok.com/x/")
@@ -40,6 +40,31 @@ class AppTest(unittest.TestCase):
                 patch("processor.app.purge") as purge, \
                 self.assertRaises(RuntimeError):
             process(JOB)
+        purge.assert_called_once_with("j1")
+
+    def test_token_wajib(self):
+        import os
+        with patch.dict(os.environ, {"API_INTERNAL_TOKEN": "T"}, clear=True):
+            require_token("Bearer T")  # tidak raise
+            for bad in (None, "T", "Bearer salah"):
+                with self.assertRaises(Exception) as cm:
+                    require_token(bad)
+                self.assertEqual(getattr(cm.exception, "status_code", None), 401)
+
+    def test_token_belum_diset_fail_closed(self):
+        import os
+        with patch.dict(os.environ, {}, clear=True), \
+                self.assertRaises(Exception) as cm:
+            require_token("Bearer apa-saja")
+        self.assertEqual(getattr(cm.exception, "status_code", None), 500)
+
+    def test_url_ditolak_jadi_400(self):
+        with patch("processor.app.pipeline",
+                   side_effect=ValueError("invalid_url")), \
+                patch("processor.app.purge") as purge, \
+                self.assertRaises(Exception) as cm:
+            process(JOB)
+        self.assertEqual(getattr(cm.exception, "status_code", None), 400)
         purge.assert_called_once_with("j1")
 
 

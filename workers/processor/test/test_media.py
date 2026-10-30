@@ -7,6 +7,7 @@ from processor.media import (
     cookies_file,
     download_cmd,
     frames_cmd,
+    is_convertible_url,
     job_dir,
     pipeline,
     purge,
@@ -16,8 +17,14 @@ from processor.media import (
 class MediaTest(unittest.TestCase):
     def test_download_cmd_pin_output(self):
         cmd = download_cmd("https://vt.tiktok.com/x/", Path("/tmp/j1/video.mp4"))
-        self.assertEqual(cmd, ["yt-dlp", "-o", "/tmp/j1/video.mp4",
-                               "https://vt.tiktok.com/x/"])
+        self.assertEqual(cmd[:3], ["yt-dlp", "-o", "/tmp/j1/video.mp4"])
+        self.assertIn("--max-filesize", cmd)
+        self.assertEqual(cmd[-1], "https://vt.tiktok.com/x/")
+
+    def test_download_cmd_batas_ukuran(self):
+        cmd = download_cmd("https://vt.tiktok.com/x/", Path("/tmp/v.mp4"),
+                           max_mb=12)
+        self.assertEqual(cmd[cmd.index("--max-filesize") + 1], "12M")
 
     def test_download_cmd_pakai_cookies(self):
         cmd = download_cmd("https://vt.tiktok.com/x/",
@@ -81,6 +88,21 @@ class MediaTest(unittest.TestCase):
     def test_bad_job_id_rejected(self):
         with self.assertRaises(ValueError):
             job_dir("../escape")
+
+    def test_url_allowlist(self):
+        self.assertTrue(is_convertible_url("https://vt.tiktok.com/x/"))
+        self.assertTrue(is_convertible_url("https://www.instagram.com/reel/a/"))
+        self.assertFalse(is_convertible_url("http://169.254.169.254/x"))
+        self.assertFalse(is_convertible_url("https://evil.com/v/1"))
+        self.assertFalse(is_convertible_url("https://tiktok.com.evil.com/x"))
+        self.assertFalse(is_convertible_url("http://www.tiktok.com/@a/video/1"))
+
+    def test_pipeline_tolak_url_tidak_diizinkan(self):
+        seen = []
+        with self.assertRaises(ValueError):
+            pipeline("testjob3", "http://169.254.169.254/latest",
+                     run=lambda *a, **k: seen.append(a))
+        self.assertEqual(seen, [])
 
 
 if __name__ == "__main__":

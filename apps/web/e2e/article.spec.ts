@@ -11,15 +11,17 @@ function collectErrors(page: Page): string[] {
   return errors;
 }
 
-// Embed pihak ketiga butuh jaringan; di CI/local tanpa akses TikTok script
-// gagal load. Itu diabaikan, error dari kode sendiri tidak.
+// Tautan video asli selalu ada (tanpa embed pihak ketiga agar ringan);
+// galeri foto hanya tampil jika artikel punya images.
 function ownErrors(errors: string[]): string[] {
   return errors.filter(
-    (e) => !/(tiktok|instagram)\.com|net::ERR|Failed to load resource/i.test(e),
+    (e) => !/net::ERR|Failed to load resource/i.test(e),
   );
 }
 
-test("artikel: H1, embed, JSON-LD valid, tanpa console error", async ({ page }) => {
+test("artikel: H1, foto/tautan sumber, JSON-LD valid, tanpa console error", async ({
+  page,
+}) => {
   const errors = collectErrors(page);
 
   const res = await page.goto(ARTICLE);
@@ -28,10 +30,9 @@ test("artikel: H1, embed, JSON-LD valid, tanpa console error", async ({ page }) 
   await expect(page.locator("h1")).toHaveCount(1);
   await expect(page.locator("h1")).toContainText("Review Jujur Produk X");
 
-  const embed = page.locator(
-    "blockquote.tiktok-embed[data-video-id='123'], .article a[href*='tiktok.com']",
-  );
-  await expect(embed.first()).toBeVisible();
+  const source = page.locator("a[href*='tiktok.com/@contoh/video/123']");
+  await expect(source.first()).toBeVisible();
+  await expect(source.first()).toContainText("Tonton video asli");
 
   const ld = await page.locator('script[type="application/ld+json"]').textContent();
   const parsed = JSON.parse(ld ?? "null");

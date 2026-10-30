@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Embed } from "@/components/Embed";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { getArticle, pickBody, ratingOf, type Lang } from "@/lib/articles";
 import { escapeJsonLd } from "@/lib/jsonld";
 import { renderMd } from "@/lib/markdown";
@@ -51,6 +49,7 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
   const body = pickBody(a, lang);
   const video = videoObject(a, body);
   const rating = ratingOf(a.json_ld);
+  const photos = a.images.slice(0, 3);
 
   return (
     <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
@@ -79,22 +78,40 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
         </p>
       ) : null}
 
-      <Card className="my-6 overflow-hidden rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
-        <CardContent className="p-3">
-          <Embed url={a.videoUrl} />
-        </CardContent>
-      </Card>
+      {photos.length ? (
+        <section aria-label={lang === "en" ? "Product photos" : "Foto produk"} className="my-6">
+          <div className="grid grid-cols-2 gap-3">
+            {photos.map((src, i) => (
+              <figure
+                key={src}
+                className={i === 0 ? "col-span-2" : undefined}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={`${body.title} — ${lang === "en" ? "photo" : "foto"} ${i + 1}`}
+                  loading={i === 0 ? undefined : "lazy"}
+                  className={
+                    i === 0
+                      ? "aspect-video w-full rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
+                      : "aspect-square w-full rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
+                  }
+                />
+                <figcaption className="mt-1 font-sans text-xs text-muted">
+                  {lang === "en" ? "Photo" : "Foto"} {i + 1}
+                  {photos.length > 1 ? ` / ${photos.length}` : null}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      {a.images.map((src) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={src}
-          src={src}
-          alt={body.title}
-          loading="lazy"
-          className="my-4 w-full rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
-        />
-      ))}
+      <p className="my-4 font-sans text-sm">
+        <a href={a.videoUrl} target="_blank" rel="noreferrer">
+          {lang === "en" ? "Watch the original video" : "Tonton video asli"}
+        </a>
+      </p>
 
       {renderMd(body.body_md)}
 

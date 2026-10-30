@@ -1,7 +1,7 @@
 # Web (Next.js SEO)
 
-Artikel SSR/ISR di `app/article/[id]` + **JSON-LD** + OG/Twitter tags + embed
-resmi (TikTok, Instagram, YouTube) + path bahasa `/article/<id>` (ID) dan `/en/article/<id>` (EN).
+Artikel SSR/ISR di `app/article/[id]` + **JSON-LD** + OG/Twitter tags + galeri
+maksimal 3 foto produk + tautan video asli + path bahasa `/article/<id>` (ID) dan `/en/article/<id>` (EN).
 Styling: **Tailwind CSS 4** + **shadcn/ui** (`components/ui`).
 
 ## Setup
@@ -31,7 +31,6 @@ Note: `next build` also needs a running API (for `generateStaticParams`).
 |---|---|
 | `app/article/[id]/page.tsx` | SSR/ISR artikel, metadata, JSON-LD (di-escape), `renderMd` |
 | `app/sitemap.ts`, `app/robots.ts` | sitemap + robots |
-| `components/Embed.tsx` | iframe YouTube (`youtube-nocookie`), oEmbed TikTok/Instagram |
 | `components/ui/` | komponen shadcn (`card`, `badge`) |
 | `lib/articles.ts` | fetch artikel dari API (ISR 1 jam) |
 | `lib/site.ts` | URL kanonik + helper per bahasa (`/en/article/...`) |
@@ -42,7 +41,7 @@ Note: `next build` also needs a running API (for `generateStaticParams`).
 npm run test:e2e --prefix apps/web
 ```
 
-Menjalankan API (`:4301`) + `next dev` (`:4320`) sendiri, lalu uji: H1/embed/JSON-LD,
+Menjalankan API (`:4301`) + `next dev` (`:4320`) sendiri, lalu uji: H1/galeri foto/JSON-LD,
 switch bahasa, dan 404. Butuh Postgres (`seougc-pg`) + data seed.
 Screenshots land in `e2e/__screenshots__/` (gitignored); copies used for issues
 live in `docs/e2e/`.

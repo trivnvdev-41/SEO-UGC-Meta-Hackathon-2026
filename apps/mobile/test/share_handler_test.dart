@@ -27,6 +27,24 @@ void main() {
     });
   });
 
+  group('supportedSharedUrl (filter host)', () {
+    test('terima TikTok & Instagram https', () {
+      expect(supportedSharedUrl('share https://vt.tiktok.com/ZSabc/'),
+          'https://vt.tiktok.com/ZSabc/');
+      expect(supportedSharedUrl('https://www.instagram.com/reel/ABC/'),
+          'https://www.instagram.com/reel/ABC/');
+    });
+
+    test('tolak host lain, http, dan userinfo', () {
+      expect(supportedSharedUrl('https://evil.com/x'), isNull);
+      expect(supportedSharedUrl('https://tiktok.com.evil.com/x'), isNull);
+      expect(supportedSharedUrl('http://www.tiktok.com/@a/video/1'), isNull);
+      expect(supportedSharedUrl('https://user:pw@tiktok.com/x'), isNull);
+      expect(supportedSharedUrl('http://169.254.169.254/latest'), isNull);
+      expect(supportedSharedUrl('tanpa link'), isNull);
+    });
+  });
+
   test('convertPayload bentuk body API', () {
     expect(convertPayload('https://vt.tiktok.com/x/'),
         {'url': 'https://vt.tiktok.com/x/'});

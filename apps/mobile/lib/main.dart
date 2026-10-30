@@ -64,9 +64,11 @@ class _SharePageState extends State<SharePage> {
   }
 
   Future<void> _handleText(String? text) async {
-    final url = extractSharedUrl(text);
+    final url = supportedSharedUrl(text);
     if (url == null) {
-      _set('Tidak ada URL di teks yang dibagikan.');
+      _set(extractSharedUrl(text) == null
+          ? 'Tidak ada URL di teks yang dibagikan.'
+          : 'Link diabaikan: hanya TikTok/Instagram (https) yang didukung.');
       return;
     }
     setState(() {

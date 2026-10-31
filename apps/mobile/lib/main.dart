@@ -291,8 +291,8 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Artikel jadi!',
-                          style: theme.textTheme.titleSmall),
+                    Text('Artikel jadi!',
+                        style: theme.textTheme.titleMedium),
                       const SizedBox(height: 4),
                       SelectableText(_articleUrl!),
                       const SizedBox(height: 8),
@@ -320,7 +320,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
             Row(
               children: [
                 Text('Riwayat (${_history.length})',
-                    style: theme.textTheme.titleSmall),
+                    style: theme.textTheme.titleMedium),
                 const Spacer(),
                 if (_history.isNotEmpty)
                   TextButton(
@@ -333,12 +333,36 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
             Expanded(
               child: _history.isEmpty
                   ? Center(
-                      child: Text(
-                        'Belum ada job. Share video dari TikTok/IG/YouTube.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.outline,
-                        ),
-                        textAlign: TextAlign.center,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'N',
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '1. Share video dari TikTok/IG/YouTube ke SEO UGC\n'
+                            '2. Tunggu notifikasi — artikel dimasak di server\n'
+                            '3. Buka dan baca artikel di dalam app ini',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     )
                   : ListView.separated(
@@ -390,6 +414,8 @@ class _StatusCard extends StatelessWidget {
         ? theme.colorScheme.error
         : theme.colorScheme.primary;
     return Card(
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -459,6 +485,7 @@ class _HistoryTile extends StatelessWidget {
         ),
     };
     return Card(
+      elevation: 0,
       child: ListTile(
         leading: const Icon(Icons.movie_outlined),
         title: Text(entry.url,

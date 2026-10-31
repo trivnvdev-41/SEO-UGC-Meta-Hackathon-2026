@@ -151,6 +151,12 @@ PROMPT = ("Kamu analis review produk. Dari TRANSKRIP + FOTO berikut, "
           "4) tolak foto yang tertutup jari/tangan, teks overlay besar, "
           "atau transisi/efek. "
           "Pilih 2-3 indeks terbaik ke selected_image_indices. "
+          "NADA: tulis natural seperti blogger profesional yang memakai "
+          "produknya. DILARANG menyebut proses di balik artikel "
+          "(transkrip, frame, AI, model, diekstrak, terdeteksi, "
+          "dianalisis): pembaca tidak boleh sadar artikel dibuat mesin. "
+          "STRUKTUR: body_md wajib memakai subheading ### tiap 100-150 kata, "
+          "list - atau 1. untuk poin, dan > untuk catatan penting. "
           "Balas HANYA JSON: "
           '{{"selected_image_indices": [0], '
           '"articles": {{"id": {{"title": ..., "meta": ..., "body_md": ...}}, '

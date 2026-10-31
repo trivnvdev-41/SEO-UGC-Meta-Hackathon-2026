@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Reveal } from "@/components/ui/reveal";
 import { getArticle, pickBody, ratingOf, type Lang } from "@/lib/articles";
 import { escapeJsonLd } from "@/lib/jsonld";
 import { renderMd } from "@/lib/markdown";
@@ -53,12 +54,12 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
 
   return (
     <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
-      <header className="mb-8 border-b pb-4 font-sans">
+      <header className="mb-8 font-sans">
         <a href={lang === "en" ? "/en" : "/"} className="text-sm font-semibold">
           SEO UGC
         </a>
       </header>
-      <nav className="mb-6 flex items-center gap-2 font-sans text-xs">
+      <nav className="mb-6 flex items-center gap-2 font-sans">
         <Link href={articlePath(id, "id")}>
           <Badge variant={lang === "id" ? "default" : "outline"}>ID</Badge>
         </Link>
@@ -67,18 +68,21 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
         </Link>
       </nav>
 
-      <h1>{body.title}</h1>
+      <h1 className="text-[clamp(1.75rem,1rem+3vw,2.75rem)] leading-[1.1]">
+        {body.title}
+      </h1>
       <p className="mt-2 font-sans text-base text-muted">{body.meta}</p>
       {rating ? (
         <p className="mt-3 font-sans text-sm">
           <Badge variant="default">
-            ★ {rating.value}/5
+            {rating.value}/5
             {rating.author ? ` · ${rating.author}` : null}
           </Badge>
         </p>
       ) : null}
 
       {photos.length ? (
+        <Reveal>
         <section aria-label={lang === "en" ? "Product photos" : "Foto produk"} className="my-6">
           <div className="grid grid-cols-2 gap-3">
             {photos.map((src, i) => (
@@ -91,13 +95,13 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
                   src={src}
                   alt={`${body.title} — ${lang === "en" ? "photo" : "foto"} ${i + 1}`}
                   loading={i === 0 ? undefined : "lazy"}
-                  className={
-                    i === 0
-                      ? "aspect-video w-full rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
-                      : "aspect-square w-full rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.10)]"
-                  }
+                    className={
+                      i === 0
+                        ? "aspect-video w-full rounded-2xl object-cover"
+                        : "aspect-square w-full rounded-2xl object-cover"
+                    }
                 />
-                <figcaption className="mt-1 font-sans text-xs text-muted">
+                      <figcaption className="mt-1 font-sans text-sm text-muted">
                   {lang === "en" ? "Photo" : "Foto"} {i + 1}
                   {photos.length > 1 ? ` / ${photos.length}` : null}
                 </figcaption>
@@ -105,13 +109,36 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
             ))}
           </div>
         </section>
+        </Reveal>
       ) : null}
 
-      <p className="my-4 font-sans text-sm">
-        <a href={a.videoUrl} target="_blank" rel="noreferrer">
-          {lang === "en" ? "Watch the original video" : "Tonton video asli"}
-        </a>
-      </p>
+      {video ? (
+        <Reveal>
+        <figure className="my-6">
+          <div className="aspect-video w-full overflow-hidden rounded-2xl bg-neutral-100">
+            <iframe
+              src={video.embedUrl}
+              title={body.title}
+              className="h-full w-full border-0"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <figcaption className="mt-1 font-sans text-sm text-muted">
+            <a href={a.videoUrl} target="_blank" rel="noreferrer">
+              {lang === "en" ? "Watch the original video" : "Tonton video asli"}
+            </a>
+          </figcaption>
+        </figure>
+        </Reveal>
+      ) : (
+        <p className="my-4 font-sans text-sm">
+          <a href={a.videoUrl} target="_blank" rel="noreferrer">
+            {lang === "en" ? "Watch the original video" : "Tonton video asli"}
+          </a>
+        </p>
+      )}
 
       {renderMd(body.body_md)}
 

@@ -22,3 +22,6 @@ rangkuman_diskusi_*.md
 graphify-out/
 *.egg-info/
 cookies*.txt
+
+# design inspection output
+.taste-skill/

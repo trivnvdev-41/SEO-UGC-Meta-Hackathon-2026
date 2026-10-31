@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ConvertForm } from "@/components/ConvertForm";
 import { Reveal } from "@/components/ui/reveal";
 import {
   getArticle,
@@ -16,7 +17,7 @@ export const revalidate = 3600;
 const T = {
   id: {
     brand: "SEO UGC",
-    hero: "Ulasan jujur dari video kreator.",
+    hero: "Video kreator, jadi artikel ulasan.",
     sub: "Setiap link TikTok, Reels, atau YouTube Shorts diubah menjadi artikel terstruktur dengan foto, kelebihan dan kekurangan, serta skor. Siap dibaca dan siap diindeks mesin pencari.",
     searchPh: "Cari sunscreen, ampoule, …",
     searchBtn: "Cari",
@@ -32,7 +33,7 @@ const T = {
   },
   en: {
     brand: "SEO UGC",
-    hero: "Honest reviews from creator videos.",
+    hero: "From video to review article.",
     sub: "Every TikTok, Reels, or YouTube Shorts link becomes a structured article with photos, pros and cons, and a score. Ready to read and ready to index.",
     searchPh: "Search sunscreen, ampoule, …",
     searchBtn: "Search",
@@ -69,7 +70,7 @@ export async function HomeView({ lang, q }: { lang: Lang; q: string }) {
     <main className="mx-auto max-w-3xl px-5 pt-10 pb-16">
       <header className="mb-10 flex items-center justify-between font-sans">
         <span className="text-sm font-semibold">{t.brand}</span>
-        <nav className="flex gap-2">
+        <nav className="flex items-center gap-2">
           <Link href="/">
             <Badge variant={lang === "id" ? "default" : "outline"}>ID</Badge>
           </Link>
@@ -85,25 +86,28 @@ export async function HomeView({ lang, q }: { lang: Lang; q: string }) {
           <p className="mt-3 font-sans text-base text-muted">{t.sub}</p>
         </Reveal>
         <Reveal delay={90}>
-        <form method="get" className="mt-5 flex gap-2 font-sans">
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder={t.searchPh}
-            className="w-full rounded-xl border border-neutral-200 px-4 py-2 text-sm outline-none focus:border-neutral-400"
-          />
-          <button
-            type="submit"
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
-          >
-            {t.searchBtn}
-          </button>
-        </form>
+          <ConvertForm lang={lang} />
         </Reveal>
       </section>
 
       <section className="mb-12">
-        <h2 className="mb-4">{t.latest}</h2>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <h2>{t.latest}</h2>
+          <form method="get" className="flex gap-2 font-sans">
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder={t.searchPh}
+              className="w-44 rounded-xl border border-neutral-200 px-3 py-1.5 text-sm outline-none focus:border-neutral-400 sm:w-56"
+            />
+            <button
+              type="submit"
+              className="rounded-xl bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-white"
+            >
+              {t.searchBtn}
+            </button>
+          </form>
+        </div>
         {shown.length === 0 ? (
           <p className="font-sans text-sm text-muted">{t.empty}</p>
         ) : (

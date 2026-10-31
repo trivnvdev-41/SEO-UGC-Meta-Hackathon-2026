@@ -70,6 +70,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
 
   String? _lastHandled;
   DateTime? _lastHandledAt;
+  int _pollSeq = 0; // token poll aktif; poll lama berhenti saat tersalip/cancel.
   final _manual = TextEditingController();
 
   @override
@@ -101,7 +102,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       final text = await _channel.invokeMethod<String>('getInitialSharedText');
       if (text != null) await _handleText(text);
     } on MissingPluginException {
-      // Platform tanpa channel (mis. iOS extension belum terpasang).
+      // Non-Android (channel hanya ada di MainActivity Android).
     }
   }
 
@@ -131,7 +132,9 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       _lastUrl = url;
       _articleUrl = null;
       _status = 'Mengirim $url ...';
+      _manual.clear();
     });
+    final seq = ++_pollSeq;
     try {
       final jobId = await postConvert(url);
       final entry = JobEntry(jobId: jobId, url: url);
@@ -140,8 +143,8 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         if (_history.length > 20) _history.removeLast();
         _status = 'Job dibuat: $jobId — menunggu artikel...';
       });
-      await _pollArticle(entry);
-      if (!mounted) return;
+      await _pollArticle(entry, seq);
+      if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
       setState(() {
         if (entry.status == 'done') {
           _articleUrl = entry.articleUrl;
@@ -153,14 +156,23 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         _busy = false;
       });
     } catch (e) {
+      if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
       _set('Gagal: $e', isError: true);
     }
   }
 
   /// Poll `GET /v1/articles/<jobId>` sampai 200 (maks ~6 menit).
-  Future<void> _pollArticle(JobEntry entry) async {
+  /// Berhenti saat `seq` tersalip (job baru/cancel): entry ditandai dibatalkan.
+  Future<void> _pollArticle(JobEntry entry, int seq) async {
     for (var i = 0; i < 72; i++) {
-      if (!mounted) return;
+      if (!mounted || seq != _pollSeq) {
+        if (entry.status == 'processing') {
+          entry
+            ..status = 'failed'
+            ..error = 'dibatalkan';
+        }
+        return;
+      }
       try {
         if (await fetchArticle(entry.jobId)) {
           entry
@@ -198,7 +210,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   Future<void> _openArticle(String articleUrl) async {
     try {
       await _channel.invokeMethod('openUrl', articleUrl);
-    } on PlatformException {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tidak bisa membuka browser')),
@@ -244,6 +256,15 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
               url: _lastUrl,
               isError: _error != null,
             ),
+            if (_busy)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => setState(() => _pollSeq++),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Batal'),
+                ),
+              ),
             if (_articleUrl != null) ...[
               const SizedBox(height: 12),
               Card(
@@ -487,7 +508,10 @@ Future<String> postConvert(String url) async {
     if (res.statusCode != 202) {
       throw Exception('api ${res.statusCode}: $body');
     }
-    return (jsonDecode(body) as Map<String, dynamic>)['jobId'] as String? ?? '';
+    final jobId =
+        (jsonDecode(body) as Map<String, dynamic>)['jobId'] as String?;
+    if (jobId == null || jobId.isEmpty) throw Exception('api: empty jobId');
+    return jobId;
   } finally {
     client.close();
   }

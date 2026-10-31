@@ -85,7 +85,7 @@ expose it publicly.
 
 ## Built During Hackathon
 
-- [x] Mobile Share Receiver (Flutter, Android `ACTION_SEND`; iOS extension is source only, not wired)
+- [x] Mobile Share Receiver (Flutter Android `ACTION_SEND`)
 - [x] API Gateway + BullMQ queue + consumer (queue → worker → persist)
 - [x] Python worker: yt-dlp + FFmpeg + `/tmp` purge (in `finally`)
 - [x] STT + multimodal article generation, two independent providers via env (`AI_STT_*`, `AI_LLM_*`)

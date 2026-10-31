@@ -10,7 +10,6 @@ Native Share Target: TikTok/Instagram/YouTube → **Share** → **SEO UGC** → 
 | `android/.../AndroidManifest.xml` | `intent-filter` for `ACTION_SEND` + `launchMode="singleTask"` (works while the app is already open) |
 | `lib/main.dart` | Receives text → validates → `POST /v1/convert` → shows `jobId` |
 | `lib/share_handler.dart` | Pure functions: URL extraction, host allowlist, request payload |
-| `ios/ShareExtension/` | Extension source (not wired, needs Xcode/macOS) |
 
 ## Run
 
@@ -37,8 +36,7 @@ Manual check: open TikTok → Share → pick **SEO UGC** → the app shows
 
 ## Notes
 
-- iOS: the Share Extension target must be added manually in Xcode (App Group
-  `group.dev.seougc.seoUgc`), see `ios/ShareExtension/README.md`.
+- Android-only: no iOS target in this repo.
 - The backend must be running and `API_BASE` must be reachable from the device.
 - Only `https` links to TikTok/Instagram/YouTube are sent; anything else is ignored
   in the UI before any request is made.

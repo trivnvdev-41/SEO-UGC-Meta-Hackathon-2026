@@ -31,6 +31,24 @@ describe("renderMd", () => {
     expect(out.match(/<li/g)?.length).toBe(2);
   });
 
+  it("list bintang dan bernomor dirender, bukan literal", () => {
+    const star = html("* satu\n* dua");
+    expect(star).toContain("<ul");
+    expect(star).not.toContain("* satu");
+    const num = html("1. satu\n2. dua");
+    expect(num).toContain("<ol");
+    expect(num).not.toContain("1. satu");
+  });
+
+  it("h3 dan quote dirender, bukan literal # dan >", () => {
+    const h3 = html("### Sub");
+    expect(h3).toContain("<h3>");
+    expect(h3).not.toContain("###");
+    const q = html("> Catatan penting");
+    expect(q).toContain("<blockquote");
+    expect(q).not.toContain("&gt; Catatan");
+  });
+
   it("HTML mentah dari model di-escape, tidak dieksekusi", () => {
     const out = html('<img src=x onerror="alert(1)">');
     expect(out).not.toContain("<img");

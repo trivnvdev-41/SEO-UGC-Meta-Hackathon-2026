@@ -43,7 +43,9 @@ class ConvertJob(BaseModel):
 def process(job: ConvertJob):
     try:
         media = pipeline(job.job_id, job.url)
-        bundle = enrich(media["audio"], media["frames"])
+        bundle = enrich(media["audio"], media["frames"],
+                        creator=media.get("creator"))
+        bundle["creator"] = media.get("creator")
         bundle["images"] = upload_images(
             job.job_id, media["frames"],
             bundle.get("selected_image_indices") or [])

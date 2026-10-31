@@ -13,6 +13,7 @@ from processor.media import (
     job_dir,
     pipeline,
     purge,
+    uploader_of,
 )
 
 
@@ -50,7 +51,7 @@ class MediaTest(unittest.TestCase):
         seen = []
         pipeline("testjob4", "https://vt.tiktok.com/x/",
                  run=lambda cmd, **kw: seen.append(kw.get("timeout")))
-        self.assertEqual(seen, [120, 60, 60])
+        self.assertEqual(seen, [30, 120, 60, 60])
         purge("testjob4")
 
     def test_pipeline_tolak_video_terlalu_besar(self):
@@ -100,9 +101,10 @@ class MediaTest(unittest.TestCase):
         seen = []
         out = pipeline("testjob1", "https://vt.tiktok.com/x/",
                        run=lambda cmd, **kw: seen.append(cmd) or None)
-        self.assertEqual(len(seen), 3)
+        self.assertEqual(len(seen), 4)  # uploader + unduh + audio + frame
         self.assertTrue(out["audio"].endswith("audio.mp3"))
         self.assertIsInstance(out["frames"], list)
+        self.assertIn("creator", out)
         purge("testjob1")
 
     def test_pipeline_frames_list_dari_glob(self):
@@ -129,6 +131,31 @@ class MediaTest(unittest.TestCase):
     def test_bad_job_id_rejected(self):
         with self.assertRaises(ValueError):
             job_dir("../escape")
+
+    def test_uploader_of_ambil_baris_pertama(self):
+        from types import SimpleNamespace
+
+        def ok(cmd, **kw):
+            assert cmd[:3] == ["yt-dlp", "--skip-download", "--no-warnings"]
+            assert "--cookies" not in cmd
+            return SimpleNamespace(stdout="Kreator Hebat\n")
+        self.assertEqual(
+            uploader_of("https://vt.tiktok.com/x/", run=ok), "Kreator Hebat")
+
+    def test_uploader_of_lewat_NA_dan_kosong(self):
+        from types import SimpleNamespace
+        self.assertIsNone(
+            uploader_of("https://vt.tiktok.com/x/",
+                        run=lambda *a, **k: SimpleNamespace(stdout="NA\n")))
+        self.assertIsNone(
+            uploader_of("https://vt.tiktok.com/x/",
+                        run=lambda *a, **k: (_ for _ in ()).throw(
+                            RuntimeError("boom"))))
+
+    def test_uploader_of_tolak_url_tak_izin(self):
+        with self.assertRaises(ValueError):
+            uploader_of("https://evil.com/x",
+                        run=lambda *a, **k: None)
 
     def test_url_allowlist(self):
         self.assertTrue(is_convertible_url("https://vt.tiktok.com/x/"))

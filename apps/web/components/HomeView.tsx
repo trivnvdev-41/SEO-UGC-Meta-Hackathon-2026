@@ -131,6 +131,11 @@ export async function HomeView({ lang, q }: { lang: Lang; q: string }) {
                       {leadBody.title}
                     </Link>
                   </h3>
+                  {lead.creator ? (
+                    <p className="mt-1 font-sans text-sm text-muted">
+                      {lang === "en" ? `By ${lead.creator}` : `Oleh ${lead.creator}`}
+                    </p>
+                  ) : null}
                   <p className="mt-1 font-sans text-base text-muted">
                     {leadBody.meta}
                   </p>
@@ -166,6 +171,11 @@ export async function HomeView({ lang, q }: { lang: Lang; q: string }) {
                     >
                       {b.title}
                     </Link>
+                    {a.creator ? (
+                      <p className="mt-1 font-sans text-sm text-muted">
+                        {lang === "en" ? `By ${a.creator}` : `Oleh ${a.creator}`}
+                      </p>
+                    ) : null}
                     <p className="mt-1 line-clamp-2 font-sans text-base text-muted">
                       {b.meta}
                     </p>

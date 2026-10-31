@@ -5,6 +5,7 @@ import { makeProcessor } from '../src/processor.js';
 const bundle = {
   transcript: 'review bagus',
   language: 'id',
+  creator: 'Kreator Hebat',
   selected_image_indices: [0],
   articles: {
     id: { title: 'Review', meta: 'Meta ID', body_md: '## A' },
@@ -55,6 +56,7 @@ test('consumer: worker 200 → artikel tersimpan + job done', async () => {
 
   const saved = db.calls.find((c) => c[0] === 'article')[1];
   assert.equal(saved.id, 'job_1');
+  assert.equal(saved.creator, 'Kreator Hebat');
   assert.equal(saved.id_body.title, 'Review');
   assert.equal(saved.json_ld['@type'], 'Product');
 });

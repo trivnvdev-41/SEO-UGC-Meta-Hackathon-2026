@@ -10,6 +10,7 @@ export interface Article {
   id: string;
   images: string[];
   videoUrl: string;
+  creator?: string | null;
   id_body: ArticleBody;
   en_body: ArticleBody;
   json_ld: Record<string, unknown>;

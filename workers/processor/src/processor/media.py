@@ -112,6 +112,32 @@ def cookies_file() -> str | None:
     return raw
 
 
+def uploader_of(url: str, run=subprocess.run) -> str | None:
+    """Nama kreator via yt-dlp tanpa mengunduh; None bila tak diketahui.
+
+    Dipakai untuk byline + judul artikel. Gagal = None (bukan error),
+    agar satu metadata tak menggagalkan seluruh job.
+    """
+    if not is_convertible_url(url):
+        raise ValueError("invalid_url")
+    cmd = ["yt-dlp", "--skip-download", "--no-warnings",
+           "--print", "%(uploader)s",
+           "--socket-timeout", str(_SOCKET_TIMEOUT)]
+    cookies = cookies_file()
+    if cookies:
+        cmd += ["--cookies", cookies]
+    cmd.append(url)
+    try:
+        out = run(cmd, capture_output=True, text=True,
+                  check=True, timeout=_SOCKET_TIMEOUT)
+        stdout = out.stdout or ""
+    except Exception:
+        return None
+    name = stdout.strip().splitlines()
+    name = [n.strip() for n in name if n.strip() and n.strip() != "NA"]
+    return name[0] if name else None
+
+
 def audio_cmd(video: Path, audio: Path) -> list[str]:
     return ["ffmpeg", "-y", "-i", str(video),
             "-vn", "-acodec", "libmp3lame", "-q:a", "4", str(audio)]
@@ -128,6 +154,7 @@ def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     if not is_convertible_url(url):
         raise ValueError("invalid_url")
     cookies = cookies_file()  # validasi sebelum membuat direktori job
+    creator = uploader_of(url, run)
     d = job_dir(job_id)
     d.mkdir(parents=True, exist_ok=True)
     video = d / VIDEO_NAME
@@ -140,7 +167,7 @@ def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     run(frames_cmd(dl, d / FRAME_PATTERN), check=True, timeout=_FFMPEG_TIMEOUT)
     frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
     return {"job_id": job_id, "video": str(dl),
-            "audio": str(audio), "frames": frames}
+            "audio": str(audio), "frames": frames, "creator": creator}
 
 
 def purge(job_id: str) -> None:

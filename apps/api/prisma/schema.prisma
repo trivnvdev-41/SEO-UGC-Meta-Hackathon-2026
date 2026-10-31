@@ -10,6 +10,7 @@ datasource db {
 model Article {
   id        String   @id
   videoUrl  String
+  creator   String?
   images    String[]
   idTitle   String
   idMeta    String

@@ -23,6 +23,7 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
     await db.saveArticle({
       id: job.id,
       videoUrl: url,
+      creator: b.creator ?? null,
       images: b.images ?? [],
       id_body: b.articles.id,
       en_body: b.articles.en,

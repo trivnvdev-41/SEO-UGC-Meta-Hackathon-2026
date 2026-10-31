@@ -6,6 +6,7 @@ const toArticle = (row) => ({
   id: row.id,
   images: row.images,
   videoUrl: row.videoUrl,
+  creator: row.creator ?? null,
   id_body: { title: row.idTitle, meta: row.idMeta, body_md: row.idBody },
   en_body: { title: row.enTitle, meta: row.enMeta, body_md: row.enBody },
   json_ld: row.jsonLd,
@@ -32,6 +33,7 @@ export function createDb(client = prisma) {
         create: {
           id: a.id,
           videoUrl: a.videoUrl,
+          creator: a.creator ?? null,
           images: a.images,
           idTitle: a.id_body.title,
           idMeta: a.id_body.meta,
@@ -43,6 +45,7 @@ export function createDb(client = prisma) {
         },
         update: {
           videoUrl: a.videoUrl,
+          creator: a.creator ?? null,
           images: a.images,
           idTitle: a.id_body.title,
           idMeta: a.id_body.meta,

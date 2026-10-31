@@ -8,10 +8,13 @@ Native Share Target: TikTok/YouTube → **Share** → **SEO UGC** → `POST /v1/
 |---|---|
 | `android/.../MainActivity.kt` | Receives `ACTION_SEND` (`text/plain`), forwards the text to Dart via MethodChannel `dev.seougc/share` |
 | `android/.../AndroidManifest.xml` | `intent-filter` for `ACTION_SEND` + `launchMode="singleTask"` (works while the app is already open) |
-| `lib/main.dart` | Receives text → validates → `POST /v1/convert` → shows `jobId` |
+| `lib/main.dart` | Forum home (header, tabs, trending, kartu) + share receiver → `POST /v1/convert` → poll → detail |
 | `lib/share_handler.dart` | Pure functions: URL extraction, host allowlist, request payload |
 | `lib/notify.dart` | Local notification when a job finishes while the app is in background (tap opens the article) |
-| `lib/article_page.dart` | In-app article view (WebView) — no external browser needed |
+| `lib/feed.dart` | Article model + brand filter (pure, tested) |
+| `lib/vote.dart` | Chip Setuju + downvote lokal dengan pop, +1 float, ring |
+| `lib/md.dart` | Mini Markdown renderer mirroring the web one |
+| `lib/article_detail.dart` | Native article detail (photos, body, rating, video link) |
 
 ## Run
 

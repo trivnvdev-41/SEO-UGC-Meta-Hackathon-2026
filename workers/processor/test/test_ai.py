@@ -102,6 +102,30 @@ class AiTest(unittest.TestCase):
         self.assertTrue(imgs[0]["image_url"]["url"].startswith(
             "data:image/jpeg;base64,"))
 
+    def test_prompt_sebut_kreator_di_judul(self):
+        cap = {}
+        payload = json.dumps(
+            {"choices": [{"message": {"content": "{}"}}]}
+        ).encode()
+        with patch("urllib.request.urlopen",
+                   _fake_urlopen_factory(cap, payload)):
+            ai.generate_article("teks", [], "K", model="m", base="https://t",
+                                creator="Kreator Hebat")
+        text = json.loads(cap["body"])["messages"][0]["content"][0]["text"]
+        self.assertIn("Kreator Hebat", text)
+        self.assertIn("JUDUL", text)
+
+    def test_prompt_larang_karang_nama_tanpa_kreator(self):
+        cap = {}
+        payload = json.dumps(
+            {"choices": [{"message": {"content": "{}"}}]}
+        ).encode()
+        with patch("urllib.request.urlopen",
+                   _fake_urlopen_factory(cap, payload)):
+            ai.generate_article("teks", [], "K", model="m", base="https://t")
+        text = json.loads(cap["body"])["messages"][0]["content"][0]["text"]
+        self.assertIn("JANGAN mengarang", text)
+
     def test_enrich_wires_stt_then_spark(self):
         with patch.object(ai, "transcribe_audio",
                           return_value={"text": "t", "language": "id"}), \

@@ -12,10 +12,11 @@ class AppTest(unittest.TestCase):
         order = []
         with patch("processor.app.pipeline",
                    side_effect=lambda *a: order.append("pipeline") or {
-                       "audio": "/tmp/j1/audio.mp3", "frames": ["/tmp/j1/frame_001.jpg"]}), \
+                       "audio": "/tmp/j1/audio.mp3", "frames": ["/tmp/j1/frame_001.jpg"],
+                       "creator": "Kreator Hebat"}), \
                 patch("processor.app.enrich",
-                      side_effect=lambda *a: order.append("enrich") or {
-                          "articles": {"id": {}, "en": {}}, "json_ld": {}}), \
+                      side_effect=lambda *a, **k: order.append("enrich") or {
+                          "articles": {"id": {}, "en": {}}, "json_ld": {}}) as en, \
                 patch("processor.app.purge",
                       side_effect=lambda *a: order.append("purge")), \
                 patch("processor.app.upload_images",
@@ -24,6 +25,7 @@ class AppTest(unittest.TestCase):
         self.assertEqual(order, ["pipeline", "enrich", "upload", "purge"])
         self.assertEqual(out["job_id"], "j1")
         self.assertIn("articles", out)
+        self.assertEqual(out["creator"], "Kreator Hebat")
         self.assertEqual(out["images"], ["https://cdn/x.jpg"])
 
     def test_purge_tetap_jalan_walau_pipeline_gagal(self):

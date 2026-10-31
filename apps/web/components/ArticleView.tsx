@@ -71,6 +71,11 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
       <h1 className="text-[clamp(1.75rem,1rem+3vw,2.75rem)] leading-[1.1]">
         {body.title}
       </h1>
+      {a.creator ? (
+        <p className="mt-2 font-sans text-sm text-muted">
+          {lang === "en" ? `By ${a.creator}` : `Oleh ${a.creator}`}
+        </p>
+      ) : null}
       <p className="mt-2 font-sans text-base text-muted">{body.meta}</p>
       {rating ? (
         <p className="mt-3 font-sans text-sm">

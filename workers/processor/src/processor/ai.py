@@ -157,6 +157,7 @@ PROMPT = ("Kamu analis review produk. Dari TRANSKRIP + FOTO berikut, "
           "dianalisis): pembaca tidak boleh sadar artikel dibuat mesin. "
           "STRUKTUR: body_md wajib memakai subheading ### tiap 100-150 kata, "
           "list - atau 1. untuk poin, dan > untuk catatan penting. "
+          "{creator_rule} "
           "Balas HANYA JSON: "
           '{{"selected_image_indices": [0], '
           '"articles": {{"id": {{"title": ..., "meta": ..., "body_md": ...}}, '
@@ -166,12 +167,21 @@ PROMPT = ("Kamu analis review produk. Dari TRANSKRIP + FOTO berikut, "
 
 
 def generate_article(transcript: str, images_b64: list[str],
-                     api_key: str | None = None, model: str | None = None,
-                     base: str | None = None) -> dict:
+                      api_key: str | None = None, model: str | None = None,
+                      base: str | None = None,
+                      creator: str | None = None) -> dict:
     """Transkrip + foto base64 -> bundle artikel via model multimodal."""
     base, api_key, model = _resolve("llm", base, api_key, model)
+    if creator:
+        creator_rule = (f"Video ini dibuat oleh kreator {creator}. Cantumkan "
+                        f"nama kreator di JUDUL artikel bila cocok, dan sebut "
+                        f"kreator di paragraf pembuka.")
+    else:
+        creator_rule = ("Nama kreator tak diketahui: JANGAN mengarang nama "
+                        "kreator di judul atau isi.")
     content: list[dict] = [
-        {"type": "text", "text": PROMPT.format(transcript=transcript)}]
+        {"type": "text", "text": PROMPT.format(transcript=transcript,
+                                               creator_rule=creator_rule)}]
     for b64 in images_b64[:_MAX_IMAGES]:
         content.append({"type": "image_url",
                         "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
@@ -186,7 +196,8 @@ def generate_article(transcript: str, images_b64: list[str],
 
 
 def enrich(audio_path: str | Path, frame_paths: list[str | Path],
-           api_key: str | None = None) -> dict:
+           api_key: str | None = None,
+           creator: str | None = None) -> dict:
     """Satu pintu worker: STT dulu, lalu artikel + seleksi foto."""
     if stt_mode() == "meta-asr":
         stt = transcribe_meta_asr(audio_path, api_key)
@@ -194,5 +205,6 @@ def enrich(audio_path: str | Path, frame_paths: list[str | Path],
         stt = transcribe_audio(audio_path, api_key)
     images = [base64.b64encode(Path(p).read_bytes()).decode()
               for p in frame_paths]
-    bundle = generate_article(stt["text"], images, api_key)
+    bundle = generate_article(stt["text"], images, api_key,
+                              creator=creator)
     return {"transcript": stt["text"], "language": stt["language"], **bundle}

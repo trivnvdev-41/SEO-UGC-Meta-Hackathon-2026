@@ -9,7 +9,7 @@ export async function GET() {
   const lines = [
     "# SEO UGC",
     "",
-    "> Product review articles generated from UGC videos (TikTok, Instagram Reels,",
+    "> Product review articles generated from UGC videos (TikTok,",
     "> YouTube Shorts). Each article is available in Indonesian and English and",
     "> ships Product/Review JSON-LD plus the official video embed.",
     "",

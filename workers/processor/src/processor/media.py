@@ -21,7 +21,7 @@ FRAME_PATTERN = "frame_%03d.jpg"
 _JOB_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # Defense in depth: gateway sudah memfilter, worker menolak host lain juga.
 _ALLOWED_HOST = re.compile(
-    r"(^|\.)(tiktok\.com|instagram\.com|youtube\.com|youtu\.be)$", re.I)
+    r"(^|\.)(tiktok\.com|youtube\.com|youtu\.be)$", re.I)
 _YOUTUBE_HOST = re.compile(r"(^|\.)(youtube\.com|youtu\.be)$", re.I)
 _DEFAULT_MAX_MB = 50
 _DEFAULT_MAX_SECONDS = 180

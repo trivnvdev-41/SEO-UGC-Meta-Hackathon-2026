@@ -12,7 +12,7 @@ uv pip install --python workers/processor/.venv/bin/python -e workers/processor
 ```
 
 Optional: `YTDLP_COOKIES_FILE` (absolute path to a Netscape cookie jar) when
-TikTok/Instagram asks for login. Empty = normal behaviour; a missing path fails fast
+TikTok asks for login. Empty = normal behaviour; a missing path fails fast
 with `missing_file:YTDLP_COOKIES_FILE`. Cookie files are gitignored.
 
 `ffmpeg` must be on `PATH` at runtime. Without sudo:
@@ -38,7 +38,7 @@ Module: `src/processor/ai.py` (`settings`, `transcribe_audio`, `generate_article
 | Env | Default | Effect |
 |---|---|---|
 | `MAX_VIDEO_MB` | 50 | `yt-dlp --max-filesize` + real on-disk size check after download (`video_too_large`) |
-| `MAX_VIDEO_SECONDS` | 180 | `yt-dlp --match-filter "duration <= N"` — TikTok/Instagram |
+| `MAX_VIDEO_SECONDS` | 180 | `yt-dlp --match-filter "duration <= N"` — TikTok |
 | `MAX_VIDEO_SECONDS_YOUTUBE` | 600 | YouTube-specific limit (Shorts and videos up to 10 minutes) |
 
 Timeouts: yt-dlp 120s, ffmpeg 60s, `--socket-timeout 30` — a stalled process fails

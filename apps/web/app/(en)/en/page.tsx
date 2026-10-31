@@ -7,7 +7,7 @@ export const revalidate = homeRevalidate;
 export const metadata: Metadata = {
   title: "SEO UGC — Honest product reviews from creator videos",
   description:
-    "Product reviews from TikTok, Reels, and YouTube Shorts: photos, pros and cons, and scores in bilingual articles.",
+    "Product reviews from TikTok and YouTube Shorts: photos, pros and cons, and scores in bilingual articles.",
   alternates: {
     canonical: `${SITE_URL}/en`,
     languages: { id: SITE_URL, en: `${SITE_URL}/en`, "x-default": SITE_URL },

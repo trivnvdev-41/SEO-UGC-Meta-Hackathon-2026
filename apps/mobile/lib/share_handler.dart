@@ -2,7 +2,7 @@
 // lalu dikirim sebagai {url} ke POST /v1/convert (lihat main.dart).
 final _urlRe = RegExp(r'https?://\S+');
 final _allowedHost = RegExp(
-    r'(^|\.)(tiktok\.com|instagram\.com|youtube\.com|youtu\.be)$',
+    r'(^|\.)(tiktok\.com|youtube\.com|youtu\.be)$',
     caseSensitive: false);
 
 String? extractSharedUrl(String? text) {
@@ -20,7 +20,7 @@ bool isSupportedUrl(String url) {
   return _allowedHost.hasMatch(uri.host);
 }
 
-/// URL dari share sheet yang boleh dikirim ke API (TikTok/Instagram https).
+/// URL dari share sheet yang boleh dikirim ke API (TikTok/YouTube https).
 String? supportedSharedUrl(String? text) {
   final url = extractSharedUrl(text);
   if (url == null) return null;

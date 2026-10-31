@@ -18,14 +18,14 @@ const T = {
   id: {
     brand: "SEO UGC",
     hero: "Video kreator, jadi artikel ulasan.",
-    sub: "Setiap link TikTok, Reels, atau YouTube Shorts diubah menjadi artikel terstruktur dengan foto, kelebihan dan kekurangan, serta skor. Siap dibaca dan siap diindeks mesin pencari.",
+    sub: "Setiap link TikTok atau YouTube Shorts diubah menjadi artikel terstruktur dengan foto, kelebihan dan kekurangan, serta skor. Siap dibaca dan siap diindeks mesin pencari.",
     searchPh: "Cari sunscreen, ampoule, …",
     searchBtn: "Cari",
     latest: "Ulasan terbaru",
     empty: "Belum ada ulasan yang cocok.",
     how: "Cara kerja",
     steps: [
-      ["Bagikan link", "Kreator atau affiliate membagikan link video dari TikTok, Instagram, atau YouTube."],
+      ["Bagikan link", "Kreator atau affiliate membagikan link video dari TikTok atau YouTube."],
       ["AI merangkum", "Audio ditranskrip, bingkai terbaik dipilih, lalu disusun jadi artikel dwibahasa dengan JSON-LD."],
       ["Terbit dan terindeks", "Artikel SSR/ISR dengan canonical, hreflang, dan sitemap. Siap muncul di Google dan AI Search."],
     ],
@@ -34,14 +34,14 @@ const T = {
   en: {
     brand: "SEO UGC",
     hero: "From video to review article.",
-    sub: "Every TikTok, Reels, or YouTube Shorts link becomes a structured article with photos, pros and cons, and a score. Ready to read and ready to index.",
+    sub: "Every TikTok or YouTube Shorts link becomes a structured article with photos, pros and cons, and a score. Ready to read and ready to index.",
     searchPh: "Search sunscreen, ampoule, …",
     searchBtn: "Search",
     latest: "Latest reviews",
     empty: "No matching reviews yet.",
     how: "How it works",
     steps: [
-      ["Share a link", "A creator or affiliate shares a video link from TikTok, Instagram, or YouTube."],
+      ["Share a link", "A creator or affiliate shares a video link from TikTok or YouTube."],
       ["AI summarizes", "Audio is transcribed, the best frames are picked, then composed into a bilingual article with JSON-LD."],
       ["Published and indexed", "SSR/ISR articles with canonical, hreflang, and sitemap. Ready for Google and AI Search."],
     ],

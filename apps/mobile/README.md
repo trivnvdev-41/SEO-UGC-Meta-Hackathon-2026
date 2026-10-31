@@ -1,6 +1,6 @@
 # Mobile (Flutter) — Share Receiver
 
-Native Share Target: TikTok/Instagram/YouTube → **Share** → **SEO UGC** → `POST /v1/convert`.
+Native Share Target: TikTok/YouTube → **Share** → **SEO UGC** → `POST /v1/convert`.
 
 ## Structure
 
@@ -40,5 +40,5 @@ Manual check: open TikTok → Share → pick **SEO UGC** → the app shows
 
 - Android-only: no iOS target in this repo.
 - The backend must be running and `API_BASE` must be reachable from the device.
-- Only `https` links to TikTok/Instagram/YouTube are sent; anything else is ignored
+- Only `https` links to TikTok/YouTube are sent; anything else is ignored
   in the UI before any request is made.

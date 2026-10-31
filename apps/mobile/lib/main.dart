@@ -65,7 +65,7 @@ class SharePage extends StatefulWidget {
 class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   static const _channel = MethodChannel('dev.seougc/share');
 
-  String _status = 'Bagikan video TikTok/IG/YouTube ke SEO UGC untuk mulai.';
+  String _status = 'Bagikan video TikTok/YouTube ke SEO UGC untuk mulai.';
   String? _lastUrl;
   String? _articleUrl;
   bool _busy = false;
@@ -131,7 +131,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       _set(
         extractSharedUrl(text) == null
             ? 'Tidak ada URL di teks yang dibagikan.'
-            : 'Link diabaikan: hanya TikTok/Instagram/YouTube (https) yang didukung.',
+            : 'Link diabaikan: hanya TikTok/YouTube (https) yang didukung.',
         isError: true,
       );
       return;
@@ -251,7 +251,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   child: TextField(
                     controller: _manual,
                     decoration: const InputDecoration(
-                      hintText: 'Tempel link TikTok/IG/YouTube…',
+                      hintText: 'Tempel link TikTok/YouTube…',
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),
@@ -354,7 +354,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '1. Share video dari TikTok/IG/YouTube ke SEO UGC\n'
+                            '1. Share video dari TikTok/YouTube ke SEO UGC\n'
                             '2. Tunggu notifikasi — artikel dimasak di server\n'
                             '3. Buka dan baca artikel di dalam app ini',
                             style: theme.textTheme.bodyMedium?.copyWith(

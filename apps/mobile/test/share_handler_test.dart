@@ -11,8 +11,8 @@ void main() {
     });
 
     test('teks hanya URL', () {
-      expect(extractSharedUrl('https://www.instagram.com/reel/ABC123/'),
-          'https://www.instagram.com/reel/ABC123/');
+      expect(extractSharedUrl('https://www.youtube.com/shorts/abc123'),
+          'https://www.youtube.com/shorts/abc123');
     });
 
     test('buang tanda baca penutup', () {
@@ -28,15 +28,18 @@ void main() {
   });
 
   group('supportedSharedUrl (filter host)', () {
-    test('terima TikTok & Instagram https', () {
+    test('terima TikTok & YouTube https', () {
       expect(supportedSharedUrl('share https://vt.tiktok.com/ZSabc/'),
           'https://vt.tiktok.com/ZSabc/');
-      expect(supportedSharedUrl('https://www.instagram.com/reel/ABC/'),
-          'https://www.instagram.com/reel/ABC/');
       expect(supportedSharedUrl('https://www.youtube.com/shorts/abc123'),
           'https://www.youtube.com/shorts/abc123');
       expect(supportedSharedUrl('https://youtu.be/abc123'),
           'https://youtu.be/abc123');
+    });
+
+    test('tolak Instagram', () {
+      expect(supportedSharedUrl('https://www.instagram.com/reel/ABC/'),
+          isNull);
     });
 
     test('tolak host lain, http, dan userinfo', () {

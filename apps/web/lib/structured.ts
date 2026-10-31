@@ -2,7 +2,7 @@ import type { Article, ArticleBody } from "./articles";
 import { youtubeId } from "./video";
 
 // VideoObject hanya untuk YouTube: embed resmi + thumbnail deterministik.
-// Platform lain (TikTok/IG) tetap pakai Product/Review dari model.
+// Platform lain (TikTok) tetap pakai Product/Review dari model.
 export function videoObject(a: Article, body: ArticleBody) {
   const id = youtubeId(a.videoUrl);
   if (!id) return null;

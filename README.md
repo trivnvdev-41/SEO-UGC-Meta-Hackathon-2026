@@ -1,6 +1,6 @@
 # SEO UGC
 
-Turn UGC video links (TikTok / IG Reels / YouTube) into SEO-ready web articles with
+Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
 **JSON-LD schema** and an **official embed**.
 
 ## Structure
@@ -89,7 +89,7 @@ expose it publicly.
 - [x] API Gateway + BullMQ queue + consumer (queue → worker → persist)
 - [x] Python worker: yt-dlp + FFmpeg + `/tmp` purge (in `finally`)
 - [x] STT + multimodal article generation, two independent providers via env (`AI_STT_*`, `AI_LLM_*`)
-- [x] Next.js article pages + JSON-LD + oEmbed (TikTok, Instagram, YouTube)
+- [x] Next.js article pages + JSON-LD + oEmbed (TikTok, YouTube)
 - [x] SEO: path-based i18n (`/en/article/<id>`), canonical/hreflang, sitemap, robots, escaped JSON-LD
 - [x] Security: domain allowlist, internal service token, rate limit, video size/duration caps
 - [x] Prisma/PostgreSQL (`Article` + `Job`)

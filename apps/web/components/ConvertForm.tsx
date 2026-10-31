@@ -9,28 +9,28 @@ import type { Lang } from "@/lib/articles";
 
 const T = {
   id: {
-    placeholder: "Tempel link TikTok/IG/YouTube…",
+    placeholder: "Tempel link TikTok/YouTube…",
     send: "Buat artikel",
     cancel: "Batal",
     sending: "Mengirim…",
     waiting: "Artikel dimasak di server, mohon tunggu…",
-    badUrl: "Hanya link https TikTok/Instagram/YouTube yang didukung.",
+    badUrl: "Hanya link https TikTok/YouTube yang didukung.",
     failed: "Gagal. Coba lagi.",
     timeout: "Belum jadi setelah 6 menit. Coba lagi nanti.",
   },
   en: {
-    placeholder: "Paste a TikTok/IG/YouTube link…",
+    placeholder: "Paste a TikTok/YouTube link…",
     send: "Create article",
     cancel: "Cancel",
     sending: "Sending…",
     waiting: "Cooking the article on the server, please wait…",
-    badUrl: "Only https TikTok/Instagram/YouTube links are supported.",
+    badUrl: "Only https TikTok/YouTube links are supported.",
     failed: "Failed. Try again.",
     timeout: "Not ready after 6 minutes. Try again later.",
   },
 } as const;
 
-const HOST_RE = /(^|\.)(tiktok\.com|instagram\.com|youtube\.com|youtu\.be)$/i;
+const HOST_RE = /(^|\.)(tiktok\.com|youtube\.com|youtu\.be)$/i;
 
 function supported(url: string): boolean {
   try {

@@ -135,7 +135,7 @@ class MediaTest(unittest.TestCase):
         self.assertTrue(is_convertible_url("https://www.youtube.com/shorts/aBcD1234"))
         self.assertTrue(is_convertible_url("https://youtu.be/aBcD1234"))
         self.assertFalse(is_convertible_url("https://youtube.com.evil.com/x"))
-        self.assertTrue(is_convertible_url("https://www.instagram.com/reel/a/"))
+        self.assertFalse(is_convertible_url("https://www.instagram.com/reel/a/"))
         self.assertFalse(is_convertible_url("http://169.254.169.254/x"))
         self.assertFalse(is_convertible_url("https://evil.com/v/1"))
         self.assertFalse(is_convertible_url("https://tiktok.com.evil.com/x"))

@@ -30,7 +30,7 @@ function call(app, { method = 'POST', url = '/v1/convert', body = {} } = {}) {
 
 test('URL valid lolos, host lain/format salah ditolak', () => {
   assert.equal(isConvertibleUrl('https://vt.tiktok.com/abc123/'), true);
-  assert.equal(isConvertibleUrl('https://www.instagram.com/reel/abc/'), true);
+  assert.equal(isConvertibleUrl('https://www.instagram.com/reel/abc/'), false);
   assert.equal(isConvertibleUrl('https://www.youtube.com/shorts/abc123XYZ_-'), true);
   assert.equal(isConvertibleUrl('https://youtu.be/abc123XYZ_-'), true);
   assert.equal(isConvertibleUrl('not-a-url'), false);

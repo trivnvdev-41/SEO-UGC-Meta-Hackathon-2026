@@ -24,6 +24,15 @@ class MainActivity : FlutterActivity() {
                     if (call.method == "getInitialSharedText") {
                         result.success(pendingText)
                         pendingText = null
+                    } else if (call.method == "openUrl") {
+                        // Buka link artikel di browser: tanpa dependency url_launcher.
+                        try {
+                            val url = call.arguments as String
+                            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("open_failed", e.message, null)
+                        }
                     } else {
                         result.notImplemented()
                     }

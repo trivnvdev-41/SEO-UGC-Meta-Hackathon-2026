@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Wajib di release: tanpa ini HttpClient gagal (hanya debug/profile yang otomatis). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="SEO UGC"
         android:name="${applicationName}"

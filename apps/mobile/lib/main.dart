@@ -70,6 +70,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
 
   String? _lastHandled;
   DateTime? _lastHandledAt;
+  final _manual = TextEditingController();
 
   @override
   void initState() {
@@ -84,6 +85,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _manual.dispose();
     super.dispose();
   }
 
@@ -193,6 +195,17 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _openArticle(String articleUrl) async {
+    try {
+      await _channel.invokeMethod('openUrl', articleUrl);
+    } on PlatformException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak bisa membuka browser')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -203,6 +216,28 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _manual,
+                    decoration: const InputDecoration(
+                      hintText: 'Tempel link TikTok/IG/YouTube…',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.url,
+                    onSubmitted: _handleText,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _busy ? null : () => _handleText(_manual.text),
+                  child: const Text('Kirim'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             _StatusCard(
               busy: _busy,
               status: _status,
@@ -223,10 +258,20 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                       const SizedBox(height: 4),
                       SelectableText(_articleUrl!),
                       const SizedBox(height: 8),
-                      FilledButton.icon(
-                        onPressed: () => _copyArticle(_articleUrl!),
-                        icon: const Icon(Icons.copy),
-                        label: const Text('Salin link artikel'),
+                      Row(
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () => _copyArticle(_articleUrl!),
+                            icon: const Icon(Icons.copy),
+                            label: const Text('Salin link'),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: () => _openArticle(_articleUrl!),
+                            icon: const Icon(Icons.open_in_new),
+                            label: const Text('Buka'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -267,6 +312,10 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                         return _HistoryTile(
                           entry: e,
                           onCopy: () => _copyArticle(e.articleUrl!),
+                          onOpen: () => _openArticle(e.articleUrl!),
+                          onRetry: e.status == 'failed' && !_busy
+                              ? () => _handleText(e.url)
+                              : null,
                         );
                       },
                     ),
@@ -337,10 +386,17 @@ class _StatusCard extends StatelessWidget {
 }
 
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.entry, required this.onCopy});
+  const _HistoryTile({
+    required this.entry,
+    required this.onCopy,
+    required this.onOpen,
+    required this.onRetry,
+  });
 
   final JobEntry entry;
   final VoidCallback onCopy;
+  final VoidCallback onOpen;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -379,11 +435,23 @@ class _HistoryTile extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             chip,
-            if (entry.status == 'done')
+            if (entry.status == 'done') ...[
               IconButton(
                 tooltip: 'Salin link artikel',
                 icon: const Icon(Icons.copy),
                 onPressed: onCopy,
+              ),
+              IconButton(
+                tooltip: 'Buka artikel',
+                icon: const Icon(Icons.open_in_new),
+                onPressed: onOpen,
+              ),
+            ],
+            if (onRetry != null)
+              IconButton(
+                tooltip: 'Coba lagi',
+                icon: const Icon(Icons.refresh),
+                onPressed: onRetry,
               ),
           ],
         ),

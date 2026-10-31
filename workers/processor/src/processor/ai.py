@@ -143,7 +143,14 @@ def stt_mode() -> str:
 
 
 PROMPT = ("Kamu analis review produk. Dari TRANSKRIP + FOTO berikut, "
-          "pilih foto produk paling jelas dan tulis artikel SEO dua bahasa. "
+          "pilih foto produk dan tulis artikel SEO dua bahasa. "
+          "KRITERIA FOTO (urutan penting): "
+          "1) tajam/fokus, tidak blur atau goyang; "
+          "2) produk terlihat utuh dan dominan di frame, bukan jauh/kecil; "
+          "3) pencahayaan cukup, warna produk dikenali; "
+          "4) tolak foto yang tertutup jari/tangan, teks overlay besar, "
+          "atau transisi/efek. "
+          "Pilih 2-3 indeks terbaik ke selected_image_indices. "
           "Balas HANYA JSON: "
           '{{"selected_image_indices": [0], '
           '"articles": {{"id": {{"title": ..., "meta": ..., "body_md": ...}}, '

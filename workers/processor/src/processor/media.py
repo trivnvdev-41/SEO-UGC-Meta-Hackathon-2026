@@ -90,6 +90,8 @@ def download_cmd(url: str, out: Path, cookies: str | None = None,
                  max_mb: int | None = None,
                  max_sec: int | None = None) -> list[str]:
     cmd = ["yt-dlp", "-o", str(out),
+           # 720p cukup untuk STT + still image; best-quality bikin unduh lambat.
+           "-f", "bv*[height<=720]+ba/b[height<=720]/b",
            "--max-filesize", f"{max_mb or max_filesize_mb()}M",
            "--socket-timeout", str(_SOCKET_TIMEOUT),
            "--match-filter",
@@ -116,8 +118,9 @@ def audio_cmd(video: Path, audio: Path) -> list[str]:
 
 
 def frames_cmd(video: Path, pattern: Path) -> list[str]:
+    # Berhenti di 10 frame: pipeline hanya memakai 10 pertama.
     return ["ffmpeg", "-y", "-i", str(video),
-            "-vf", "fps=1/3", str(pattern)]
+            "-vf", "fps=1/3", "-frames:v", "10", str(pattern)]
 
 
 def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:

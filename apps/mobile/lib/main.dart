@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'notify.dart';
 import 'share_handler.dart';
 
 // 10.0.2.2 = localhost mesin host dari Android emulator.
@@ -19,7 +20,9 @@ const webBase = String.fromEnvironment(
   defaultValue: 'http://10.0.2.2:4320',
 );
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initNotif();
   runApp(const SeoUgcApp());
 }
 
@@ -71,12 +74,16 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   String? _lastHandled;
   DateTime? _lastHandledAt;
   int _pollSeq = 0; // token poll aktif; poll lama berhenti saat tersalip/cancel.
+  bool _foreground = true; // false = notifikasi info saat job selesai.
   final _manual = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    onNotifTap = (payload) async {
+      if (payload != null) _openArticle(payload);
+    };
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'shared') await _handleText(call.arguments as String?);
     });
@@ -86,6 +93,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    onNotifTap = null;
     _manual.dispose();
     super.dispose();
   }
@@ -94,6 +102,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   // ambil ulang pending text setiap app kembali ke depan.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.resumed) _loadInitial();
   }
 
@@ -155,6 +164,15 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         }
         _busy = false;
       });
+      // Info di background saja; di foreground user sudah melihat status card.
+      if (!_foreground) {
+        if (entry.status == 'done') {
+          await notifyJob('Artikel jadi', entry.articleUrl!,
+              payload: entry.articleUrl);
+        } else {
+          await notifyJob('Job $jobId gagal', entry.error ?? 'unknown');
+        }
+      }
     } catch (e) {
       if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
       _set('Gagal: $e', isError: true);

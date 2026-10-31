@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Wajib di release: tanpa ini HttpClient gagal (hanya debug/profile yang otomatis). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Notifikasi job selesai (runtime request saat app start, Android 13+). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="SEO UGC"
         android:name="${applicationName}"

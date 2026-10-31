@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'article_page.dart';
 import 'notify.dart';
 import 'share_handler.dart';
 
@@ -225,15 +226,13 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Artikel dibuka di dalam app. Browser eksternal tak lagi dipakai
+  /// (channel `openUrl` di MainActivity tinggal sebagai cadangan).
   Future<void> _openArticle(String articleUrl) async {
-    try {
-      await _channel.invokeMethod('openUrl', articleUrl);
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak bisa membuka browser')),
-      );
-    }
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ArticlePage(url: articleUrl)),
+    );
   }
 
   @override

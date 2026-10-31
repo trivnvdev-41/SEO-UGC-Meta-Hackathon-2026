@@ -11,6 +11,7 @@ Native Share Target: TikTok/Instagram/YouTube → **Share** → **SEO UGC** → 
 | `lib/main.dart` | Receives text → validates → `POST /v1/convert` → shows `jobId` |
 | `lib/share_handler.dart` | Pure functions: URL extraction, host allowlist, request payload |
 | `lib/notify.dart` | Local notification when a job finishes while the app is in background (tap opens the article) |
+| `lib/article_page.dart` | In-app article view (WebView) — no external browser needed |
 
 ## Run
 

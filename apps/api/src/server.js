@@ -1,21 +1,21 @@
 import { createServer } from 'node:http';
 import { makeApp } from './makeApp.js';
-import { CONVERT_QUEUE, createConvertQueue } from './queue.js';
+import { createFileQueue } from './queue.js';
 import { createDb } from './db.js';
-import { startWorker } from './processor.js';
+import { startPoller } from './processor.js';
 import { makeRateLimiter } from './rateLimit.js';
 
 const PORT = Number(process.env.PORT ?? 4301);
-const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
+const QUEUE_DIR = process.env.QUEUE_DIR ?? './data/queue';
 const WORKER_URL = process.env.WORKER_URL ?? '';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
 
 const db = createDb();
-const queue = createConvertQueue(REDIS_URL);
+const queue = createFileQueue(QUEUE_DIR);
 
 // Job row dibuat saat enqueue supaya status bisa dilacak sejak awal.
 const enqueue = async ({ url }) => {
-  const job = await queue.enqueue({ url });
+  const job = queue.enqueue({ url });
   await db.setJobStatus(job.id, 'queued', { url }).catch(() => {});
   return job;
 };
@@ -31,8 +31,8 @@ createServer(
 });
 
 if (WORKER_URL) {
-  startWorker({ redisUrl: REDIS_URL, db, workerUrl: WORKER_URL, token: TOKEN });
-  console.log(`consumer listening on ${CONVERT_QUEUE}`);
+  startPoller({ queue, db, workerUrl: WORKER_URL, token: TOKEN });
+  console.log(`poller antrean file di ${QUEUE_DIR}`);
 } else {
-  console.warn('WORKER_URL kosong: consumer tidak dijalankan');
+  console.warn('WORKER_URL kosong: poller tidak dijalankan');
 }

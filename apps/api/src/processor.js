@@ -1,5 +1,4 @@
-import { Worker } from 'bullmq';
-import { CONVERT_QUEUE } from './queue.js';
+import { MAX_ATTEMPTS } from './queue.js';
 
 // Handler murni: worker HTTP -> artikel + status job. Diinject agar ter-test.
 export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
@@ -33,15 +32,26 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
   };
 }
 
-export function startWorker({ redisUrl, ...opts }) {
-  const worker = new Worker(CONVERT_QUEUE, makeProcessor(opts), {
-    connection: { url: redisUrl },
-  });
-  worker.on('failed', (job, err) => {
-    if (!job) return;
-    opts.db
-      .setJobStatus(job.id, 'failed', { error: String(err?.message ?? err).slice(0, 500) })
-      .catch(() => {});
-  });
-  return worker;
+// Poller antrean file: klaim -> proses -> done/fail. Satu job per tick.
+export function startPoller({ queue, intervalMs = 5000, ...opts }) {
+  const process = makeProcessor(opts);
+  const timer = setInterval(async () => {
+    const file = queue.claim();
+    if (!file) return;
+    const job = { id: file.id, data: { url: file.url } };
+    try {
+      await process(job);
+      queue.done(file);
+    } catch (err) {
+      const msg = String(err?.message ?? err).slice(0, 500);
+      queue.fail(file, msg);
+      if (file.attempts + 1 >= MAX_ATTEMPTS) {
+        await opts.db
+          .setJobStatus(job.id, 'failed', { error: msg })
+          .catch(() => {});
+      }
+    }
+  }, intervalMs);
+  timer.unref?.();
+  return { close: () => clearInterval(timer) };
 }

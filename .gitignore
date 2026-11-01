@@ -1,5 +1,7 @@
 .env
 .env.local
+*.db
+*.db-journal
 node_modules/
 __pycache__/
 .tmp/

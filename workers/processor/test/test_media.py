@@ -138,6 +138,8 @@ class MediaTest(unittest.TestCase):
         def ok(cmd, **kw):
             assert cmd[:3] == ["yt-dlp", "--skip-download", "--no-warnings"]
             assert "--cookies" not in cmd
+            # Template harus pakai TAB asli (\t), bukan teks literal backslash-t.
+            assert "\t" in cmd[cmd.index("--print") + 1]
             return SimpleNamespace(stdout="Kreator Hebat\n")
         self.assertEqual(
             uploader_of("https://vt.tiktok.com/x/", run=ok), "Kreator Hebat")

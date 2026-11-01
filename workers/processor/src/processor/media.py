@@ -140,7 +140,7 @@ def uploader_of(url: str, run=subprocess.run) -> str | None:
     if not is_convertible_url(url):
         raise ValueError("invalid_url")
     cmd = ["yt-dlp", "--skip-download", "--no-warnings",
-           "--print", "%(uploader)s\\t%(uploader_url)s\\t%(uploader_id)s",
+           "--print", "%(uploader)s\t%(uploader_url)s\t%(uploader_id)s",
            "--socket-timeout", str(_SOCKET_TIMEOUT)]
     cookies = cookies_file()
     if cookies:

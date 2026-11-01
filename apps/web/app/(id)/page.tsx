@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { HomeView, revalidate as homeRevalidate } from "@/components/HomeView";
+import { HomeView } from "@/components/HomeView";
 import { SITE_URL } from "@/lib/site";
 
-export const revalidate = homeRevalidate;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "SEO UGC — Ulasan produk jujur dari video kreator",

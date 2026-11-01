@@ -29,6 +29,7 @@ model Job {
   url       String
   status    String   @default("queued")
   error     String?
+  creator   String?
   articleId String?  @unique
   article   Article? @relation(fields: [articleId], references: [id])
   createdAt DateTime @default(now())

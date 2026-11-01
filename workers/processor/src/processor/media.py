@@ -175,12 +175,33 @@ def frames_cmd(video: Path, pattern: Path) -> list[str]:
             "-vf", "fps=1/3", "-frames:v", "10", str(pattern)]
 
 
-def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
-    """Unduh video ke /tmp/{job_id}, ekstrak audio.mp3 + frame_*.jpg."""
+def media_inbox(job_id: str) -> Path | None:
+    """Direktori media dari fetch-worker (MEDIA_DIR/<job_id>), bila lengkap.
+
+    Lengkap = ada audio.mp3 + ≥1 frame_*.jpg. None = unduh sendiri."""
+    root = os.environ.get("MEDIA_DIR", "").strip()
+    if not root:
+        return None
+    d = Path(root) / _check_job_id(job_id)
+    frames = sorted(d.glob("frame_*.jpg")) if d.is_dir() else []
+    if (d / AUDIO_NAME).is_file() and frames:
+        return d
+    return None
+
+
+def pipeline(job_id: str, url: str, run=subprocess.run,
+             creator: str | None = None) -> dict:
+    """Media lokal fetch-worker bila ada, else unduh via yt-dlp."""
     if not is_convertible_url(url):
         raise ValueError("invalid_url")
+    inbox = media_inbox(job_id)
+    if inbox is not None:
+        frames = sorted(str(p) for p in inbox.glob("frame_*.jpg"))[:10]
+        return {"job_id": job_id, "video": None,
+                "audio": str(inbox / AUDIO_NAME), "frames": frames,
+                "creator": creator or None, "local": True}
     cookies = cookies_file()  # validasi sebelum membuat direktori job
-    creator = uploader_of(url, run)
+    creator = creator or uploader_of(url, run)
     d = job_dir(job_id)
     d.mkdir(parents=True, exist_ok=True)
     video = d / VIDEO_NAME
@@ -193,7 +214,8 @@ def pipeline(job_id: str, url: str, run=subprocess.run) -> dict:
     run(frames_cmd(dl, d / FRAME_PATTERN), check=True, timeout=_FFMPEG_TIMEOUT)
     frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
     return {"job_id": job_id, "video": str(dl),
-            "audio": str(audio), "frames": frames, "creator": creator}
+            "audio": str(audio), "frames": frames, "creator": creator,
+            "local": False}
 
 
 def purge(job_id: str) -> None:

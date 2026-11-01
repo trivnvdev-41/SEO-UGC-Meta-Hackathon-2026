@@ -61,6 +61,23 @@ test('consumer: worker 200 → artikel tersimpan + job done', async () => {
   assert.equal(saved.json_ld['@type'], 'Product');
 });
 
+test('consumer: creator job diteruskan ke worker', async () => {
+  const db = fakeDb();
+  let sent;
+  const processor = makeProcessor({
+    db,
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    fetchImpl: async (url, init) => {
+      sent = JSON.parse(init.body);
+      return { ok: true, status: 200, json: async () => bundle };
+    },
+  });
+  await processor({ id: 'job_9', creator: '@hebat', data: { url: 'https://x/v' } });
+  assert.equal(sent.creator, '@hebat');
+  assert.equal(sent.job_id, 'job_9');
+});
+
 test('consumer: worker error → throw, artikel tidak disimpan', async () => {
   const db = fakeDb();
   const processor = makeProcessor({

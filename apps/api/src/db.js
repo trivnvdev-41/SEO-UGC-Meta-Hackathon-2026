@@ -57,11 +57,14 @@ export function createDb(client = prisma) {
         },
       }),
 
-    setJobStatus: async (id, status, { url, error = null, articleId = null } = {}) =>
+    setJobStatus: async (id, status, { url, error = null, articleId = null, creator = null } = {}) =>
       client.job.upsert({
         where: { id },
-        create: { id, url: url ?? '', status, error, articleId },
-        update: { status, error, articleId },
+        create: { id, url: url ?? '', status, error, articleId, creator },
+        update: { status, error, articleId, ...(creator === null ? {} : { creator }) },
       }),
+
+    getJob: async (id) =>
+      client.job.findUnique({ where: { id } }),
   };
 }

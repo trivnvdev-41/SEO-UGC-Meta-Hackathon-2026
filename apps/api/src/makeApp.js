@@ -1,4 +1,5 @@
 import { isConvertibleUrl } from './validateUrl.js';
+import { handleMediaUpload } from './mediaIngress.js';
 
 function send(res, status, body) {
   res.writeHead(status, { 'content-type': 'application/json' });
@@ -23,10 +24,39 @@ function readJson(req) {
 }
 
 // enqueue: async ({url}) => {id}. db: lihat src/db.js.
-// opts.rateLimiter: (key) => boolean. Diinject agar route ter-test tanpa Redis/DB.
-export function makeApp(enqueue, db, { rateLimiter } = {}) {
+// opts.rateLimiter: (key) => boolean. opts.fetch: {queue, mediaDir, token}
+// untuk fetch-worker lokal (GET /v1/queue/next + POST /v1/media/:id).
+export function makeApp(enqueue, db, { rateLimiter, fetch } = {}) {
   return async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
+
+    if (req.method === 'GET' && pathname === '/v1/queue/next') {
+      if (!fetch || req.headers.authorization !== `Bearer ${fetch.token}`) {
+        return send(res, 401, { error: 'unauthorized' });
+      }
+      const file = fetch.queue.claim();
+      if (!file) {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      try {
+        await db.setJobStatus(file.id, 'fetching', { url: file.url });
+      } catch {
+        fetch.queue.release(file);
+        return send(res, 503, { error: 'db_unavailable' });
+      }
+      return send(res, 200, { id: file.id, url: file.url });
+    }
+
+    if (req.method === 'POST' && pathname.startsWith('/v1/media/')) {
+      if (!fetch) return send(res, 404, { error: 'not_found' });
+      const out = await handleMediaUpload(
+        req, res, send, db, fetch.mediaDir, fetch.token);
+      if (out) fetch.queue.releaseById(decodeURIComponent(
+        pathname.slice('/v1/media/'.length)));
+      return out;
+    }
 
     if (req.method === 'GET' && pathname === '/v1/articles') {
       if (!db) return send(res, 503, { error: 'db_unavailable' });

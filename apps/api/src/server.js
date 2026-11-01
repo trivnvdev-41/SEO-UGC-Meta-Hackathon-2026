@@ -7,8 +7,10 @@ import { makeRateLimiter } from './rateLimit.js';
 
 const PORT = Number(process.env.PORT ?? 4301);
 const QUEUE_DIR = process.env.QUEUE_DIR ?? './data/queue';
+const MEDIA_DIR = process.env.MEDIA_DIR ?? './data/media';
 const WORKER_URL = process.env.WORKER_URL ?? '';
 const TOKEN = process.env.API_INTERNAL_TOKEN ?? '';
+const FETCH_TOKEN = process.env.FETCH_TOKEN ?? TOKEN;
 
 const db = createDb();
 const queue = createFileQueue(QUEUE_DIR);
@@ -25,6 +27,7 @@ createServer(
     rateLimiter: makeRateLimiter({
       limit: Number(process.env.RATE_LIMIT_PER_MIN ?? 5),
     }),
+    fetch: { queue, mediaDir: MEDIA_DIR, token: FETCH_TOKEN },
   }),
 ).listen(PORT, () => {
   console.log(`api listening on :${PORT}`);

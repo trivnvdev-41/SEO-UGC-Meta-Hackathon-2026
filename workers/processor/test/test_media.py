@@ -171,6 +171,27 @@ class MediaTest(unittest.TestCase):
                         run=lambda *a, **k: SimpleNamespace(stdout=out)),
             "@wynnearmeline")
 
+    def test_pipeline_pakai_inbox_tanpa_unduh(self):
+        import os
+        import tempfile
+        from unittest.mock import patch
+        from processor import media
+
+        with tempfile.TemporaryDirectory() as tmp:
+            inbox = Path(tmp) / "job9"
+            inbox.mkdir()
+            (inbox / "audio.mp3").write_bytes(b"x")
+            (inbox / "frame_001.jpg").write_bytes(b"x")
+            env = {"MEDIA_DIR": tmp}
+            with patch.dict(os.environ, env, clear=True), \
+                    patch.object(media.subprocess, "run") as run:
+                out = media.pipeline("job9", "https://vt.tiktok.com/x/",
+                                     creator="@hebat")
+            run.assert_not_called()
+        self.assertTrue(out["local"])
+        self.assertEqual(out["creator"], "@hebat")
+        self.assertEqual(len(out["frames"]), 1)
+
     def test_uploader_of_tolak_url_tak_izin(self):
         with self.assertRaises(ValueError):
             uploader_of("https://evil.com/x",

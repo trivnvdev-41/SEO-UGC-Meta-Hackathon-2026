@@ -11,7 +11,7 @@ class AppTest(unittest.TestCase):
     def test_purge_setelah_enrich_sukses(self):
         order = []
         with patch("processor.app.pipeline",
-                   side_effect=lambda *a: order.append("pipeline") or {
+                   side_effect=lambda *a, **k: order.append("pipeline") or {
                        "audio": "/tmp/j1/audio.mp3", "frames": ["/tmp/j1/frame_001.jpg"],
                        "creator": "Kreator Hebat"}), \
                 patch("processor.app.enrich",

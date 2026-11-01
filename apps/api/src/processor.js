@@ -12,7 +12,11 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
         'content-type': 'application/json',
         authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ job_id: job.id, url }),
+      body: JSON.stringify({
+        job_id: job.id,
+        url,
+        ...(job.creator ? { creator: job.creator } : {}),
+      }),
     });
     if (!res.ok) throw new Error(`worker_${res.status}`);
 
@@ -32,13 +36,27 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
   };
 }
 
-// Poller antrean file: klaim -> proses -> done/fail. Satu job per tick.
+// Poller antrean file: hanya job media_ready (media dari fetch-worker).
+// Job lain dikembalikan (menunggu fetch-worker jam kerja; tak dibakar).
+// Satu job per tick.
 export function startPoller({ queue, intervalMs = 5000, ...opts }) {
   const process = makeProcessor(opts);
   const timer = setInterval(async () => {
     const file = queue.claim();
     if (!file) return;
     const job = { id: file.id, data: { url: file.url } };
+    let row = null;
+    try {
+      row = await opts.db.getJob(job.id);
+    } catch {
+      queue.release(file);
+      return;
+    }
+    if (!row || row.status !== 'media_ready') {
+      queue.release(file);
+      return;
+    }
+    if (row.creator) job.creator = row.creator;
     try {
       await process(job);
       queue.done(file);

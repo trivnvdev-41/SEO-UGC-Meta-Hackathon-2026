@@ -60,28 +60,60 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
   const video = videoObject(a, body);
   const rating = ratingOf(a.json_ld);
   const photos = a.images.slice(0, 3);
+  const homeHref = lang === "en" ? "/en" : "/";
+  let brand = "";
+  try {
+    const br = (a.json_ld as Record<string, unknown>).brand as
+      | Record<string, unknown>
+      | undefined;
+    if (typeof br?.name === "string") brand = br.name;
+  } catch {
+    brand = "";
+  }
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
-      <header className="mb-8 font-sans">
-        <a
-          href={lang === "en" ? "/en" : "/"}
-          className="flex items-center gap-2 no-underline"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-saba text-sm font-bold text-white">
-            S
+    <main className="mx-auto max-w-2xl px-5 pt-5 pb-16">
+      <header className="mb-6 font-sans">
+        <div className="flex items-center gap-2">
+          <a
+            href={homeHref}
+            aria-label={lang === "en" ? "Back" : "Kembali"}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-line no-underline"
+          >
+            <span aria-hidden>←</span>
+          </a>
+          <a
+            href={homeHref}
+            className="flex items-center gap-2 no-underline"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-saba text-sm font-bold text-white">
+              S
+            </span>
+            <span className="text-sm font-extrabold tracking-tight">
+              SABA
+            </span>
+          </a>
+          <nav className="ml-auto flex items-center gap-1.5">
+            <Link href={articlePath(id, "id")}>
+              <Badge variant={lang === "id" ? "default" : "outline"}>
+                ID
+              </Badge>
+            </Link>
+            <Link href={articlePath(id, "en")}>
+              <Badge variant={lang === "en" ? "default" : "outline"}>
+                EN
+              </Badge>
+            </Link>
+          </nav>
+        </div>
+        <p className="mt-3 truncate text-xs text-muted">
+          <Link href={homeHref}>{lang === "en" ? "Home" : "Beranda"}</Link>
+          {" / "}
+          <span>
+            c/{brand || (lang === "en" ? "review" : "ulasan")}
           </span>
-          <span className="text-sm font-extrabold tracking-tight">SABA</span>
-        </a>
+        </p>
       </header>
-      <nav className="mb-6 flex items-center gap-2 font-sans">
-        <Link href={articlePath(id, "id")}>
-          <Badge variant={lang === "id" ? "default" : "outline"}>ID</Badge>
-        </Link>
-        <Link href={articlePath(id, "en")}>
-          <Badge variant={lang === "en" ? "default" : "outline"}>EN</Badge>
-        </Link>
-      </nav>
 
       <h1 className="text-[clamp(1.75rem,1rem+3vw,2.75rem)] leading-[1.1]">
         {body.title}

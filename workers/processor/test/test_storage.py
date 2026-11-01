@@ -70,6 +70,35 @@ class StorageTest(unittest.TestCase):
                 self.assertRaises(RuntimeError):
             upload_images("job_9", FRAMES, [0], client=Boom())
 
+    def test_lokal_salin_dan_url(self):
+        import tempfile
+        from pathlib import Path
+        from processor.storage import _save_local
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            src.mkdir()
+            f1 = src / "frame_001.jpg"
+            f1.write_bytes(b"IMG1")
+            (src / "frame_002.jpg").write_bytes(b"IMG2")
+            env = {"LOCAL_IMAGE_DIR": str(Path(tmp) / "img"),
+                   "LOCAL_PUBLIC_BASE_URL": "https://saba.ink/images"}
+            with patch.dict(os.environ, env, clear=True):
+                urls = upload_images("job_7", [str(f1)], [0])
+            self.assertEqual(
+                urls, ["https://saba.ink/images/job_7/frame_001.jpg"])
+            self.assertEqual(
+                (Path(tmp) / "img" / "job_7" / "frame_001.jpg").read_bytes(),
+                b"IMG1")
+
+    def test_lokal_tanpa_base_url_raise(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.dict(os.environ, {"LOCAL_IMAGE_DIR": tmp},
+                           clear=True), \
+                self.assertRaises(RuntimeError):
+            upload_images("j", ["/tmp/x.jpg"], [0])
+
 
 if __name__ == "__main__":
     unittest.main()

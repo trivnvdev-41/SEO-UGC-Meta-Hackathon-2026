@@ -1,16 +1,15 @@
-"""Upload 2-3 still frame terpilih ke S3/R2.
+"""Simpan 2-3 still frame terpilih: S3/R2 atau disk lokal.
 
-Env kosong = upload dilewati (images: []) supaya demo tanpa object storage tetap
-jalan. Env terisi tapi upload gagal = error (job failed), bukan diam-diam kosong.
+Prioritas: S3 (S3_BUCKET_NAME terisi) -> lokal (LOCAL_IMAGE_DIR terisi)
+-> lewati (images: []). Backend terpilih yang gagal = error (job failed),
+bukan diam-diam kosong.
 """
 
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
-
-import boto3
-from botocore.config import Config
 
 MAX_IMAGES = 3
 
@@ -50,10 +49,20 @@ def pick_frames(frames: list[str], indices: list[int]) -> list[str]:
 
 
 def upload_images(job_id: str, frames: list[str], indices: list[int],
-                  client=None) -> list[str]:
+                   client=None) -> list[str]:
     cfg = config()
-    if not cfg or not frames:
-        return []
+    if cfg and frames:
+        return _upload_s3(cfg, job_id, frames, indices, client)
+    local = _env("LOCAL_IMAGE_DIR")
+    if local and frames:
+        return _save_local(local, job_id, frames, indices)
+    return []
+
+
+def _upload_s3(cfg: dict, job_id: str, frames: list[str],
+               indices: list[int], client=None) -> list[str]:
+    import boto3
+    from botocore.config import Config
     if client is None:
         kwargs = {
             "region_name": cfg["region"],
@@ -71,4 +80,20 @@ def upload_images(job_id: str, frames: list[str], indices: list[int],
         client.upload_file(path, cfg["bucket"], key,
                        ExtraArgs={"ContentType": "image/jpeg"})
         urls.append(f"{cfg['public']}/{key}")
+    return urls
+
+
+def _save_local(root: str, job_id: str, frames: list[str],
+                indices: list[int]) -> list[str]:
+    """Salin frame ke <root>/<job_id>/; URL dari LOCAL_PUBLIC_BASE_URL."""
+    base = _env("LOCAL_PUBLIC_BASE_URL").rstrip("/")
+    if not base:
+        raise RuntimeError("missing:LOCAL_PUBLIC_BASE_URL")
+    dest = Path(root) / job_id
+    dest.mkdir(parents=True, exist_ok=True)
+    urls = []
+    for path in pick_frames(frames, indices):
+        target = dest / Path(path).name
+        shutil.copyfile(path, target)
+        urls.append(f"{base}/{job_id}/{target.name}")
     return urls

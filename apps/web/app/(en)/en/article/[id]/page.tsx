@@ -2,6 +2,8 @@ import { ArticleView, articleMetadata } from "@/components/ArticleView";
 import { listArticleIds } from "@/lib/articles";
 
 export const revalidate = 3600;
+// Lihat (id)/article/[id]/page.tsx: paksa SSR murni agar tak 500 di prod.
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 

@@ -4,7 +4,7 @@ import "../globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "SEO UGC",
+  title: "SABA",
   description: "Ulasan produk dari video kreator, terstruktur untuk mesin pencari.",
 };
 

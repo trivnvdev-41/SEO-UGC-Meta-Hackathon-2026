@@ -5,7 +5,7 @@ import { SITE_URL } from "@/lib/site";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "SEO UGC — Honest product reviews from creator videos",
+  title: "SABA — Honest product reviews from creator videos",
   description:
     "Product reviews from TikTok and YouTube Shorts: photos, pros and cons, and scores in bilingual articles.",
   alternates: {

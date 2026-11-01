@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { escapeJsonLd } from "./jsonld";
 import { videoObject } from "./structured";
-import { youtubeId } from "./video";
+import { sourceLabel, youtubeId } from "./video";
 import { articlePath, articleUrl } from "./site";
 import type { Article } from "./articles";
 
@@ -29,6 +29,16 @@ describe("youtubeId", () => {
   it("null untuk platform lain", () => {
     expect(youtubeId("https://www.tiktok.com/@a/video/1")).toBeNull();
     expect(youtubeId("https://www.youtube.com/@channel")).toBeNull();
+  });
+});
+
+describe("sourceLabel", () => {
+  it("melabeli TikTok/YouTube, kosong bila tak dikenal", () => {
+    expect(sourceLabel("https://www.tiktok.com/@a/video/1")).toBe("TikTok");
+    expect(sourceLabel("https://www.youtube.com/shorts/aBcD1234xyz")).toBe("YouTube");
+    expect(sourceLabel("https://youtu.be/aBcD1234xyz")).toBe("YouTube");
+    expect(sourceLabel("https://example.com/x")).toBe("");
+    expect(sourceLabel("bukan-url")).toBe("");
   });
 });
 

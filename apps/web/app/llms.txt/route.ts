@@ -7,7 +7,7 @@ export const revalidate = 3600;
 export async function GET() {
   const ids = await listArticleIds();
   const lines = [
-    "# SEO UGC",
+    "# SABA",
     "",
     "> Product review articles generated from UGC videos (TikTok,",
     "> YouTube Shorts). Each article is available in Indonesian and English and",

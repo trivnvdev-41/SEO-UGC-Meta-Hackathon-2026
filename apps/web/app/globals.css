@@ -5,7 +5,11 @@
   --font-serif: Georgia, "Times New Roman", serif;
   --color-ink: #1a1a1a;
   --color-muted: #555;
-  --color-accent: #2f6b4f;
+  --color-accent: #0866ff;
+  --color-saba: #0866ff;
+  --color-saba-soft: #e7f3ff;
+  --color-canvas: #f0f2f5;
+  --color-line: #e4e6eb;
 }
 
 @layer base {

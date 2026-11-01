@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { ConvertForm } from "@/components/ConvertForm";
 import { Reveal } from "@/components/ui/reveal";
 import {
@@ -8,15 +7,17 @@ import {
   listArticleIds,
   pickBody,
   ratingOf,
+  type Article,
   type Lang,
 } from "@/lib/articles";
 import { articlePath } from "@/lib/site";
+import { sourceLabel } from "@/lib/video";
 
 export const revalidate = 3600;
 
 const T = {
   id: {
-    brand: "SEO UGC",
+    brand: "SABA",
     hero: "Video kreator, jadi artikel ulasan.",
     sub: "Setiap link TikTok atau YouTube Shorts diubah menjadi artikel terstruktur dengan foto, kelebihan dan kekurangan, serta skor. Siap dibaca dan siap diindeks mesin pencari.",
     searchPh: "Cari sunscreen, ampoule, …",
@@ -32,7 +33,7 @@ const T = {
     read: "Baca ulasan",
   },
   en: {
-    brand: "SEO UGC",
+    brand: "SABA",
     hero: "From video to review article.",
     sub: "Every TikTok or YouTube Shorts link becomes a structured article with photos, pros and cons, and a score. Ready to read and ready to index.",
     searchPh: "Search sunscreen, ampoule, …",
@@ -62,156 +63,159 @@ export async function HomeView({ lang, q }: { lang: Lang; q: string }) {
         return `${b.title} ${b.meta}`.toLowerCase().includes(query);
       })
     : articles;
-  const [lead, ...rest] = shown;
-  const leadBody = lead ? pickBody(lead, lang) : null;
-  const leadRating = lead ? ratingOf(lead.json_ld) : null;
 
   return (
-    <main className="mx-auto max-w-3xl px-5 pt-10 pb-16">
-      <header className="mb-10 flex items-center justify-between font-sans">
-        <span className="text-sm font-semibold">{t.brand}</span>
-        <nav className="flex items-center gap-2">
-          <Link href="/">
-            <Badge variant={lang === "id" ? "default" : "outline"}>ID</Badge>
+    <div className="min-h-screen bg-canvas font-sans">
+      <header className="sticky top-0 z-10 border-b border-line bg-white">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-2.5">
+          <Link
+            href={lang === "en" ? "/en" : "/"}
+            className="flex items-center gap-2 no-underline"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-saba text-base font-bold text-white">
+              S
+            </span>
+            <span className="text-[15px] font-extrabold tracking-tight">
+              {t.brand}
+            </span>
           </Link>
-          <Link href="/en">
-            <Badge variant={lang === "en" ? "default" : "outline"}>EN</Badge>
-          </Link>
-        </nav>
-      </header>
-
-      <section className="mb-10">
-        <Reveal>
-          <h1>{t.hero}</h1>
-          <p className="mt-3 font-sans text-base text-muted">{t.sub}</p>
-        </Reveal>
-        <Reveal delay={90}>
-          <ConvertForm lang={lang} />
-        </Reveal>
-      </section>
-
-      <section className="mb-12">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <h2>{t.latest}</h2>
-          <form method="get" className="flex gap-2 font-sans">
+          <form method="get" className="ml-auto flex flex-1 gap-2">
             <input
               name="q"
               defaultValue={q}
               placeholder={t.searchPh}
-              className="w-44 rounded-xl border border-neutral-200 px-3 py-1.5 text-sm outline-none focus:border-neutral-400 sm:w-56"
+              className="w-full rounded-full border border-transparent bg-canvas px-4 py-1.5 text-sm outline-none placeholder:text-neutral-500 focus:border-saba focus:bg-white"
             />
             <button
               type="submit"
-              className="rounded-xl bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-white"
+              className="shrink-0 rounded-full bg-saba px-4 py-1.5 text-sm font-semibold text-white"
             >
               {t.searchBtn}
             </button>
           </form>
+          <nav className="flex items-center gap-1.5">
+            <Link href="/">
+              <Badge variant={lang === "id" ? "default" : "outline"}>
+                ID
+              </Badge>
+            </Link>
+            <Link href="/en">
+              <Badge variant={lang === "en" ? "default" : "outline"}>
+                EN
+              </Badge>
+            </Link>
+          </nav>
         </div>
-        {shown.length === 0 ? (
-          <p className="font-sans text-sm text-muted">{t.empty}</p>
-        ) : (
-          <>
-            {lead && leadBody ? (
-              <Reveal>
-                <article className="mb-6">
-                  {lead.images[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={lead.images[0]}
-                      alt=""
-                      className="aspect-video w-full rounded-2xl object-cover"
-                    />
-                  ) : null}
-                  <h3 className="mt-4 font-sans text-xl font-bold tracking-tight sm:text-2xl">
-                    <Link
-                      href={articlePath(lead.id, lang)}
-                      className="no-underline hover:underline"
-                    >
-                      {leadBody.title}
-                    </Link>
-                  </h3>
-                  {lead.creator ? (
-                    <p className="mt-1 font-sans text-sm text-muted">
-                      {lang === "en" ? `By ${lead.creator}` : `Oleh ${lead.creator}`}
-                    </p>
-                  ) : null}
-                  <p className="mt-1 font-sans text-base text-muted">
-                    {leadBody.meta}
-                  </p>
-                  <p className="mt-3 flex items-center gap-2 font-sans">
-                    {leadRating ? (
-                      <Badge variant="default">{leadRating.value}/5</Badge>
-                    ) : null}
-                    <Link href={articlePath(lead.id, lang)}>{t.read} →</Link>
-                  </p>
-                </article>
-              </Reveal>
-            ) : null}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {rest.map((a) => {
-              const b = pickBody(a, lang);
-              const rating = ratingOf(a.json_ld);
-              return (
-                <Reveal key={a.id}>
-                <Card>
-                  {a.images[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={a.images[0]}
-                      alt=""
-                      loading="lazy"
-                      className="aspect-video w-full rounded-t-2xl object-cover"
-                    />
-                  ) : null}
-                  <CardContent>
-                    <Link
-                      href={articlePath(a.id, lang)}
-                      className="font-sans font-bold no-underline hover:underline"
-                    >
-                      {b.title}
-                    </Link>
-                    {a.creator ? (
-                      <p className="mt-1 font-sans text-sm text-muted">
-                        {lang === "en" ? `By ${a.creator}` : `Oleh ${a.creator}`}
-                      </p>
-                    ) : null}
-                    <p className="mt-1 line-clamp-2 font-sans text-base text-muted">
-                      {b.meta}
-                    </p>
-                    <p className="mt-3 flex items-center gap-2 font-sans">
-                      {rating ? (
-                        <Badge variant="default">{rating.value}/5</Badge>
-                      ) : null}
-                      <Link href={articlePath(a.id, lang)}>{t.read} →</Link>
-                    </p>
-                  </CardContent>
-                </Card>
-                </Reveal>
-              );
-            })}
-          </div>
-          </>
-        )}
-      </section>
+      </header>
 
-      <section className="mb-12">
-        <Reveal>
-        <h2 className="mb-4">{t.how}</h2>
-        <ol className="grid gap-6 font-sans text-sm sm:grid-cols-3">
-          {t.steps.map(([title, desc]) => (
-            <li key={title}>
-              <p className="font-bold">{title}</p>
-              <p className="mt-1 text-base text-muted">{desc}</p>
-            </li>
-          ))}
-        </ol>
-        </Reveal>
-      </section>
+      <main className="mx-auto max-w-3xl px-5 pt-6 pb-16">
+        <section className="mb-6">
+          <Reveal>
+            <h1 className="text-2xl sm:text-3xl">{t.hero}</h1>
+            <p className="mt-2 text-base text-muted">{t.sub}</p>
+          </Reveal>
+          <Reveal delay={90}>
+            <ConvertForm lang={lang} />
+          </Reveal>
+        </section>
 
-      <footer className="mt-12 font-sans text-sm text-muted">
-        SEO UGC — {t.latest.toLowerCase()} · <Link href="/sitemap.xml">sitemap</Link>
-      </footer>
-    </main>
+        <section className="mb-10">
+          <h2 className="mb-3">{t.latest}</h2>
+          {shown.length === 0 ? (
+            <p className="text-sm text-muted">{t.empty}</p>
+          ) : (
+            <div className="grid gap-3">
+              {shown.map((a) => (
+                <FeedCard key={a.id} a={a} lang={lang} read={t.read} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mb-10 rounded-2xl border border-line bg-white p-5">
+          <Reveal>
+            <h2 className="mt-0 mb-3">{t.how}</h2>
+            <ol className="grid gap-4 text-sm sm:grid-cols-3">
+              {t.steps.map(([title, desc]) => (
+                <li key={title}>
+                  <p className="font-bold">{title}</p>
+                  <p className="mt-1 text-muted">{desc}</p>
+                </li>
+              ))}
+            </ol>
+          </Reveal>
+        </section>
+
+        <footer className="mt-10 text-sm text-muted">
+          {t.brand} — {t.latest.toLowerCase()} ·{" "}
+          <Link href="/sitemap.xml">sitemap</Link>
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+/// Kartu feed ala Zhihu: seluruh kartu 1 link ke halaman detail.
+function FeedCard({
+  a,
+  lang,
+  read,
+}: {
+  a: Article;
+  lang: Lang;
+  read: string;
+}) {
+  const b = pickBody(a, lang);
+  const rating = ratingOf(a.json_ld);
+  const source = sourceLabel(a.videoUrl);
+  const brand = (() => {
+    try {
+      const ld = a.json_ld as Record<string, unknown>;
+      const br = ld.brand as Record<string, unknown> | undefined;
+      return typeof br?.name === "string" ? br.name : "";
+    } catch {
+      return "";
+    }
+  })();
+  return (
+    <Reveal>
+      <Link
+        href={articlePath(a.id, lang)}
+        className="block rounded-2xl border border-line bg-white p-4 no-underline transition-shadow hover:shadow-md"
+      >
+        <p className="text-xs font-bold">
+          c/{brand || (lang === "en" ? "review" : "ulasan")}
+          {a.creator ? (
+            <span className="font-medium text-muted"> • {a.creator}</span>
+          ) : null}
+        </p>
+        <p className="mt-1.5 text-[17px] leading-snug font-bold">
+          {b.title}
+        </p>
+        <p className="mt-1 line-clamp-3 text-[15px] leading-relaxed text-muted">
+          {b.meta}
+        </p>
+        {a.images[0] ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={a.images[0]}
+            alt=""
+            loading="lazy"
+            className="mt-3 aspect-video w-full rounded-xl object-cover"
+          />
+        ) : null}
+        <p className="mt-3 flex items-center gap-2 text-sm">
+          {rating ? (
+            <Badge variant="default">{rating.value}/5</Badge>
+          ) : null}
+          {source ? (
+            <span className="text-xs font-medium text-muted">{source}</span>
+          ) : null}
+          <span className="ml-auto text-xs font-semibold text-saba">
+            {read} →
+          </span>
+        </p>
+      </Link>
+    </Reveal>
   );
 }

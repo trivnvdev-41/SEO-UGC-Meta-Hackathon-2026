@@ -55,8 +55,14 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
   return (
     <main className="mx-auto max-w-2xl px-5 pt-10 pb-16">
       <header className="mb-8 font-sans">
-        <a href={lang === "en" ? "/en" : "/"} className="text-sm font-semibold">
-          SEO UGC
+        <a
+          href={lang === "en" ? "/en" : "/"}
+          className="flex items-center gap-2 no-underline"
+        >
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-saba text-sm font-bold text-white">
+            S
+          </span>
+          <span className="text-sm font-extrabold tracking-tight">SABA</span>
         </a>
       </header>
       <nav className="mb-6 flex items-center gap-2 font-sans">

@@ -10,3 +10,19 @@ export function youtubeId(url: string): string | null {
   }
   return null;
 }
+
+/// Label sumber ala Zhihu: TikTok / YouTube / ''.
+export function sourceLabel(url: string): string {
+  const host = (() => {
+    try {
+      return new URL(url).hostname.toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+  if (host.includes("tiktok.com")) return "TikTok";
+  if (host.includes("youtube.com") || host.includes("youtu.be")) {
+    return "YouTube";
+  }
+  return "";
+}

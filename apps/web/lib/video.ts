@@ -11,7 +11,7 @@ export function youtubeId(url: string): string | null {
   return null;
 }
 
-/// Label sumber ala Zhihu: TikTok / YouTube / ''.
+/// Label sumber: TikTok / YouTube / ''.
 export function sourceLabel(url: string): string {
   const host = (() => {
     try {

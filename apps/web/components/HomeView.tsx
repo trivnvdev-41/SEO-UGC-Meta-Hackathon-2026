@@ -155,7 +155,7 @@ export async function HomeView({ lang, q }: { lang: Lang; q: string }) {
   );
 }
 
-/// Kartu feed ala Zhihu: seluruh kartu 1 link ke halaman detail.
+/// Kartu feed: seluruh kartu 1 link ke halaman detail.
 function FeedCard({
   a,
   lang,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { escapeJsonLd } from "./jsonld";
 import { videoObject } from "./structured";
 import { sourceLabel, youtubeId } from "./video";
+import { compactViews, formatDate, viewsOf } from "./articles";
 import { articlePath, articleUrl } from "./site";
 import type { Article } from "./articles";
 
@@ -39,6 +40,25 @@ describe("sourceLabel", () => {
     expect(sourceLabel("https://youtu.be/aBcD1234xyz")).toBe("YouTube");
     expect(sourceLabel("https://example.com/x")).toBe("");
     expect(sourceLabel("bukan-url")).toBe("");
+  });
+});
+
+describe("viewsOf/compactViews", () => {
+  it("stabil dan ringkas", () => {
+    expect(viewsOf("abc")).toBe(viewsOf("abc"));
+    expect(compactViews(999)).toBe("999");
+    expect(compactViews(1500)).toBe("1,5 rb");
+    expect(compactViews(1100)).toBe("1,1 rb");
+    expect(compactViews(25000)).toBe("25 rb");
+  });
+});
+
+describe("formatDate", () => {
+  it("ID dan EN, kosong bila tak valid", () => {
+    expect(formatDate("2026-11-01T00:00:00.000Z", "id")).toBe("1 Nov 2026");
+    expect(formatDate("2026-11-01T00:00:00.000Z", "en")).toBe("Nov 1, 2026");
+    expect(formatDate(undefined, "id")).toBe("");
+    expect(formatDate("asal", "id")).toBe("");
   });
 });
 

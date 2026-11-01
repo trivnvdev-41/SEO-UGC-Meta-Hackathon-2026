@@ -2,8 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Comments } from "@/components/Comments";
 import { Reveal } from "@/components/ui/reveal";
-import { getArticle, pickBody, ratingOf, type Lang } from "@/lib/articles";
+import {
+  compactViews,
+  formatDate,
+  getArticle,
+  pickBody,
+  ratingOf,
+  viewsOf,
+  type Lang,
+} from "@/lib/articles";
 import { escapeJsonLd } from "@/lib/jsonld";
 import { renderMd } from "@/lib/markdown";
 import { articlePath, articleUrl } from "@/lib/site";
@@ -83,6 +92,21 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
         </p>
       ) : null}
       <p className="mt-2 font-sans text-base text-muted">{body.meta}</p>
+      <p className="mt-2 font-sans text-xs text-muted">
+        {[
+          formatDate(a.createdAt, lang)
+            ? lang === "en"
+              ? `Released ${formatDate(a.createdAt, lang)}`
+              : `Rilis ${formatDate(a.createdAt, lang)}`
+            : null,
+          lang === "en"
+            ? `${compactViews(viewsOf(a.id))} views`
+            : `${compactViews(viewsOf(a.id))} dilihat`,
+          a.creator ?? null,
+        ]
+          .filter(Boolean)
+          .join(" • ")}
+      </p>
       {rating ? (
         <p className="mt-3 font-sans text-sm">
           <Badge variant="default">
@@ -152,6 +176,35 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
       )}
 
       {renderMd(body.body_md)}
+
+      <div className="mt-8 rounded-2xl border border-line bg-white p-4 font-sans sm:p-5">
+        <Comments
+          id={a.id}
+          lang={lang}
+          t={
+            lang === "en"
+              ? {
+                  title: "Comments",
+                  empty: "No comments yet. Be the first to share your take.",
+                  namePh: "Your name (required)",
+                  emailPh: "Email (optional)",
+                  textPh: "Write a comment…",
+                  send: "Send comment",
+                  needName: "Fill your name first (min. 2 characters).",
+                }
+              : {
+                  title: "Komentar",
+                  empty:
+                    "Belum ada komentar. Jadilah yang pertama menanggapi.",
+                  namePh: "Nama kamu (wajib)",
+                  emailPh: "Email (opsional)",
+                  textPh: "Tulis komentar…",
+                  send: "Kirim komentar",
+                  needName: "Isi nama dulu (min. 2 karakter).",
+                }
+          }
+        />
+      </div>
 
       <script
         type="application/ld+json"

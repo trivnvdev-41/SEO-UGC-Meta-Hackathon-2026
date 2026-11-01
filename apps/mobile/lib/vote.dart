@@ -3,7 +3,7 @@
 // counter +1, badge +1 melayang + ring burst, downvote press scale.
 import 'package:flutter/material.dart';
 
-const zhihuBlue = Color(0xFF0084FF);
+const sabaBlue = Color(0xFF0866FF);
 
 /// Store in-memory per sesi agar feed + detail konsisten.
 class VoteStore {
@@ -140,16 +140,16 @@ class _VotePillState extends State<VotePill>
                   horizontal: widget.compact ? 10 : 12,
                   vertical: widget.compact ? 5 : 6),
               decoration: BoxDecoration(
-                color: active ? zhihuBlue : const Color(0xFFEFF6FF),
+                color: active ? sabaBlue : const Color(0xFFEFF6FF),
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                     color: active
-                        ? zhihuBlue
-                        : zhihuBlue.withValues(alpha: 0.3)),
+                        ? sabaBlue
+                        : sabaBlue.withValues(alpha: 0.3)),
                 boxShadow: active
                     ? [
                         BoxShadow(
-                            color: zhihuBlue.withValues(alpha: 0.42),
+                            color: sabaBlue.withValues(alpha: 0.42),
                             blurRadius: 14,
                             offset: const Offset(0, 4))
                       ]
@@ -160,12 +160,12 @@ class _VotePillState extends State<VotePill>
                 children: [
                   Icon(Icons.arrow_upward_rounded,
                       size: 14,
-                      color: active ? Colors.white : zhihuBlue),
+                      color: active ? Colors.white : sabaBlue),
                   const SizedBox(width: 4),
                   Text('Setuju $label',
                       style: TextStyle(
                           fontSize: 12,
-                          color: active ? Colors.white : zhihuBlue,
+                          color: active ? Colors.white : sabaBlue,
                           fontWeight: active
                               ? FontWeight.w600
                               : FontWeight.w500)),
@@ -189,7 +189,7 @@ class _VotePillState extends State<VotePill>
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                          color: zhihuBlue.withValues(alpha: 0.3)),
+                          color: sabaBlue.withValues(alpha: 0.3)),
                       boxShadow: const [
                         BoxShadow(
                             color: Color(0x22000000),
@@ -200,7 +200,7 @@ class _VotePillState extends State<VotePill>
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: zhihuBlue)),
+                          color: sabaBlue)),
                 ),
               ),
             ),
@@ -220,7 +220,7 @@ class _VotePillState extends State<VotePill>
                     decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border:
-                            Border.all(color: zhihuBlue, width: 2)),
+                            Border.all(color: sabaBlue, width: 2)),
                   ),
                 ),
               ),
@@ -265,13 +265,13 @@ class _VoteDownState extends State<VoteDown> {
             border: Border.all(
                 color: active
                     ? const Color(0xFFCBD5E1)
-                    : zhihuBlue.withValues(alpha: 0.3)),
+                    : sabaBlue.withValues(alpha: 0.3)),
           ),
           child: Icon(Icons.arrow_downward_rounded,
               size: 14,
               color: active
                   ? const Color(0xFF475569)
-                  : zhihuBlue),
+                  : sabaBlue),
         ),
       ),
     );

@@ -4,7 +4,7 @@
     <!-- Notifikasi job selesai (runtime request saat app start, Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="SEO UGC"
+        android:label="SABA"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -6,8 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'article_detail.dart';
+import 'edit_profile_page.dart';
 import 'feed.dart';
+import 'login_page.dart';
 import 'notify.dart';
+import 'profile.dart';
 import 'share_handler.dart';
 import 'vote.dart';
 
@@ -35,8 +38,16 @@ class SeoUgcApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SEO UGC',
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF2F6B4F)),
+      title: 'SABA',
+      theme: ThemeData(
+        colorSchemeSeed: const Color(0xFF0866FF),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: sabaBlue,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ),
       home: const SharePage(),
     );
   }
@@ -62,7 +73,7 @@ class SharePage extends StatefulWidget {
 class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   static const _channel = MethodChannel('dev.seougc/share');
 
-  String _status = 'Bagikan video TikTok/YouTube ke SEO UGC untuk mulai.';
+  String _status = 'Bagikan video TikTok/YouTube ke SABA untuk mulai.';
   String? _lastUrl;
   String? _doneJobId;
   bool _busy = false;
@@ -96,17 +107,17 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   }
 
   /// Muat feed artikel untuk home. Gagal = feed kosong (status card bicara).
+  /// Paralel (bukan serial) agar memenuhi AC feed <2 dtk.
   Future<void> _loadFeed() async {
     if (!mounted) return;
     setState(() => _feedLoading = true);
     try {
       final ids = await fetchFeedIds(apiBase);
-      final out = <FeedArticle>[];
-      for (final id in ids) {
-        if (!mounted) return;
-        final a = await fetchFeedArticle(apiBase, id);
-        if (a != null) out.add(a);
-      }
+      final out = (await Future.wait(
+        ids.map((id) => fetchFeedArticle(apiBase, id)),
+      ))
+          .whereType<FeedArticle>()
+          .toList();
       if (!mounted) return;
       setState(() {
         _feed = out;
@@ -145,60 +156,140 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   }
 
   void _onNav(int i) {
-    if (i == 0) {
-      setState(() => _navIndex = 0);
+    if (i == 0 || i == 3) {
+      setState(() => _navIndex = i);
       return;
     }
-    setState(() => _navIndex = i);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Segera hadir — baru Beranda yang jadi')),
+      const SnackBar(content: Text('Segera hadir — baru Beranda dan Profil yang jadi')),
     );
-    setState(() => _navIndex = 0);
   }
 
-  /// Sheet tempel link (FAB +): alur convert yang sama, UI ala mockup.
+  /// Sheet tempel link: handle + subtitle + tombol paste + validasi lokal.
   void _openConvertSheet() {
     final ctrl = TextEditingController(text: _manual.text);
+    String? hint;
+    bool hintError = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Buat artikel dari link',
-                style: Theme.of(ctx).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: ctrl,
-              decoration: const InputDecoration(
-                hintText: 'Tempel link TikTok/YouTube…',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              keyboardType: TextInputType.url,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Future<void> paste() async {
+            final data = await Clipboard.getData('text/plain');
+            final t = data?.text ?? '';
+            setSheet(() {
+              ctrl.text = t;
+              hint = null;
+            });
+          }
+
+          void submit() {
+            final url = supportedSharedUrl(ctrl.text);
+            if (url == null) {
+              setSheet(() {
+                hintError = true;
+                hint = extractSharedUrl(ctrl.text) == null
+                    ? 'Tempel link dulu — belum ada URL.'
+                    : 'Hanya link TikTok/YouTube (https) yang didukung.';
+              });
+              return;
+            }
+            Navigator.of(ctx).pop();
+            _handleText(url);
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 8,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFE5E8EC),
+                        borderRadius: BorderRadius.circular(999)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('Buat artikel dari link',
+                    style: Theme.of(ctx).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text(
+                    'Tempel link TikTok/YouTube — artikel dimasak otomatis dari suara kreator.',
+                    style:
+                        TextStyle(fontSize: 12, color: Color(0xFF65676B))),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ctrl,
+                  keyboardType: TextInputType.url,
+                  onChanged: (_) => setSheet(() => hint = null),
+                  onSubmitted: (_) => submit(),
+                  decoration: InputDecoration(
+                    hintText: 'Tempel link TikTok/YouTube…',
+                    border: const OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.all(Radius.circular(12))),
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.link,
+                        size: 18, color: Color(0xFF65676B)),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Tempel',
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.content_paste,
+                              size: 18),
+                          color: sabaBlue,
+                          onPressed: paste,
+                        ),
+                        IconButton(
+                          tooltip: 'Hapus',
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.clear, size: 18),
+                          color: const Color(0xFF65676B),
+                          onPressed: () =>
+                              setSheet(() => ctrl.clear()),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (hint != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(hint!,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: hintError
+                                ? const Color(0xFFCF3A3A)
+                                : sabaBlue)),
+                  ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _busy ? null : submit,
+                  icon: const Icon(Icons.restaurant_menu, size: 18),
+                  label: const Text('Masak artikel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Batal'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: _busy
-                  ? null
-                  : () {
-                      Navigator.of(ctx).pop();
-                      _handleText(ctrl.text);
-                    },
-              child: const Text('Kirim'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -344,7 +435,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
-  Color get _bg => const Color(0xFFF4F6F9);
+  Color get _bg => const Color(0xFFF0F2F5);
 
   Widget _pill(String label, bool selected, VoidCallback onTap) {
     return GestureDetector(
@@ -352,7 +443,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? zhihuBlue : const Color(0xFFF0F2F5),
+          color: selected ? sabaBlue : const Color(0xFFF0F2F5),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(label,
@@ -368,13 +459,13 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   Widget _trendingCard() {
     final top = _trending();
     if (top.isEmpty) return const SizedBox();
-    const rankColors = [Color(0xFFFF5A00), Colors.amber, Color(0xFF8590A6)];
+    const rankColors = [Color(0xFFFF5A00), Colors.amber, Color(0xFF65676B)];
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEBEBEB))),
+          border: Border.all(color: const Color(0xFFE4E6EB))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -398,7 +489,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   _brandFilter = null;
                 }),
                 child: const Text('Lihat Semua',
-                    style: TextStyle(fontSize: 11, color: zhihuBlue)),
+                    style: TextStyle(fontSize: 11, color: sabaBlue)),
               ),
             ],
           ),
@@ -436,7 +527,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                               '${compactVotes(baseVotes(top[i].id))} popularitas • ${top[i].brand.isNotEmpty ? top[i].brand : 'ulasan'}',
                               style: const TextStyle(
                                   fontSize: 10,
-                                  color: Color(0xFF8590A6))),
+                                  color: Color(0xFF65676B))),
                         ],
                       ),
                     ),
@@ -456,7 +547,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEBEBEB))),
+          border: Border.all(color: const Color(0xFFE4E6EB))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -470,12 +561,12 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                     color: const Color(0xFFEFF6FF),
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: zhihuBlue.withValues(alpha: 0.3))),
+                        color: sabaBlue.withValues(alpha: 0.3))),
                 child: const Text('c/',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: zhihuBlue)),
+                        color: sabaBlue)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -490,7 +581,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                             fontSize: 12, fontWeight: FontWeight.bold)),
                     const Text('Ulasan produk • dari video kreator',
                         style: TextStyle(
-                            fontSize: 10, color: Color(0xFF8590A6))),
+                            fontSize: 10, color: Color(0xFF65676B))),
                   ],
                 ),
               ),
@@ -509,6 +600,40 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   fontSize: 12, color: Color(0xFF444444), height: 1.5)),
+          Builder(builder: (_) {
+            final source = articleSource(a.videoUrl);
+            if (a.rating == null && source.isEmpty) {
+              return const SizedBox();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  if (a.rating != null) ...[
+                    const Icon(Icons.star,
+                        size: 13, color: Colors.amber),
+                    const SizedBox(width: 3),
+                    Text(a.rating!,
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF444444))),
+                  ],
+                  if (a.rating != null && source.isNotEmpty)
+                    const Text('  •  ',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF65676B))),
+                  if (source.isNotEmpty)
+                    Text(source,
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF65676B),
+                            fontWeight: FontWeight.w500)),
+                ],
+              ),
+            );
+          }),
           if (a.images.isNotEmpty) ...[
             const SizedBox(height: 8),
             ClipRRect(
@@ -550,13 +675,13 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
               IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.share_outlined, size: 18),
-                color: const Color(0xFF8590A6),
+                color: const Color(0xFF65676B),
                 onPressed: () => _copyArticle(a.id),
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.bookmark_border, size: 18),
-                color: const Color(0xFF8590A6),
+                color: const Color(0xFF65676B),
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text('Disimpan (demo lokal)'))),
@@ -573,8 +698,20 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: _bg,
-      body: SafeArea(
-        child: Column(
+      body: _navIndex == 3
+          ? ProfilePage(
+              feed: _feed,
+              onEdit: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const EditProfilePage()),
+              ),
+              onLogin: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const LoginPage()),
+              ),
+            )
+          : SafeArea(
+              child: Column(
           children: [
             Container(
               color: Colors.white,
@@ -589,16 +726,16 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                         height: 32,
                         alignment: Alignment.center,
                         decoration: const BoxDecoration(
-                            color: Color(0xFF2F6B4F),
+                            color: Color(0xFF0866FF),
                             shape: BoxShape.circle),
-                        child: const Text('N',
+                        child: const Text('S',
                             style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16)),
                       ),
                       const SizedBox(width: 8),
-                      const Text('SEO UGC',
+                      const Text('SABA',
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800)),
@@ -624,7 +761,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                               isDense: true,
                               icon: Icon(Icons.search,
                                   size: 16,
-                                  color: Color(0xFF8590A6)),
+                                  color: Color(0xFF65676B)),
                             ),
                             style:
                                 const TextStyle(fontSize: 12),
@@ -692,68 +829,29 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            if (_busy ||
-                _error != null ||
-                _doneJobId != null)
+            if (_busy || _error != null || _doneJobId != null)
               Container(
                 width: double.infinity,
                 color: Colors.white,
                 padding:
                     const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.stretch,
-                  children: [
-                    _StatusCard(
-                      busy: _busy,
-                      status: _status,
-                      url: _lastUrl,
-                      isError: _error != null,
-                    ),
-                    if (_busy)
-                      Align(
-                        alignment:
-                            Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () =>
-                              setState(() => _pollSeq++),
-                          icon:
-                              const Icon(Icons.close),
-                          label:
-                              const Text('Batal'),
-                        ),
-                      ),
-                    if (_doneJobId != null)
-                      Padding(
-                        padding:
-                            const EdgeInsets.only(top: 8),
-                        child: Row(
-                          children: [
-                            FilledButton.icon(
-                              onPressed: () =>
-                                  _openArticle(
-                                      _doneJobId!),
-                              icon: const Icon(
-                                  Icons.open_in_new,
-                                  size: 16),
-                              label:
-                                  const Text('Baca'),
-                            ),
-                            const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              onPressed: () =>
-                                  _copyArticle(
-                                      _doneJobId!),
-                              icon: const Icon(
-                                  Icons.copy,
-                                  size: 16),
-                              label: const Text(
-                                  'Salin link'),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+                child: _ConvertStatus(
+                  busy: _busy,
+                  error: _error,
+                  status: _status,
+                  doneJobId: _doneJobId,
+                  onCancel: () => setState(() => _pollSeq++),
+                  onRetry: () {
+                    final u = _lastUrl;
+                    setState(() => _error = null);
+                    if (u != null) _handleText(u);
+                  },
+                  onDismiss: () => setState(() {
+                    _error = null;
+                    _doneJobId = null;
+                  }),
+                  onOpen: () => _openArticle(_doneJobId!),
+                  onCopy: () => _copyArticle(_doneJobId!),
                 ),
               ),
             Expanded(
@@ -787,7 +885,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              'N',
+                              'S',
                               style: theme
                                   .textTheme.headlineMedium
                                   ?.copyWith(
@@ -800,7 +898,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '1. Share video dari TikTok/YouTube ke SEO UGC\n'
+                            '1. Share video dari TikTok/YouTube ke SABA\n'
                             '2. Tunggu notifikasi — artikel dimasak di server\n'
                             '3. Buka dan baca artikel di dalam app ini',
                             style: theme.textTheme.bodyMedium
@@ -826,15 +924,15 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openConvertSheet,
-        backgroundColor: zhihuBlue,
+        backgroundColor: sabaBlue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _navIndex,
         onTap: _onNav,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: zhihuBlue,
-        unselectedItemColor: const Color(0xFF8590A6),
+        selectedItemColor: sabaBlue,
+        unselectedItemColor: const Color(0xFF65676B),
         selectedFontSize: 10,
         unselectedFontSize: 10,
         items: const [
@@ -855,62 +953,199 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   }
 }
 
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({
+/// Kartu status convert: sibuk (langkah animasi + spinner) / gagal / jadi.
+/// Gaya disamakan kartu feed: putih, radius 16, border #E4E6EB.
+class _ConvertStatus extends StatelessWidget {
+  const _ConvertStatus({
     required this.busy,
+    required this.error,
     required this.status,
-    required this.url,
-    required this.isError,
+    required this.doneJobId,
+    required this.onCancel,
+    required this.onRetry,
+    required this.onDismiss,
+    required this.onOpen,
+    required this.onCopy,
   });
 
   final bool busy;
+  final String? error;
   final String status;
-  final String? url;
-  final bool isError;
+  final String? doneJobId;
+  final VoidCallback onCancel;
+  final VoidCallback onRetry;
+  final VoidCallback onDismiss;
+  final VoidCallback onOpen;
+  final VoidCallback onCopy;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final icon = busy
-        ? Icons.hourglass_top
-        : isError
-            ? Icons.error_outline
-            : Icons.check_circle_outline;
-    final color = isError
-        ? theme.colorScheme.error
-        : theme.colorScheme.primary;
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final isError = error != null;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+          color: isError ? const Color(0xFFFFF7F7) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: isError
+                  ? const Color(0xFFF0C4C4)
+                  : const Color(0xFFE4E6EB))),
+      child: busy
+          ? Row(
               children: [
-                Icon(icon, color: color),
-                const SizedBox(width: 8),
+                const SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3.5,
+                    strokeCap: StrokeCap.round,
+                    color: sabaBlue,
+                    backgroundColor: Color(0xFFF0F2F5),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: _StepCycler()),
+                IconButton(
+                  tooltip: 'Batal',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.close, size: 18),
+                  color: const Color(0xFF65676B),
+                  onPressed: onCancel,
+                ),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                    isError
+                        ? Icons.error_outline
+                        : Icons.check_circle_outline,
+                    color: isError
+                        ? const Color(0xFFCF3A3A)
+                        : sabaBlue),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(status,
-                      style: theme.textTheme.bodyLarge),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          isError
+                              ? 'Gagal membuat artikel'
+                              : 'Artikel jadi!',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(isError ? error! : status,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF65676B))),
+                      const SizedBox(height: 10),
+                      if (isError)
+                        Row(
+                          children: [
+                            FilledButton.icon(
+                              onPressed: onRetry,
+                              icon: const Icon(Icons.refresh,
+                                  size: 16),
+                              label: const Text('Coba lagi'),
+                            ),
+                            TextButton(
+                                onPressed: onDismiss,
+                                child: const Text('Tutup')),
+                          ],
+                        )
+                      else
+                        Row(
+                          children: [
+                            FilledButton.icon(
+                              onPressed: onOpen,
+                              icon: const Icon(Icons.open_in_new,
+                                  size: 16),
+                              label: const Text('Baca'),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: onCopy,
+                              icon: const Icon(Icons.copy,
+                                  size: 16),
+                              label:
+                                  const Text('Salin link'),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            if (busy) ...[
-              const SizedBox(height: 12),
-              const LinearProgressIndicator(),
-            ],
-            if (url != null) ...[
-              const SizedBox(height: 8),
-              SelectableText(url!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
-                  )),
-            ],
+    );
+  }
+}
+
+/// Teks langkah bergilir selagi menunggu (indeterminate, kosmetik):
+/// unduh → transkrip → tulis. Status teknis tetap di subtitle pemanggil.
+class _StepCycler extends StatefulWidget {
+  const _StepCycler();
+
+  @override
+  State<_StepCycler> createState() => _StepCyclerState();
+}
+
+class _StepCyclerState extends State<_StepCycler> {
+  static const _steps = [
+    'Mengunduh video…',
+    'Mentranskrip suara kreator…',
+    'Menulis artikel SEO…',
+  ];
+  int _i = 0;
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted) setState(() => _i = (_i + 1) % _steps.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: Text(_steps[_i],
+              key: ValueKey(_i),
+              style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            for (var s = 0; s < _steps.length; s++)
+              Container(
+                margin: EdgeInsets.only(
+                    right: s < _steps.length - 1 ? 4 : 0),
+                width: 16,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: s <= _i
+                        ? sabaBlue
+                        : const Color(0xFFE5E8EC),
+                    borderRadius: BorderRadius.circular(999)),
+              ),
           ],
         ),
-      ),
+      ],
     );
   }
 }

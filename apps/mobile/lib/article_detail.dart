@@ -11,8 +11,45 @@ import 'feed.dart';
 import 'md.dart';
 import 'vote.dart';
 
-class ArticleDetailPage extends StatefulWidget {
-  const ArticleDetailPage(
+/// Tombol Ikut ala mock, toggle lokal per sesi (tanpa backend, pola VoteStore).
+class _FollowButton extends StatefulWidget {
+  const _FollowButton({required this.creator});
+
+  final String creator;
+
+  static final Set<String> following = {};
+
+  @override
+  State<_FollowButton> createState() => _FollowButtonState();
+}
+
+class _FollowButtonState extends State<_FollowButton> {
+  @override
+  Widget build(BuildContext context) {
+    final on = _FollowButton.following.contains(widget.creator);
+    return GestureDetector(
+      onTap: () => setState(() {
+        on
+            ? _FollowButton.following.remove(widget.creator)
+            : _FollowButton.following.add(widget.creator);
+      }),
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+            color: on ? const Color(0xFFF0F2F5) : sabaBlue,
+            borderRadius: BorderRadius.circular(999)),
+        child: Text(on ? 'Diikuti' : 'Ikut',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: on ? const Color(0xFF65676B) : Colors.white)),
+      ),
+    );
+  }
+}
+
+class ArticleDetailPage extends StatefulWidget {  const ArticleDetailPage(
       {super.key, required this.jobId, required this.apiBase});
 
   final String jobId;
@@ -26,6 +63,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
   static const _channel = MethodChannel('dev.seougc/share');
   FeedArticle? _article;
   String? _error;
+  int _tab = 0; // tab diskusi lokal (visual, isi ikut backend #12).
 
   @override
   void initState() {
@@ -42,6 +80,15 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     }
   }
 
+  Future<void> _copyLink(String id) async {
+    await Clipboard.setData(
+        ClipboardData(text: '${widget.apiBase}/v1/articles/$id'));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Link artikel disalin')),
+    );
+  }
+
   Future<void> _openVideo(String url) async {
     try {
       await _channel.invokeMethod('openUrl', url);
@@ -56,26 +103,63 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
   @override
   Widget build(BuildContext context) {
     final a = _article;
+    if (a == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF0F2F5),
+        appBar: AppBar(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white),
+        body: _error != null
+            ? Center(child: Text('Gagal memuat: $_error'))
+            : const Center(child: CircularProgressIndicator()),
+      );
+    }
+    final ago = timeAgo(a.createdAt);
+    final tag =
+        a.brand.replaceAll(RegExp(r'\s+'), '');
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F9),
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
-          title: const Text('Ulasan'),
           backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white),
-      body: _error != null
-          ? Center(child: Text('Gagal memuat: $_error'))
-          : a == null
-              ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: [
+          surfaceTintColor: Colors.white,
+          title: Text(
+              'c/${a.brand.isNotEmpty ? a.brand : 'ulasan'}',
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.bold)),
+          actions: [
+            IconButton(
+              tooltip: 'Bagikan',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.share_outlined, size: 20),
+              color: const Color(0xFF65676B),
+              onPressed: () => _copyLink(a.id),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: CircleAvatar(
+                radius: 14,
+                backgroundColor: const Color(0xFFE7F3FF),
+                child: Text(
+                    a.creator.isNotEmpty
+                        ? a.creator.trim().replaceAll('@', '')[0].toUpperCase()
+                        : 'S',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: sabaBlue)),
+              ),
+            ),
+          ]),
+      body: ListView(
+                   padding: const EdgeInsets.all(12),
+                   children: [
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: const Color(0xFFEBEBEB))),
+                              color: const Color(0xFFE4E6EB))),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -89,13 +173,13 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                     color: const Color(0xFFEFF6FF),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: zhihuBlue.withValues(
+                                        color: sabaBlue.withValues(
                                             alpha: 0.3))),
                                 child: const Text('c/',
                                     style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: zhihuBlue)),
+                                        color: sabaBlue)),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -111,14 +195,20 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                             fontSize: 12,
                                             fontWeight:
                                                 FontWeight.bold)),
-                                    const Text(
-                                        'Ulasan produk • dari video kreator',
-                                        style: TextStyle(
+                                    Text(
+                                        '${ago.isEmpty ? '' : '$ago • '}Ulasan produk • dari video kreator',
+                                        style: const TextStyle(
                                             fontSize: 10,
-                                            color: Color(0xFF8590A6))),
+                                            color:
+                                                Color(0xFF65676B))),
                                   ],
                                 ),
                               ),
+                              if (a.creator.isNotEmpty) ...[
+                                _FollowButton(
+                                    creator: a.creator),
+                                const SizedBox(width: 8),
+                              ],
                               if (a.rating != null)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -153,6 +243,29 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   height: 1.3)),
+                          if (tag.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                      color: const Color(0xFFE7F3FF),
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                              999)),
+                                  child: Text('#$tag',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight:
+                                              FontWeight.w600,
+                                          color: sabaBlue)),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 6),
                           Text(a.excerpt,
                               style: const TextStyle(
@@ -196,20 +309,8 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                 icon: const Icon(Icons.share_outlined,
                                     size: 18),
                                 color:
-                                    const Color(0xFF8590A6),
-                                onPressed: () async {
-                                  await Clipboard.setData(
-                                      ClipboardData(
-                                          text:
-                                              '${widget.apiBase}/v1/articles/${a.id}'));
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(
-                                          context)
-                                      .showSnackBar(
-                                          const SnackBar(
-                                              content: Text(
-                                                  'Link artikel disalin')));
-                                },
+                                    const Color(0xFF65676B),
+                                onPressed: () => _copyLink(a.id),
                               ),
                               IconButton(
                                 visualDensity:
@@ -218,7 +319,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                     Icons.bookmark_border,
                                     size: 18),
                                 color:
-                                    const Color(0xFF8590A6),
+                                    const Color(0xFF65676B),
                                 onPressed: () =>
                                     ScaffoldMessenger.of(
                                             context)
@@ -240,7 +341,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                                color: const Color(0xFFEBEBEB))),
+                                color: const Color(0xFFE4E6EB))),
                         child: Column(
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
@@ -296,7 +397,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: const Color(0xFFEBEBEB))),
+                              color: const Color(0xFFE4E6EB))),
                       child: Column(
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
@@ -318,6 +419,114 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                               ),
                             ),
                           ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: const Color(0xFFE4E6EB))),
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          const Text('Tanggapan & Jawaban',
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              for (var i = 0;
+                                  i < 3;
+                                  i++)
+                                GestureDetector(
+                                  onTap: () => setState(
+                                      () => _tab = i),
+                                  child: Container(
+                                    margin:
+                                        const EdgeInsets.only(
+                                            right: 16),
+                                    padding:
+                                        const EdgeInsets.only(
+                                            bottom: 4),
+                                    decoration: BoxDecoration(
+                                        border: Border(
+                                            bottom: BorderSide(
+                                                color: _tab ==
+                                                        i
+                                                    ? sabaBlue
+                                                    : Colors
+                                                        .transparent,
+                                                width: 2))),
+                                    child: Text(
+                                        [
+                                          'Semua',
+                                          'Jawaban Teratas',
+                                          'Terbaru'
+                                        ][i],
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: _tab ==
+                                                    i
+                                                ? FontWeight
+                                                    .bold
+                                                : FontWeight
+                                                    .w500,
+                                            color: _tab ==
+                                                    i
+                                                ? sabaBlue
+                                                : const Color(
+                                                    0xFF65676B))),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
+                          const Text(
+                              'Belum ada tanggapan. Jadilah yang pertama menanggapi ulasan ini.',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF65676B))),
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: () => ScaffoldMessenger.of(
+                                    context)
+                                .showSnackBar(const SnackBar(
+                                    content: Text(
+                                        'Diskusi segera hadir'))),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10),
+                              decoration: BoxDecoration(
+                                  color:
+                                      const Color(0xFFF0F2F5),
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                          999)),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.chat_bubble_outline,
+                                      size: 16,
+                                      color: Color(0xFF65676B)),
+                                  SizedBox(width: 8),
+                                  Text(
+                                      'Tulis tanggapan…',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(
+                                              0xFF65676B))),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

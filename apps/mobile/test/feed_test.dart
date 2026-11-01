@@ -53,4 +53,39 @@ void main() {
     expect(filterFeed(list, null), hasLength(4));
     expect(feedBrands([]), isEmpty);
   });
+
+  test('articleSource melabeli TikTok/YouTube', () {
+    expect(articleSource('https://www.tiktok.com/@a/video/1'), 'TikTok');
+    expect(articleSource('https://youtube.com/shorts/abc'), 'YouTube');
+    expect(articleSource('https://youtu.be/abc'), 'YouTube');
+    expect(articleSource('https://example.com/x'), isEmpty);
+    expect(articleSource('bukan-url'), isEmpty);
+  });
+
+  test('timeAgo label Indonesia', () {
+    final now = DateTime(2026, 11, 1, 12);
+    expect(timeAgo('not-a-date', now: now), isEmpty);
+    expect(timeAgo('', now: now), isEmpty);
+    expect(
+        timeAgo(
+            now.subtract(const Duration(seconds: 10)).toIso8601String(),
+            now: now),
+        'baru saja');
+    expect(
+        timeAgo(now.subtract(const Duration(minutes: 5)).toIso8601String(),
+            now: now),
+        '5 mnt lalu');
+    expect(
+        timeAgo(now.subtract(const Duration(hours: 3)).toIso8601String(),
+            now: now),
+        '3 jam lalu');
+    expect(
+        timeAgo(now.subtract(const Duration(days: 3)).toIso8601String(),
+            now: now),
+        '3 hari lalu');
+    expect(
+        timeAgo(now.subtract(const Duration(days: 14)).toIso8601String(),
+            now: now),
+        '2 mgg lalu');
+  });
 }

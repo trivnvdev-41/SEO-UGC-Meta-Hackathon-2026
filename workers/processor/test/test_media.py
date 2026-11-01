@@ -152,6 +152,23 @@ class MediaTest(unittest.TestCase):
                         run=lambda *a, **k: (_ for _ in ()).throw(
                             RuntimeError("boom"))))
 
+    def test_uploader_of_youtube_dari_handle_url(self):
+        from types import SimpleNamespace
+        out = ("Pantene Indonesia\thttps://www.youtube.com/@panteneid\t"
+               "Pantene Indonesia\n")
+        self.assertEqual(
+            uploader_of("https://youtube.com/shorts/abc",
+                        run=lambda *a, **k: SimpleNamespace(stdout=out)),
+            "@panteneid")
+
+    def test_uploader_of_tiktok_dari_uploader_id(self):
+        from types import SimpleNamespace
+        out = "Wynne\t\twynnearmeline\n"
+        self.assertEqual(
+            uploader_of("https://vt.tiktok.com/x/",
+                        run=lambda *a, **k: SimpleNamespace(stdout=out)),
+            "@wynnearmeline")
+
     def test_uploader_of_tolak_url_tak_izin(self):
         with self.assertRaises(ValueError):
             uploader_of("https://evil.com/x",

@@ -114,6 +114,7 @@ class AiTest(unittest.TestCase):
         text = json.loads(cap["body"])["messages"][0]["content"][0]["text"]
         self.assertIn("Kreator Hebat", text)
         self.assertIn("JUDUL", text)
+        self.assertIn("DILARANG", text)
 
     def test_prompt_larang_karang_nama_tanpa_kreator(self):
         cap = {}
@@ -131,10 +132,14 @@ class AiTest(unittest.TestCase):
                           return_value={"text": "t", "language": "id"}), \
              patch.object(ai, "generate_article",
                           return_value={"selected_image_indices": [0]}) as gen:
-            out = ai.enrich("/tmp/j/audio.mp3", [], "K")
+            out = ai.enrich("/tmp/j/audio.mp3", [])
         self.assertEqual(out["transcript"], "t")
         self.assertEqual(out["selected_image_indices"], [0])
         gen.assert_called_once()
+
+    def test_enrich_tanpa_key_bersama_antar_peran(self):
+        import inspect
+        self.assertNotIn("api_key", inspect.signature(ai.enrich).parameters)
 
     def test_missing_model_raises(self):
         with tempfile.TemporaryDirectory() as tmp, \

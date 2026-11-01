@@ -21,7 +21,8 @@ def _env(name: str) -> str:
 
 def config() -> dict | None:
     """None kalau bucket belum diset. Key opsional: tanpa key, boto3 pakai
-    default credential chain (AWS profile/env/instance role)."""
+    default credential chain (AWS profile/env/instance role).
+    Tanpa endpoint = mode AWS asli; set S3_ENDPOINT untuk R2/lokal."""
     bucket = _env("S3_BUCKET_NAME")
     if not bucket:
         return None

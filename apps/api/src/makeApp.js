@@ -1,13 +1,5 @@
 import { isConvertibleUrl } from './validateUrl.js';
 
-// shortcut: in-memory jobId, ganti ULID saat butuh ordering di DB.
-const newJobId = () =>
-  `job_${DateTimeSafe()}`;
-
-function DateTimeSafe() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
-
 function send(res, status, body) {
   res.writeHead(status, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -79,7 +71,7 @@ export function makeApp(enqueue, db, { rateLimiter } = {}) {
     }
     try {
       const job = await enqueue({ url });
-      return send(res, 202, { jobId: job?.id ?? newJobId() });
+      return send(res, 202, { jobId: job.id });
     } catch {
       return send(res, 503, { error: 'queue_unavailable' });
     }

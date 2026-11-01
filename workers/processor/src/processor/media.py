@@ -112,8 +112,27 @@ def cookies_file() -> str | None:
     return raw
 
 
+def _handle_of(uploader: str, uploader_url: str, uploader_id: str,
+               url: str) -> str | None:
+    """Handle '@...' untuk nama kreator di artikel (tanpa kata 'kreator').
+
+    YouTube: ambil dari uploader_url (…/​@handle). TikTok: '@' + uploader_id
+    (unique id). Fallback: nama display apa adanya."""
+    for line in uploader_url.splitlines():
+        line = line.strip()
+        if "/@" in line:
+            handle = "@" + line.split("/@")[-1].split("/")[0].split("?")[0]
+            if len(handle) > 1:
+                return handle
+    if is_youtube(url):
+        return uploader or None
+    if uploader_id and uploader_id != "NA":
+        return "@" + uploader_id.splitlines()[0].strip()
+    return uploader or None
+
+
 def uploader_of(url: str, run=subprocess.run) -> str | None:
-    """Nama kreator via yt-dlp tanpa mengunduh; None bila tak diketahui.
+    """Handle/nama kreator via yt-dlp tanpa mengunduh; None bila tak diketahui.
 
     Dipakai untuk byline + judul artikel. Gagal = None (bukan error),
     agar satu metadata tak menggagalkan seluruh job.
@@ -121,7 +140,7 @@ def uploader_of(url: str, run=subprocess.run) -> str | None:
     if not is_convertible_url(url):
         raise ValueError("invalid_url")
     cmd = ["yt-dlp", "--skip-download", "--no-warnings",
-           "--print", "%(uploader)s",
+           "--print", "%(uploader)s\\t%(uploader_url)s\\t%(uploader_id)s",
            "--socket-timeout", str(_SOCKET_TIMEOUT)]
     cookies = cookies_file()
     if cookies:
@@ -133,9 +152,16 @@ def uploader_of(url: str, run=subprocess.run) -> str | None:
         stdout = out.stdout or ""
     except Exception:
         return None
-    name = stdout.strip().splitlines()
-    name = [n.strip() for n in name if n.strip() and n.strip() != "NA"]
-    return name[0] if name else None
+    for raw in stdout.strip().splitlines():
+        parts = [p.strip() for p in raw.split("\t")]
+        parts += [""] * (3 - len(parts))
+        name, uurl, uid = parts[0], parts[1], parts[2]
+        if name == "NA":
+            name = ""
+        handle = _handle_of(name, uurl, uid, url)
+        if handle:
+            return handle
+    return None
 
 
 def audio_cmd(video: Path, audio: Path) -> list[str]:

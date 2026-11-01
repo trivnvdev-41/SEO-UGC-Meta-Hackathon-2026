@@ -173,9 +173,11 @@ def generate_article(transcript: str, images_b64: list[str],
     """Transkrip + foto base64 -> bundle artikel via model multimodal."""
     base, api_key, model = _resolve("llm", base, api_key, model)
     if creator:
-        creator_rule = (f"Video ini dibuat oleh kreator {creator}. Cantumkan "
-                        f"nama kreator di JUDUL artikel bila cocok, dan sebut "
-                        f"kreator di paragraf pembuka.")
+        creator_rule = (f"Video ini dibuat oleh {creator}. Tulis nama kreator "
+                        f"PERSIS '{creator}' di JUDUL artikel bila cocok dan "
+                        f"di paragraf pembuka. DILARANG menambah kata "
+                        f"'kreator' di dekat nama (contoh salah: 'Kreator "
+                        f"{creator}', 'ala Kreator {creator}').")
     else:
         creator_rule = ("Nama kreator tak diketahui: JANGAN mengarang nama "
                         "kreator di judul atau isi.")
@@ -196,15 +198,14 @@ def generate_article(transcript: str, images_b64: list[str],
 
 
 def enrich(audio_path: str | Path, frame_paths: list[str | Path],
-           api_key: str | None = None,
            creator: str | None = None) -> dict:
     """Satu pintu worker: STT dulu, lalu artikel + seleksi foto."""
     if stt_mode() == "meta-asr":
-        stt = transcribe_meta_asr(audio_path, api_key)
+        stt = transcribe_meta_asr(audio_path)
     else:
-        stt = transcribe_audio(audio_path, api_key)
+        stt = transcribe_audio(audio_path)
     images = [base64.b64encode(Path(p).read_bytes()).decode()
               for p in frame_paths]
-    bundle = generate_article(stt["text"], images, api_key,
+    bundle = generate_article(stt["text"], images,
                               creator=creator)
     return {"transcript": stt["text"], "language": stt["language"], **bundle}

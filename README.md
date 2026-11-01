@@ -49,10 +49,10 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
 | Suite | Command | Count |
 |---|---|---|
 | API (node:test) | `npm test --prefix apps/api` | 12 |
-| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 35 |
-| Web unit (vitest) | `npm test --prefix apps/web` | 13 |
+| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 46 |
+| Web unit (vitest) | `npm test --prefix apps/web` | 15 |
 | Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 5 |
-| Mobile (flutter) | `cd apps/mobile && flutter test` | 7 |
+| Mobile (flutter) | `cd apps/mobile && flutter test` | 20 |
 
 CI (`.github/workflows/ci.yml`) runs the API, worker, web unit/typecheck, and
 mobile suites on every push. E2E needs Postgres + seed data, so it runs locally.
@@ -93,7 +93,7 @@ expose it publicly.
 - [x] SEO: path-based i18n (`/en/article/<id>`), canonical/hreflang, sitemap, robots, escaped JSON-LD
 - [x] Security: domain allowlist, internal service token, rate limit, video size/duration caps
 - [x] Prisma/PostgreSQL (`Article` + `Job`)
-- [x] Playwright E2E (3 tests)
+- [x] Playwright E2E (5 tests)
 - [x] Image upload to S3/R2 (verified against local s3proxy: 2 files uploaded, public URLs return 200)
 
 ## Pre-existing Dependencies

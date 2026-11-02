@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { ConvertForm } from "@/components/ConvertForm";
 import { FeedActions } from "@/components/FeedActions";
 import { Reveal } from "@/components/ui/reveal";
 import { ButtonNotifikasi, Margin as IconSearch } from "@/components/icons";
@@ -35,8 +34,6 @@ const TABS: { id: FeedTab; idLabel: string; enLabel: string }[] = [
 const T = {
   id: {
     brand: "SABA",
-    hero: "Video kreator, jadi artikel ulasan.",
-    sub: "Setiap link TikTok atau YouTube Shorts diubah menjadi artikel terstruktur dengan foto, kelebihan dan kekurangan, serta skor. Siap dibaca dan siap diindeks mesin pencari.",
     searchPh: "Cari sunscreen, ampoule, …",
     searchBtn: "Cari",
     hot: "Panas",
@@ -56,8 +53,6 @@ const T = {
   },
   en: {
     brand: "SABA",
-    hero: "From video to review article.",
-    sub: "Every TikTok or YouTube Shorts link becomes a structured article with photos, pros and cons, and a score. Ready to read and ready to index.",
     searchPh: "Search sunscreen, ampoule, …",
     searchBtn: "Search",
     hot: "Hot",
@@ -211,16 +206,6 @@ export async function HomeView({
       </header>
 
       <main className="mx-auto max-w-3xl px-5 pt-6 pb-28 md:pb-16">
-        <section className="mb-6" id="buat">
-          <Reveal>
-            <h1 className="text-2xl sm:text-3xl">{t.hero}</h1>
-            <p className="mt-2 text-base text-muted">{t.sub}</p>
-          </Reveal>
-          <Reveal delay={90}>
-            <ConvertForm lang={lang} />
-          </Reveal>
-        </section>
-
         {trending.length > 0 ? (
           <section
             id="ramai"

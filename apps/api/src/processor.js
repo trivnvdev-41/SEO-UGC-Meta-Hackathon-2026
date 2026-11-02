@@ -36,26 +36,40 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
   };
 }
 
-// Poller antrean file: job media_ready (media/fetch-worker) atau queued
-// (upload langsung atau link). Job lain dikembalikan. Satu job per tick.
+// Poller antrean file: job media_ready atau queued. File yang tak bisa
+// diproses dilepas dan lanjut ke file berikut (maks SCAN_PER_TICK) agar satu
+// file basi tak memblokir antrean. Satu job diproses per tick.
+const SCAN_PER_TICK = 10;
 export function startPoller({ queue, intervalMs = 5000, ...opts }) {
   const process = makeProcessor(opts);
   const timer = setInterval(async () => {
-    const file = queue.claim();
-    if (!file) return;
-    const job = { id: file.id, data: { url: file.url } };
-    let row = null;
+    const claimed = [];
+    let job = null;
+    let file = null;
     try {
-      row = await opts.db.getJob(job.id);
-    } catch {
-      queue.release(file);
-      return;
+      for (let i = 0; i < SCAN_PER_TICK; i++) {
+        const f = queue.claim();
+        if (!f) break;
+        claimed.push(f);
+        let row = null;
+        try {
+          row = await opts.db.getJob(f.id);
+        } catch {
+          break;
+        }
+        if (row && (row.status === 'media_ready' || row.status === 'queued')) {
+          job = { id: f.id, data: { url: f.url } };
+          file = f;
+          if (row.creator) job.creator = row.creator;
+          break;
+        }
+      }
+    } finally {
+      for (const f of claimed) {
+        if (f !== file) queue.release(f);
+      }
     }
-    if (!row || (row.status !== 'media_ready' && row.status !== 'queued')) {
-      queue.release(file);
-      return;
-    }
-    if (row.creator) job.creator = row.creator;
+    if (!job) return;
     try {
       await process(job);
       queue.done(file);

@@ -73,6 +73,18 @@ export function createFileQueue(dir) {
       }
       return false;
     },
+    // Hapus file antrean jobId (upload gagal sebelum media_ready).
+    discard: (jobId) => {
+      for (const f of readdirSync(pending)) {
+        if (f.includes(jobId)) {
+          try {
+            unlinkSync(join(pending, f));
+          } catch {
+            // sudah hilang: abaikan
+          }
+        }
+      }
+    },
     fail: (job, error) => {
       const next = { ...job, attempts: job.attempts + 1, error };
       delete next._active;

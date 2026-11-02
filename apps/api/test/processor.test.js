@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeProcessor } from '../src/processor.js';
+import { makeProcessor, normalizeConcurrency } from '../src/processor.js';
 
 const bundle = {
   transcript: 'review bagus',
@@ -101,4 +101,16 @@ test('consumer: payload tanpa articles → worker_bad_payload', async () => {
   });
 
   await assert.rejects(() => processor(job), /worker_bad_payload/);
+});
+
+test('normalizeConcurrency: valid 1..32, fallback untuk sampah', () => {
+  assert.equal(normalizeConcurrency('4'), 4);
+  assert.equal(normalizeConcurrency('1'), 1);
+  assert.equal(normalizeConcurrency(undefined), 2);
+  assert.equal(normalizeConcurrency(''), 2);
+  assert.equal(normalizeConcurrency('0'), 2);
+  assert.equal(normalizeConcurrency('-3'), 2);
+  assert.equal(normalizeConcurrency('2.5'), 2);
+  assert.equal(normalizeConcurrency('abc'), 2);
+  assert.equal(normalizeConcurrency('999'), 2);
 });

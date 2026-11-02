@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { makeApp } from './makeApp.js';
 import { createQueue, newJobId, QUEUE_NAME } from './queue.js';
 import { createDb } from './db.js';
-import { startWorker } from './processor.js';
+import { normalizeConcurrency, startWorker } from './processor.js';
 import { makeRateLimiter } from './rateLimit.js';
 
 const PORT = Number(process.env.PORT ?? 4301);
@@ -43,15 +43,16 @@ createServer(
 });
 
 if (WORKER_URL) {
+  const concurrency = normalizeConcurrency(process.env.WORKER_CONCURRENCY, 2);
   startWorker({
     redisUrl: REDIS_URL,
     db,
     workerUrl: WORKER_URL,
     token: TOKEN,
-    concurrency: 2,
+    concurrency,
     mediaDir: MEDIA_DIR,
   });
-  console.log(`worker bullmq aktif (concurrency 2) di antrean ${QUEUE_NAME}`);
+  console.log(`worker bullmq aktif (concurrency ${concurrency}) di antrean ${QUEUE_NAME}`);
 } else {
   console.warn('WORKER_URL kosong: worker tidak dijalankan');
 }

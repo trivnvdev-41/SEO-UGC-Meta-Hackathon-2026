@@ -67,9 +67,13 @@ export function createJobHandler({ db, workerUrl, token, fetchImpl, mediaDir = '
   };
 }
 
-// Worker BullMQ: event-driven (tanpa polling), concurrency 2.
+// Worker BullMQ: event-driven (tanpa polling), concurrency via opts.
 // Job upload (url kosong) yang medianya belum tersimpan dilempar agar
 // dijadwal ulang via backoff, bukan diproses setengah jalan.
+export function normalizeConcurrency(raw, fallback = 2) {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= 32 ? n : fallback;
+}
 export function startWorker({
   queueName = QUEUE_NAME,
   redisUrl,

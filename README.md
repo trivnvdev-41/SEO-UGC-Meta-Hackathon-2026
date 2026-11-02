@@ -50,7 +50,7 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
 
 | Suite | Command | Count |
 |---|---|---|
-| API (node:test) | `npm test --prefix apps/api` | 32 |
+| API (node:test) | `npm test --prefix apps/api` | 33 |
 
 > Test API butuh Redis jalan (`REDIS_URL`, default `redis://localhost:6379`);
 > tanpa Redis, 2 test integrasi antrean otomatis skip.

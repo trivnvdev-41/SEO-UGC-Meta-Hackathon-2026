@@ -3,6 +3,7 @@ export { default as Button2 } from "./Button2";
 export { default as Button3 } from "./Button3";
 export { default as ButtonBagikan } from "./ButtonBagikan";
 export { default as ButtonKembali } from "./ButtonKembali";
+export { default as ButtonKomentar } from "./ButtonKomentar";
 export { default as ButtonKurangSetuju2 } from "./ButtonKurangSetuju2";
 export { default as ButtonKurangSetuju3 } from "./ButtonKurangSetuju3";
 export { default as ButtonKurangSetuju } from "./ButtonKurangSetuju";

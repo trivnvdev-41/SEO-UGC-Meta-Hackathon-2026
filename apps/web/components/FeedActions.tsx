@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import {
   Button as IconShare,
+  ButtonKomentar as IconComment,
   ButtonKurangSetuju as IconDownOn,
   ButtonKurangSetuju2 as IconDownOff,
-  Container15 as IconComment,
 } from "@/components/icons";
 import type { Votes } from "@/lib/articles";
 
@@ -131,7 +131,7 @@ export function FeedActions({
 
   return (
     <div className="mt-3 flex items-center gap-1.5 font-sans">
-      <span className="flex items-center rounded-full bg-canvas p-1">
+      <span className="flex items-center rounded-full bg-[#F0F2F5] p-1">
         <button
           type="button"
           onClick={() => vote(1)}
@@ -156,7 +156,7 @@ export function FeedActions({
           )}
         </button>
       </span>
-      <span className="flex items-center gap-1 px-2 text-[13px] font-semibold text-muted">
+      <span className="flex items-center gap-1 px-2 text-[13px] font-semibold text-[#424656]">
         <IconComment width="1.4em" height="1.4em" />
         {comments > 0 ? comments : ""}
       </span>

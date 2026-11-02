@@ -62,6 +62,11 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
 CI (`.github/workflows/ci.yml`) runs the API, worker, web unit/typecheck, and
 mobile suites on every push. E2E needs Postgres + seed data, so it runs locally.
 
+## Backup (server)
+
+- Postgres: cron harian 02:00 (`/opt/saba/pg-backup.sh` → `/opt/saba/backup/pg-saba-<tgl>.dump`, retensi 7 hari).
+- Rollback ke SQLite: stop `saba-api`, kembalikan `DATABASE_URL` ke `file:/opt/saba/data/saba.db` (arsip di `/opt/saba/backup/`), start ulang.
+
 ## Local object storage (S3-compatible)
 
 MinIO images are no longer publicly pullable (Docker Hub repo removed, Quay requires

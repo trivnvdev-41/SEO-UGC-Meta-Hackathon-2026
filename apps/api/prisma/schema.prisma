@@ -35,3 +35,16 @@ model Job {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Vote forum ala Zhihu: 1 voter 1 suara aktif per artikel (toggle).
+// voterKey = hash(IP + UA) + cookie browser (tanpa akun).
+model Vote {
+  id        String   @id @default(cuid())
+  articleId String
+  value     Int
+  voterKey  String
+  createdAt DateTime @default(now())
+
+  @@unique([articleId, voterKey])
+  @@index([articleId])
+}

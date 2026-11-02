@@ -99,5 +99,33 @@ export function createDb(client = prisma) {
 
     getJob: async (id) =>
       client.job.findUnique({ where: { id } }),
+
+    // Vote: toggle 1 suara aktif per voter per artikel.
+    // value: 1 (setuju), -1 (kurang setuju), 0 = cabut suara.
+    setVote: async (articleId, voterKey, value) => {
+      if (value === 0) {
+        await client.vote.deleteMany({ where: { articleId, voterKey } });
+      } else {
+        await client.vote.upsert({
+          where: { articleId_voterKey: { articleId, voterKey } },
+          create: { articleId, voterKey, value },
+          update: { value },
+        });
+      }
+    },
+
+    getVotes: async (articleId) => {
+      const rows = await client.vote.findMany({ where: { articleId } });
+      const up = rows.filter((r) => r.value > 0).length;
+      const down = rows.filter((r) => r.value < 0).length;
+      return { up, down, score: up - down };
+    },
+
+    getMyVote: async (articleId, voterKey) => {
+      const row = await client.vote.findUnique({
+        where: { articleId_voterKey: { articleId, voterKey } },
+      });
+      return row ? row.value : 0;
+    },
   };
 }

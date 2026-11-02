@@ -32,6 +32,9 @@ createServer(
       queue, mediaDir: MEDIA_DIR,
       maxMb: Number(process.env.MAX_VIDEO_MB ?? 50) || 50,
     },
+    voteLimiter: makeRateLimiter({
+      limit: Number(process.env.RATE_LIMIT_VOTE_PER_MIN ?? 30),
+    }),
   }),
 ).listen(PORT, () => {
   console.log(`api listening on :${PORT}`);

@@ -11,6 +11,7 @@ import {
   type Lang,
 } from "@/lib/articles";
 import { articlePath } from "@/lib/site";
+import { videoObject } from "@/lib/structured";
 import { sourceLabel } from "@/lib/video";
 
 export const revalidate = 3600;
@@ -168,6 +169,7 @@ function FeedCard({
   const b = pickBody(a, lang);
   const rating = ratingOf(a.json_ld);
   const source = sourceLabel(a.videoUrl);
+  const video = videoObject(a, b);
   const brand = (() => {
     try {
       const ld = a.json_ld as Record<string, unknown>;
@@ -195,7 +197,25 @@ function FeedCard({
         <p className="mt-1 line-clamp-3 text-[15px] leading-relaxed text-muted">
           {b.meta}
         </p>
-        {a.images[0] ? (
+        {video ? (
+          <span className="relative mt-3 block aspect-video w-full overflow-hidden rounded-xl bg-neutral-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={video.thumbnailUrl[0]}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-saba text-xl text-white shadow-md">
+                ▶
+              </span>
+            </span>
+            <span className="absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">
+              {lang === "en" ? "Watch video" : "Tonton video"}
+            </span>
+          </span>
+        ) : a.images[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={a.images[0]}

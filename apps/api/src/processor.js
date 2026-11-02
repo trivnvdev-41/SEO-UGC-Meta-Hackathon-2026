@@ -57,7 +57,13 @@ export function startPoller({ queue, intervalMs = 5000, ...opts }) {
         } catch {
           break;
         }
-        if (row && (row.status === 'media_ready' || row.status === 'queued')) {
+        if (!row || row.status === 'done' || row.status === 'failed') {
+          queue.discard(f.id); // file basi terminal: buang, jangan dilepas
+          const at = claimed.indexOf(f);
+          if (at >= 0) claimed.splice(at, 1);
+          continue;
+        }
+        if (row.status === 'media_ready' || row.status === 'queued') {
           job = { id: f.id, data: { url: f.url } };
           file = f;
           if (row.creator) job.creator = row.creator;

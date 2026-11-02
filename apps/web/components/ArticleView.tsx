@@ -81,26 +81,21 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
   return (
     <main className="min-h-screen bg-canvas font-sans" id="top">
       <div className="mx-auto max-w-2xl px-3 pt-3 pb-16 sm:px-5">
-        <header className="flex items-center gap-2">
+        <header className="relative flex min-h-9 items-center">
           <a
             href={homeHref}
             aria-label={lang === "en" ? "Back" : "Kembali"}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white no-underline"
+            className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white no-underline"
           >
             <IconBack width="1.1em" height="1.1em" />
           </a>
           <a
             href={homeHref}
-            className="flex items-center gap-2 no-underline"
+            className="mx-auto text-[17px] font-bold no-underline"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-saba text-sm font-bold text-white">
-              S
-            </span>
-            <span className="text-sm font-extrabold tracking-tight">
-              SABA
-            </span>
+            SABA
           </a>
-          <nav className="ml-auto flex items-center gap-1.5">
+          <nav className="absolute right-0 flex items-center gap-1">
             <Link href={articlePath(id, "id")}>
               <Badge variant={lang === "id" ? "default" : "outline"}>
                 ID

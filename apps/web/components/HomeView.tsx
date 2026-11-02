@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { FeedActions } from "@/components/FeedActions";
 import { Reveal } from "@/components/ui/reveal";
-import { ButtonNotifikasi, Margin as IconSearch } from "@/components/icons";
+import { Margin as IconSearch } from "@/components/icons";
 import {
   Container as IconFlame1,
   Container2 as IconFlame2,
@@ -113,57 +113,41 @@ export async function HomeView({
     <div className="min-h-screen bg-canvas font-sans" id="top">
       <header className="sticky top-0 z-10 border-b border-line bg-white/90 backdrop-blur">
         <div className="mx-auto max-w-3xl px-5 pt-2.5 pb-2">
-          <div className="flex items-center gap-3">
+          <div className="relative flex min-h-9 items-center justify-center">
+            <a
+              href="#cari"
+              aria-label={t.searchPh}
+              className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full bg-canvas no-underline"
+            >
+              <IconSearch width="1.1em" height="1.1em" />
+            </a>
             <Link
               href={lang === "en" ? "/en" : "/"}
-              className="flex shrink-0 items-center gap-2 no-underline"
+              className="text-[17px] font-bold no-underline"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-saba text-base font-bold text-white shadow">
-                S
-              </span>
-              <span className="text-[16px] font-extrabold tracking-tight">
-                {t.brand}
-              </span>
+              {t.brand}
             </Link>
-            <form
-              method="get"
-              className="relative ml-auto flex min-w-0 flex-1 gap-2"
-            >
-              <IconSearch
-                width="15"
-                height="15"
-                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
-              />
-              <input
-                name="q"
-                defaultValue={q}
-                placeholder={t.searchPh}
-                className="w-full rounded-full border border-transparent bg-canvas py-1.5 pr-16 pl-9 text-sm outline-none placeholder:text-neutral-500 focus:border-saba focus:bg-white"
-              />
-              <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full bg-saba-soft px-2 py-0.5 text-[11px] font-bold text-saba">
-                {t.hot}
-              </span>
-            </form>
-            <Link
-              href="#ramai"
-              aria-label="Notifikasi"
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full no-underline"
-            >
-              <ButtonNotifikasi width="1.35em" height="1.35em" />
-            </Link>
-            <nav className="flex shrink-0 items-center gap-1.5">
-              <Link href="/">
-                <Badge variant={lang === "id" ? "default" : "outline"}>
-                  ID
-                </Badge>
-              </Link>
-              <Link href="/en">
-                <Badge variant={lang === "en" ? "default" : "outline"}>
-                  EN
-                </Badge>
-              </Link>
-            </nav>
           </div>
+          <form
+            method="get"
+            className="relative mt-2 flex min-w-0 flex-1 gap-2"
+          >
+            <IconSearch
+              width="15"
+              height="15"
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
+            />
+            <input
+              id="cari"
+              name="q"
+              defaultValue={q}
+              placeholder={t.searchPh}
+              className="w-full rounded-full border border-transparent bg-canvas py-1.5 pr-16 pl-9 text-sm outline-none placeholder:text-neutral-500 focus:border-saba focus:bg-white"
+            />
+            <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full bg-saba-soft px-2 py-0.5 text-[11px] font-bold text-saba">
+              {t.hot}
+            </span>
+          </form>
           <div className="mt-2 flex gap-1 overflow-x-auto">
             {TABS.map((tb) => {
               const label = lang === "en" ? tb.enLabel : tb.idLabel;
@@ -291,9 +275,10 @@ export async function HomeView({
           )}
         </section>
 
-        <footer className="mt-10 text-sm text-muted">
+        <footer className="mt-10 flex items-center gap-2 text-sm text-muted">
           {t.brand} — {t.latest.toLowerCase()} ·{" "}
-          <Link href="/sitemap.xml">sitemap</Link>
+          <Link href="/sitemap.xml">sitemap</Link> ·
+          <Link href="/">ID</Link> · <Link href="/en">EN</Link>
         </footer>
       </main>
 

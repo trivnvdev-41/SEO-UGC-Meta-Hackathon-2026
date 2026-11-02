@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import robots from "../app/robots";
 import { escapeJsonLd } from "./jsonld";
 import { videoObject } from "./structured";
 import { sourceLabel, youtubeId } from "./video";
@@ -96,5 +97,26 @@ describe("articleUrl", () => {
   it("articlePath relatif (aman untuk href & redirect)", () => {
     expect(articlePath("abc", "id")).toBe("/article/abc");
     expect(articlePath("abc", "en")).toBe("/en/article/abc");
+  });
+});
+
+describe("robots", () => {
+  it("mengizinkan 7 bot AI eksplisit + sitemap", () => {
+    const r = robots();
+    const agents = (Array.isArray(r.rules) ? r.rules : []).map(
+      (x) => (x as { userAgent?: string }).userAgent,
+    );
+    for (const bot of [
+      "GPTBot",
+      "ChatGPT-User",
+      "ClaudeBot",
+      "Claude-Web",
+      "Google-Extended",
+      "Bytespider",
+      "PerplexityBot",
+    ]) {
+      expect(agents).toContain(bot);
+    }
+    expect(r.sitemap).toMatch(/\/sitemap\.xml$/);
   });
 });

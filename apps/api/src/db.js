@@ -13,6 +13,28 @@ const toArticle = (row) => ({
   createdAt: row.createdAt?.toISOString?.() ?? row.createdAt,
 });
 
+// GEO: pastikan json_ld selalu membawa author kreator + tanggal terbit/ubah
+// yang deterministik (injeksi server-side, bukan andalkan output LLM).
+// nowIso diinject agar ter-test.
+export function withGeoMeta(jsonLd, { creator, publishedAt = null, nowIso = null } = {}) {
+  let ld = {};
+  try {
+    const parsed = typeof jsonLd === 'string' ? JSON.parse(jsonLd) : (jsonLd ?? {});
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ld = parsed;
+  } catch {
+    ld = {};
+  }
+  const out = { ...ld };
+  if (creator) {
+    out.author = { '@type': 'Person', name: creator };
+  }
+  const now = nowIso ?? new Date().toISOString();
+  const prev = typeof out.datePublished === 'string' && out.datePublished ? out.datePublished : null;
+  out.datePublished = prev ?? publishedAt ?? now;
+  out.dateModified = now;
+  return JSON.stringify(out);
+}
+
 // client diinject agar route ter-test tanpa DB.
 export function createDb(client = prisma) {
   return {
@@ -27,8 +49,18 @@ export function createDb(client = prisma) {
       return row ? toArticle(row) : null;
     },
 
-    saveArticle: async (a) =>
-      client.article.upsert({
+
+    saveArticle: async (a) => {
+      const prev = await client.article.findUnique({
+        where: { id: a.id },
+        select: { createdAt: true, jsonLd: true },
+      }).catch(() => null);
+      const publishedAt = prev?.createdAt?.toISOString?.() ?? null;
+      const jsonLd = withGeoMeta(a.json_ld ?? (prev?.jsonLd || '{}'), {
+        creator: a.creator ?? null,
+        publishedAt,
+      });
+      return client.article.upsert({
         where: { id: a.id },
         create: {
           id: a.id,
@@ -41,7 +73,7 @@ export function createDb(client = prisma) {
           enTitle: a.en_body.title,
           enMeta: a.en_body.meta,
           enBody: a.en_body.body_md,
-          jsonLd: JSON.stringify(a.json_ld ?? {}),
+          jsonLd,
         },
         update: {
           videoUrl: a.videoUrl,
@@ -53,9 +85,10 @@ export function createDb(client = prisma) {
           enTitle: a.en_body.title,
           enMeta: a.en_body.meta,
           enBody: a.en_body.body_md,
-          jsonLd: JSON.stringify(a.json_ld ?? {}),
+          jsonLd,
         },
-      }),
+      });
+    },
 
     setJobStatus: async (id, status, { url, error = null, articleId = null, creator = null } = {}) =>
       client.job.upsert({

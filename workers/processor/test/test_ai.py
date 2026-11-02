@@ -116,6 +116,18 @@ class AiTest(unittest.TestCase):
         self.assertIn("JUDUL", text)
         self.assertIn("DILARANG", text)
 
+    def test_prompt_bluf_dan_tabel_kondisional(self):
+        cap = {}
+        payload = json.dumps(
+            {"choices": [{"message": {"content": "{}"}}]}
+        ).encode()
+        with patch("urllib.request.urlopen",
+                   _fake_urlopen_factory(cap, payload)):
+            ai.generate_article("teks", [], "K", model="m", base="https://t")
+        text = json.loads(cap["body"])["messages"][0]["content"][0]["text"]
+        self.assertIn("BLUF", text)
+        self.assertIn("TABEL", text)
+
     def test_prompt_larang_karang_nama_tanpa_kreator(self):
         cap = {}
         payload = json.dumps(

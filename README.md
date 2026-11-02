@@ -49,8 +49,8 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
 | Suite | Command | Count |
 |---|---|---|
 | API (node:test) | `npm test --prefix apps/api` | 27 |
-| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 50 |
-| Web unit (vitest) | `npm test --prefix apps/web` | 18 |
+| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 54 |
+| Web unit (vitest) | `npm test --prefix apps/web` | 19 |
 | Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 5 |
 | Mobile (flutter) | `cd apps/mobile && flutter test` | 20 |
 

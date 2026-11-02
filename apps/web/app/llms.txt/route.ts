@@ -1,11 +1,16 @@
-import { listArticleIds } from "@/lib/articles";
+import { getArticle, listArticleIds, pickBody } from "@/lib/articles";
 import { articleUrl, SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
+const oneLine = (s: string) => s.replace(/\s+/g, " ").trim().slice(0, 200);
+
 // llms.txt: ringkasan situs untuk AI search engine (ChatGPT, Perplexity, dll).
 export async function GET() {
   const ids = await listArticleIds();
+  const articles = (
+    await Promise.all(ids.map((id) => getArticle(id).catch(() => null)))
+  ).filter((a) => a !== null);
   const lines = [
     "# SABA",
     "",
@@ -15,15 +20,30 @@ export async function GET() {
     "",
     "## Articles",
     "",
-    ...ids.flatMap((id) => [
-      `- [${id}](${articleUrl(id, "id")})`,
-      `- [${id} (English)](${articleUrl(id, "en")})`,
-    ]),
+    ...articles.flatMap((a) => {
+      const idBody = pickBody(a, "id");
+      const title = oneLine(idBody.title) || a.id;
+      const meta = oneLine(idBody.meta);
+      return [
+        `- [${title}](${articleUrl(a.id, "id")})${meta ? `: ${meta}` : ""}`,
+        `  - English: [${oneLine(pickBody(a, "en").title) || a.id}](${articleUrl(a.id, "en")})`,
+      ];
+    }),
+    "",
+    "## How it works",
+    "",
+    "- Share a TikTok/YouTube link or upload a video; the audio is transcribed",
+    "  and the best frames become a bilingual review article with JSON-LD.",
+    "- English version lives under `/en/article/<id>` (hreflang pairs both URLs).",
+    "- Structured data: `application/ld+json` (Product + Review; VideoObject for YouTube).",
+    "",
+    "## FAQ",
+    "",
+    "- Are articles AI-generated? Yes, from the creator's own video voice and frames, with the original video embedded.",
+    "- Which languages? Indonesian and English, every article.",
     "",
     "## Notes",
     "",
-    "- English version lives under `/en/article/<id>` (hreflang pairs both URLs).",
-    "- Structured data: `application/ld+json` (Product + Review; VideoObject for YouTube).",
     `- Sitemap: ${SITE_URL}/sitemap.xml`,
     "",
   ];

@@ -89,7 +89,10 @@ test("URL lama ?lang=en diarahkan ke path /en", async ({ page }) => {
 test("llms.txt dan sitemap mengekspos artikel + hreflang", async ({ request }) => {
   const llms = await request.get("/llms.txt");
   expect(llms.status()).toBe(200);
-  expect(await llms.text()).toContain("/article/contoh-review");
+  const text = await llms.text();
+  expect(text).toContain("/article/contoh-review");
+  expect(text).toContain("/en/article/contoh-review");
+  expect(text).toContain("## FAQ");
 
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.status()).toBe(200);

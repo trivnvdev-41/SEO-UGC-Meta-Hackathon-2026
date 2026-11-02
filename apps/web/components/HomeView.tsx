@@ -43,12 +43,6 @@ const T = {
     hot: "Panas",
     latest: "Ulasan terbaru",
     empty: "Belum ada ulasan yang cocok.",
-    how: "Cara kerja",
-    steps: [
-      ["Bagikan link", "Kreator atau affiliate membagikan link video dari TikTok atau YouTube."],
-      ["AI merangkum", "Audio ditranskrip, bingkai terbaik dipilih, lalu disusun jadi artikel dwibahasa dengan JSON-LD."],
-      ["Terbit dan terindeks", "Artikel SSR/ISR dengan canonical, hreflang, dan sitemap. Siap muncul di Google dan AI Search."],
-    ],
     read: "Baca ulasan",
     trending: "TOPIK PALING RAMAI SAAT INI",
     trendingSub: "Popularitas",
@@ -62,12 +56,6 @@ const T = {
     hot: "Hot",
     latest: "Latest reviews",
     empty: "No matching reviews yet.",
-    how: "How it works",
-    steps: [
-      ["Share a link", "A creator or affiliate shares a video link from TikTok or YouTube."],
-      ["AI summarizes", "Audio is transcribed, the best frames are picked, then composed into a bilingual article with JSON-LD."],
-      ["Published and indexed", "SSR/ISR articles with canonical, hreflang, and sitemap. Ready for Google and AI Search."],
-    ],
     read: "Read review",
     trending: "TRENDING TOPICS RIGHT NOW",
     trendingSub: "Popularity",
@@ -301,20 +289,6 @@ export async function HomeView({
               ))}
             </div>
           )}
-        </section>
-
-        <section className="mb-10 rounded-2xl border border-line bg-white p-5">
-          <Reveal>
-            <h2 className="mt-0 mb-3">{t.how}</h2>
-            <ol className="grid gap-4 text-sm sm:grid-cols-3">
-              {t.steps.map(([title, desc]) => (
-                <li key={title}>
-                  <p className="font-bold">{title}</p>
-                  <p className="mt-1 text-muted">{desc}</p>
-                </li>
-              ))}
-            </ol>
-          </Reveal>
         </section>
 
         <footer className="mt-10 text-sm text-muted">

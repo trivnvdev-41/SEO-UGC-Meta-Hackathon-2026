@@ -40,7 +40,6 @@ const T = {
     brand: "SABA",
     searchPh: "Cari sunscreen, ampoule, …",
     searchBtn: "Cari",
-    hot: "Panas",
     latest: "Ulasan terbaru",
     empty: "Belum ada ulasan yang cocok.",
     read: "Baca ulasan",
@@ -53,7 +52,6 @@ const T = {
     brand: "SABA",
     searchPh: "Search sunscreen, ampoule, …",
     searchBtn: "Search",
-    hot: "Hot",
     latest: "Latest reviews",
     empty: "No matching reviews yet.",
     read: "Read review",
@@ -102,7 +100,10 @@ export async function HomeView({
   const filtered = articles.filter((a) => {
     const b = pickBody(a, lang);
     const hitQ =
-      !query || `${b.title} ${b.meta}`.toLowerCase().includes(query);
+      !query ||
+      `${b.title} ${b.meta} ${a.creator ?? ""} ${brandOf(a)}`
+        .toLowerCase()
+        .includes(query);
     return hitQ && (!brand || brandOf(a) === brand);
   });
   const shown = sortFeed(filtered, tab);
@@ -114,13 +115,13 @@ export async function HomeView({
       <header className="sticky top-0 z-10 border-b border-line bg-white/90 backdrop-blur">
         <div className="mx-auto max-w-3xl px-5 pt-2.5 pb-2">
           <div className="relative flex min-h-9 items-center justify-center">
-            <a
-              href="#cari"
+            <Link
+              href={lang === "en" ? "/en/jelajah" : "/jelajah"}
               aria-label={t.searchPh}
               className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full bg-canvas no-underline"
             >
               <IconSearch width="1.1em" height="1.1em" />
-            </a>
+            </Link>
             <Link
               href={lang === "en" ? "/en" : "/"}
               className="text-[17px] font-bold no-underline"
@@ -128,26 +129,6 @@ export async function HomeView({
               {t.brand}
             </Link>
           </div>
-          <form
-            method="get"
-            className="relative mt-2 flex min-w-0 flex-1 gap-2"
-          >
-            <IconSearch
-              width="15"
-              height="15"
-              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted"
-            />
-            <input
-              id="cari"
-              name="q"
-              defaultValue={q}
-              placeholder={t.searchPh}
-              className="w-full rounded-full border border-transparent bg-canvas py-1.5 pr-16 pl-9 text-sm outline-none placeholder:text-neutral-500 focus:border-saba focus:bg-white"
-            />
-            <span className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full bg-saba-soft px-2 py-0.5 text-[11px] font-bold text-saba">
-              {t.hot}
-            </span>
-          </form>
           <div className="mt-2 flex gap-1 overflow-x-auto">
             {TABS.map((tb) => {
               const label = lang === "en" ? tb.enLabel : tb.idLabel;

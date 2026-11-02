@@ -27,3 +27,4 @@ cookies*.txt
 
 # design inspection output
 .taste-skill/
+--no-warnings

@@ -1,4 +1,9 @@
-# Fetch-worker lokal (jam kerja)
+# Fetch-worker lokal (PENSIUN sejak antrean BullMQ)
+
+> **Status: pensiun.** Sejak migrasi ke Redis + BullMQ, server memproses
+> langsung tanpa perantara fetch-worker. File ini dipertahankan sebagai
+> referensi saja — jangan dijalankan lagi (endpoint `/v1/queue/next` dan
+> `/v1/media/*` sudah dihapus dari API).
 
 Unduh video di IP bersih (rumah), kirim media ke server. Reuse
 `processor.media` (yt-dlp + ffmpeg). Stdlib-only.

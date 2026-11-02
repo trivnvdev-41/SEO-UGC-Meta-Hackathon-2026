@@ -26,15 +26,17 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
    npm run db:migrate --prefix apps/api
    npm run db:seed --prefix apps/api
    ```
-4. Install dependencies:
+4. Install dependencies + Redis (antrean BullMQ):
    ```bash
    npm install --prefix apps/api
    npm install --prefix apps/web
+   docker run -d --name seougc-redis -p 6379:6379 redis:7-alpine
    UV_CACHE_DIR=/tmp/uv-cache uv pip install --python workers/processor/.venv/bin/python -e workers/processor
    ```
 5. `ffmpeg` and `yt-dlp` must be on `PATH` (no sudo: `uv pip install imageio-ffmpeg`,
    then symlink its binary as `ffmpeg`).
-6. Start the services (defaults: API `4301`, worker `4302`, web `4320`):
+6. Start the services (defaults: API `4301`, worker `4302`, web `4320`;
+   API butuh `REDIS_URL`, mis. `redis://localhost:6379`):
    ```bash
    node --env-file=.env apps/api/src/server.js
    set -a; source .env; set +a
@@ -48,7 +50,10 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
 
 | Suite | Command | Count |
 |---|---|---|
-| API (node:test) | `npm test --prefix apps/api` | 38 |
+| API (node:test) | `npm test --prefix apps/api` | 32 |
+
+> Test API butuh Redis jalan (`REDIS_URL`, default `redis://localhost:6379`);
+> tanpa Redis, 2 test integrasi antrean otomatis skip.
 | Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 54 |
 | Web unit (vitest) | `npm test --prefix apps/web` | 21 |
 | Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 5 |

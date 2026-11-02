@@ -1,75 +1,137 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, utimesSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { MAX_ATTEMPTS, createFileQueue } from '../src/queue.js';
+import { Queue } from 'bullmq';
+import { createQueue, newJobId, QUEUE_NAME, MAX_ATTEMPTS } from '../src/queue.js';
+import { createJobHandler } from '../src/processor.js';
 
-const fresh = () => createFileQueue(mkdtempSync(join(tmpdir(), 'q-')));
+const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
+const NAME = `test-${Date.now().toString(36)}`;
 
-test('enqueue -> claim FIFO -> done menghapus file', () => {
-  const q = fresh();
-  const a = q.enqueue({ url: 'https://x/1' });
-  const b = q.enqueue({ url: 'https://x/2' });
-  assert.ok(a.id.startsWith('job_'));
-
-  const c1 = q.claim();
-  const c2 = q.claim();
-  assert.equal(c1.url, 'https://x/1');
-  assert.equal(c2.url, 'https://x/2');
-  assert.equal(q.claim(), null);
-  q.done(c1);
-  q.done(c2);
-  assert.deepEqual(readdirSync(join(q.dir, 'pending')), []);
-  void b;
-});
-
-test('fail 3x -> failed, retry memperbarui attempts', () => {  const q = fresh();
-  q.enqueue({ url: 'https://x/9' });
-  for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    const c = q.claim();
-    assert.ok(c);
-    q.fail(c, 'boom');
+async function redisOk() {
+  const q = new Queue('__ping__', { connection: { url: REDIS_URL } });
+  try {
+    await Promise.race([
+      q.waitUntilReady(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
+    ]);
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await q.close().catch(() => {});
   }
-  assert.deepEqual(readdirSync(join(q.dir, 'pending')), []);
-  const failed = readdirSync(join(q.dir, 'failed'));
-  assert.equal(failed.length, 1);
-  const body = JSON.parse(
-    readFileSync(join(q.dir, 'failed', failed[0]), 'utf8'),
-  );
-  assert.equal(body.attempts, MAX_ATTEMPTS);
-  assert.equal(body.error, 'boom');
+}
+
+async function requireRedis(t) {
+  if (!(await redisOk())) {
+    t.skip(`redis tidak tersedia di ${REDIS_URL} (jalankan redis-server untuk test integrasi)`);
+    return false;
+  }
+  return true;
+}
+
+test('newJobId unik berformat job_', () => {
+  const a = newJobId();
+  const b = newJobId();
+  assert.match(a, /^job_[A-Za-z0-9]{12}$/);
+  assert.notEqual(a, b);
 });
 
-test('release/discard file hilang tidak melempar (tahan balapan tick)', () => {
-  const q = fresh();
-  assert.doesNotThrow(() => q.release({ id: 'x', _active: '.active_nope.json' }));
-  assert.doesNotThrow(() => q.discard('tidak-ada'));
-  assert.doesNotThrow(() => q.done({ id: 'x', _active: '.active_nope.json' }));
-  assert.equal(q.releaseById('tidak-ada'), false);
+test('enqueue menyimpan job + opsi attempts/backoff', async (t) => {
+  if (!(await requireRedis(t))) return;
+  const q = createQueue(REDIS_URL, `${NAME}-opts`);
+  try {
+    const { id } = await q.enqueue({ url: 'https://x/v', creator: '@a' });
+    assert.ok(id.startsWith('job_'));
+    const raw = new Queue(`${NAME}-opts`, { connection: { url: REDIS_URL } });
+    try {
+      const got = await raw.getJob(id);
+      assert.ok(got, 'job harus ada di redis');
+      assert.equal(got.data.url, 'https://x/v');
+      assert.equal(got.data.creator, '@a');
+      assert.equal(got.opts.attempts, MAX_ATTEMPTS);
+      assert.equal(got.opts.backoff.type, 'exponential');
+    } finally {
+      await raw.close().catch(() => {});
+    }
+  } finally {
+    await q.close();
+  }
 });
 
-test('releaseById mengembalikan file aktif', () => {
-  const q = fresh();
-  const { id } = q.enqueue({ url: 'https://x/7' });
-  const c = q.claim();
-  assert.equal(q.claim(), null);
-  assert.equal(q.releaseById(id), true);
-  assert.equal(q.releaseById('job_tidakada'), false);
-  const c2 = q.claim();
-  assert.equal(c2.url, 'https://x/7');
-  q.done(c2);
-  void c;
+test('startWorker implisit: job diproses sampai done (via handler + antrean)', async (t) => {
+  if (!(await requireRedis(t))) return;
+  const { startWorker } = await import('../src/processor.js');
+  const done = [];
+  const db = {
+    setJobStatus: async (id, status, extra = {}) => {
+      done.push([id, status, extra]);
+    },
+    saveArticle: async () => {},
+    getJob: async () => null,
+  };
+  const name = `${NAME}-run`;
+  const q = createQueue(REDIS_URL, name);
+  const worker = startWorker({
+    queueName: name,
+    redisUrl: REDIS_URL,
+    db,
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    concurrency: 2,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        articles: { id: { title: 'T', meta: 'M', body_md: 'B' }, en: { title: 'T', meta: 'M', body_md: 'B' } },
+        json_ld: {},
+      }),
+    }),
+  });
+  try {
+    const { id } = await q.enqueue({ url: 'https://x/v' });
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) {
+      if (done.some(([, s]) => s === 'done')) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    assert.ok(done.some(([i, s]) => i === id && s === 'done'), `job ${id} harus done: ${JSON.stringify(done)}`);
+  } finally {
+    await worker.close().catch(() => {});
+    await q.close();
+  }
 });
 
-test('claim menuai file aktif basi', () => {
-  const q = fresh();
-  q.enqueue({ url: 'https://x/8' });
-  const c = q.claim();
-  // tuakan file aktif 31 menit
-  const old = new Date(Date.now() - 31 * 60 * 1000);
-  utimesSync(join(q.dir, 'pending', c._active), old, old);
-  const c2 = q.claim();
-  assert.equal(c2.url, 'https://x/8');
-  q.done(c2);
+test('handler: upload tanpa media -> media_not_ready (tanpa redis)', async () => {
+  const handler = createJobHandler({
+    db: { setJobStatus: async () => {} },
+    workerUrl: 'http://x',
+    token: 'T',
+    mediaDir: '/tmp/tidak-ada-saba-test',
+  });
+  await assert.rejects(() => handler({ id: 'job_1', data: { url: '' } }), /media_not_ready/);
+});
+
+test('handler: job link langsung diproses (tanpa redis)', async () => {
+  const calls = [];
+  const handler = createJobHandler({
+    db: {
+      setJobStatus: async (id, status, extra = {}) => {
+        calls.push([id, status, extra]);
+      },
+      saveArticle: async () => {},
+    },
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        articles: { id: { title: 'T', meta: 'M', body_md: 'B' }, en: { title: 'T', meta: 'M', body_md: 'B' } },
+        json_ld: {},
+      }),
+    }),
+  });
+  await handler({ id: 'job_2', data: { url: 'https://x/v' } });
+  assert.deepEqual(calls.map(([, s]) => s), ['processing', 'done']);
 });

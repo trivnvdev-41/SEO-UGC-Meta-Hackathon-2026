@@ -73,7 +73,7 @@ test('consumer: creator job diteruskan ke worker', async () => {
       return { ok: true, status: 200, json: async () => bundle };
     },
   });
-  await processor({ id: 'job_9', creator: '@hebat', data: { url: 'https://x/v' } });
+  await processor({ id: 'job_9', data: { url: 'https://x/v', creator: '@hebat' } });
   assert.equal(sent.creator, '@hebat');
   assert.equal(sent.job_id, 'job_9');
 });

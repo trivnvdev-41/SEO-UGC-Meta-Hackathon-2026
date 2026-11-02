@@ -1,6 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { isConvertibleUrl } from './validateUrl.js';
-import { handleMediaUpload } from './mediaIngress.js';
 import { handleVideoUpload, maxUploadMb } from './uploadIngress.js';
 
 // Identitas tanpa akun: cookie saba_v (uuid) + hash IP+UA sebagai pengikat.
@@ -54,49 +53,21 @@ function readJson(req) {
 }
 
 // enqueue: async ({url}) => {id}. db: lihat src/db.js.
-// opts.rateLimiter: (key) => boolean. opts.fetch: {queue, mediaDir, token}
-// untuk fetch-worker lokal (GET /v1/queue/next + POST /v1/media/:id).
-// opts.upload: {queue, mediaDir, maxMb} untuk POST /v1/uploads.
+// opts.rateLimiter: (key) => boolean.
+// opts.upload: {queue, newJobId, mediaDir, maxMb} untuk POST /v1/uploads.
 // opts.voteLimiter: (key) => boolean untuk POST /v1/votes.
-export function makeApp(enqueue, db, { rateLimiter, fetch, upload, voteLimiter } = {}) {
+export function makeApp(enqueue, db, { rateLimiter, upload, voteLimiter } = {}) {
   return async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
 
     if (req.method === 'POST' && pathname === '/v1/uploads') {
       if (!upload) return send(res, 404, { error: 'not_found' });
       return handleVideoUpload(req, res, send, {
-        enqueue, db, mediaDir: upload.mediaDir,
+        queue: upload.queue, newJobId: upload.newJobId, db,
+        mediaDir: upload.mediaDir,
         maxMb: upload.maxMb ?? maxUploadMb(),
         rateLimiter: upload.rateLimiter ?? rateLimiter,
       });
-    }
-
-    if (req.method === 'GET' && pathname === '/v1/queue/next') {
-      if (!fetch || req.headers.authorization !== `Bearer ${fetch.token}`) {
-        return send(res, 401, { error: 'unauthorized' });
-      }
-      const file = fetch.queue.claim();
-      if (!file) {
-        res.writeHead(204);
-        res.end();
-        return;
-      }
-      try {
-        await db.setJobStatus(file.id, 'fetching', { url: file.url });
-      } catch {
-        fetch.queue.release(file);
-        return send(res, 503, { error: 'db_unavailable' });
-      }
-      return send(res, 200, { id: file.id, url: file.url });
-    }
-
-    if (req.method === 'POST' && pathname.startsWith('/v1/media/')) {
-      if (!fetch) return send(res, 404, { error: 'not_found' });
-      const out = await handleMediaUpload(
-        req, res, send, db, fetch.mediaDir, fetch.token);
-      if (out) fetch.queue.releaseById(decodeURIComponent(
-        pathname.slice('/v1/media/'.length)));
-      return out;
     }
 
     if (req.method === 'GET' && pathname === '/v1/votes') {

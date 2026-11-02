@@ -1,5 +1,6 @@
 import { createWriteStream, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { newJobId as defaultNewJobId } from './queue.js';
 
 // Ingress video langsung dari kreator: raw bytes (bukan multipart).
 // POST /v1/uploads, Content-Type: video/*, header opsional x-creator.
@@ -45,7 +46,9 @@ function streamToFile(req, dest, maxBytes) {
 }
 
 // POST /v1/uploads -> true bila job dibuat (res 202). False bila ditolak.
-export async function handleVideoUpload(req, res, send, { enqueue, db, mediaDir, maxMb, rateLimiter }) {
+// Urutan: simpan file -> tandai media_ready -> antrekan. Worker BullMQ
+// hanya melihat job yang medianya sudah ada, jadi tak ada balapan.
+export async function handleVideoUpload(req, res, send, { queue, newJobId = defaultNewJobId, db, mediaDir, maxMb, rateLimiter }) {
   const ctype = req.headers['content-type'] ?? '';
   if (!ctype.startsWith('video/')) {
     send(res, 400, { error: 'need_video' });
@@ -64,29 +67,27 @@ export async function handleVideoUpload(req, res, send, { enqueue, db, mediaDir,
     return false;
   }
   const creator = (req.headers['x-creator'] ?? '').toString().trim().slice(0, 64);
-  let job;
-  try {
-    job = await enqueue({ url: '', upload: true });
-  } catch {
-    send(res, 503, { error: 'queue_unavailable' });
-    return false;
-  }
-  const dir = join(mediaDir, job.id);
+  const id = newJobId();
+  const dir = join(mediaDir, id);
   mkdirSync(dir, { recursive: true });
   try {
     const size = await streamToFile(req, join(dir, VIDEO_NAME), maxMb * 1024 * 1024);
     if (size === 0) throw new Error('empty_video');
   } catch (e) {
-    await db.setJobStatus(job.id, 'failed', { url: '', error: e.message }).catch(() => {});
+    rmSync(dir, { recursive: true, force: true });
+    await db.setJobStatus(id, 'failed', { url: '', error: e.message }).catch(() => {});
     send(res, e.message === 'video_too_large' ? 413 : 400, { error: e.message });
     return false;
   }
   try {
-    await db.setJobStatus(job.id, 'media_ready', { url: '', creator: creator || null });
+    await db.setJobStatus(id, 'media_ready', { url: '', creator: creator || null });
+    await queue.enqueue({ id, url: '', creator: creator || null });
   } catch {
-    send(res, 503, { error: 'db_unavailable' });
+    rmSync(dir, { recursive: true, force: true });
+    await db.setJobStatus(id, 'failed', { url: '', error: 'queue_unavailable' }).catch(() => {});
+    send(res, 503, { error: 'queue_unavailable' });
     return false;
   }
-  send(res, 202, { jobId: job.id });
+  send(res, 202, { jobId: id });
   return true;
 }

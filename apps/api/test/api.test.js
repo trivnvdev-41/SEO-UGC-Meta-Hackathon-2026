@@ -122,53 +122,6 @@ test('DB error → 503', async () => {
   assert.equal(r.status, 503);
 });
 
-test('GET /v1/queue/next tanpa token -> 401, antre kosong -> 204', async () => {
-  const app = makeApp(async () => ({ id: 'x' }), null, {
-    fetch: { queue: { claim: () => null }, mediaDir: '/tmp', token: 'T' },
-  });
-  const anon = await call(app, { method: 'GET', url: '/v1/queue/next' });
-  assert.equal(anon.status, 401);
-});
-
-test('GET /v1/queue/next -> job + fetching', async () => {
-  const statuses = [];
-  const db = {
-    setJobStatus: async (id, status, extra) => {
-      statuses.push([id, status, extra]);
-    },
-  };
-  const app = makeApp(async () => ({ id: 'x' }), db, {
-    fetch: {
-      queue: { claim: () => ({ id: 'job_9', url: 'https://x/v' }) },
-      mediaDir: '/tmp',
-      token: 'T',
-    },
-  });
-  const r = await new Promise((resolve) => {
-    const req = {
-      method: 'GET',
-      url: '/v1/queue/next',
-      headers: { authorization: 'Bearer T' },
-      socket: {},
-      on(ev, fn) {
-        if (ev === 'end') fn();
-      },
-    };
-    const res = {
-      writeHead(s) {
-        this.status = s;
-      },
-      end(p) {
-        resolve({ status: this.status, body: p ? JSON.parse(p) : null });
-      },
-    };
-    app(req, res);
-  });
-  assert.equal(r.status, 200);
-  assert.equal(r.body.id, 'job_9');
-  assert.deepEqual(statuses, [['job_9', 'fetching', { url: 'https://x/v' }]]);
-});
-
 test('rate limit: request ke-(limit+1) → 429', async () => {
   const app = makeApp(
     async () => ({ id: 'job_rl' }),

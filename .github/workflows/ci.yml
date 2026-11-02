@@ -9,6 +9,13 @@ jobs:
   api:
     name: api (node)
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      REDIS_URL: redis://localhost:6379
     defaults:
       run:
         working-directory: apps/api

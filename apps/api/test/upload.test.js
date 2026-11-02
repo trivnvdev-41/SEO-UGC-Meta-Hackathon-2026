@@ -54,10 +54,30 @@ function fakeDb() {
 }
 
 function makeUploadApp(db, mediaDir, extra = {}) {
-  const enqueue = async () => ({ id: 'job_up1' });
-  return makeApp(enqueue, db, {
-    upload: { queue: {}, mediaDir, maxMb: 50, ...extra },
-  });
+  const added = [];
+  const queue = {
+    enqueue: async ({ id, url, creator }) => {
+      added.push({ id, url, creator });
+      return { id };
+    },
+  };
+  const app = makeApp(
+    async () => {
+      throw new Error('no direct enqueue');
+    },
+    db,
+    {
+      upload: {
+        queue,
+        newJobId: () => 'job_up1',
+        mediaDir,
+        maxMb: 50,
+        ...extra,
+      },
+    },
+  );
+  app.added = added;
+  return app;
 }
 
 test('POST /v1/uploads video → 202 + media_ready + file tersimpan', async () => {
@@ -75,6 +95,7 @@ test('POST /v1/uploads video → 202 + media_ready + file tersimpan', async () =
   assert.deepEqual(db.calls, [
     ['job_up1', 'media_ready', { url: '', creator: '@hebat' }],
   ]);
+  assert.deepEqual(app.added, [{ id: 'job_up1', url: '', creator: '@hebat' }]);
 });
 
 test('bukan video → 400 need_video', async () => {

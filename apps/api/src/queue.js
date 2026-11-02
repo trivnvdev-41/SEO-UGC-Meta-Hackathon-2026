@@ -32,36 +32,50 @@ export function createFileQueue(dir) {
       );
       return { id };
     },
+    // Klaim tertua (atau null). Tak pernah melempar untuk kondisi balapan.
     // Ambil job tertua (atau null). File dipindah agar tak diproses ganda.
-    // Sambil jalan: kembalikan file .active_* basi (fetch-worker mati).
+    // Sambil jalan: kembalikan file .active_* basi. Tak pernah melempar
+    // untuk kondisi balapan antar-tick.
     claim: ({ staleMs = STALE_ACTIVE_MS, now = Date.now } = {}) => {
-      for (const f of readdirSync(pending)) {
-        if (!isActive(f) || !f.endsWith('.json')) continue;
-        const path = join(pending, f);
-        let mtime = 0;
-        try {
-          mtime = statSync(path).mtimeMs;
-        } catch {
-          continue;
+      try {
+        for (const f of readdirSync(pending)) {
+          if (!isActive(f) || !f.endsWith('.json')) continue;
+          const path = join(pending, f);
+          let mtime = 0;
+          try {
+            mtime = statSync(path).mtimeMs;
+          } catch {
+            continue;
+          }
+          if (now() - mtime > staleMs) {
+            try {
+              renameSync(path, join(pending, unactive(f)));
+            } catch {
+              // direbut tick lain: abaikan
+            }
+          }
         }
-        if (now() - mtime > staleMs) {
-          renameSync(path, join(pending, unactive(f)));
-        }
+        const files = readdirSync(pending)
+          .filter((f) => f.endsWith('.json') && !isActive(f))
+          .sort();
+        if (!files.length) return null;
+        const path = join(pending, files[0]);
+        const job = JSON.parse(readFileSync(path, 'utf8'));
+        renameSync(path, join(pending, activeName(files[0])));
+        return { ...job, _active: activeName(files[0]) };
+      } catch {
+        return null;
       }
-      const files = readdirSync(pending)
-        .filter((f) => f.endsWith('.json') && !isActive(f))
-        .sort();
-      if (!files.length) return null;
-      const path = join(pending, files[0]);
-      const job = JSON.parse(readFileSync(path, 'utf8'));
-      renameSync(path, join(pending, activeName(files[0])));
-      return { ...job, _active: activeName(files[0]) };
     },
     release: (job) => {
-      renameSync(
-        join(pending, job._active),
-        join(pending, unactive(job._active)),
-      );
+      try {
+        renameSync(
+          join(pending, job._active),
+          join(pending, unactive(job._active)),
+        );
+      } catch {
+        // balapan antar-tick: file sudah dipindah/dihapus — abaikan
+      }
     },
     // Kembalikan file .active milik jobId (dipakai setelah media masuk).
     releaseById: (jobId) => {

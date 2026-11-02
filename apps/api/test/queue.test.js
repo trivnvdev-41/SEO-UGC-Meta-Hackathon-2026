@@ -41,6 +41,14 @@ test('fail 3x -> failed, retry memperbarui attempts', () => {  const q = fresh()
   assert.equal(body.error, 'boom');
 });
 
+test('release/discard file hilang tidak melempar (tahan balapan tick)', () => {
+  const q = fresh();
+  assert.doesNotThrow(() => q.release({ id: 'x', _active: '.active_nope.json' }));
+  assert.doesNotThrow(() => q.discard('tidak-ada'));
+  assert.doesNotThrow(() => q.done({ id: 'x', _active: '.active_nope.json' }));
+  assert.equal(q.releaseById('tidak-ada'), false);
+});
+
 test('releaseById mengembalikan file aktif', () => {
   const q = fresh();
   const { id } = q.enqueue({ url: 'https://x/7' });

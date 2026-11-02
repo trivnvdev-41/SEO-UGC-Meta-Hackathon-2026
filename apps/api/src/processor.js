@@ -42,7 +42,10 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
 const SCAN_PER_TICK = 10;
 export function startPoller({ queue, intervalMs = 5000, ...opts }) {
   const process = makeProcessor(opts);
+  let busy = false; // tick tumpang-tindih = sumber balapan file .active
   const timer = setInterval(async () => {
+    if (busy) return;
+    busy = true;
     const claimed = [];
     let job = null;
     let file = null;
@@ -72,8 +75,15 @@ export function startPoller({ queue, intervalMs = 5000, ...opts }) {
       }
     } finally {
       for (const f of claimed) {
-        if (f !== file) queue.release(f);
+        if (f !== file) {
+          try {
+            queue.release(f);
+          } catch {
+            // balapan: abaikan
+          }
+        }
       }
+      busy = false;
     }
     if (!job) return;
     try {

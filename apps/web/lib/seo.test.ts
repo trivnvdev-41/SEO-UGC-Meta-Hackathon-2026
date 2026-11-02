@@ -3,7 +3,7 @@ import robots from "../app/robots";
 import { escapeJsonLd } from "./jsonld";
 import { videoObject } from "./structured";
 import { sourceLabel, youtubeId } from "./video";
-import { compactViews, formatDate, viewsOf } from "./articles";
+import { brandOf, compactViews, formatDate, sortFeed, timeAgo, trendingOf, viewsOf } from "./articles";
 import { articlePath, articleUrl } from "./site";
 import type { Article } from "./articles";
 
@@ -118,5 +118,44 @@ describe("robots", () => {
       expect(agents).toContain(bot);
     }
     expect(r.sitemap).toMatch(/\/sitemap\.xml$/);
+  });
+});
+
+describe("brandOf/scoreOf/sortFeed/trendingOf/timeAgo", () => {
+  const mk = (id: string, score?: number, createdAt = ""): Article => ({
+    id,
+    images: [],
+    videoUrl: "https://x/v",
+    id_body: { title: "T", meta: "M", body_md: "B" },
+    en_body: { title: "T", meta: "M", body_md: "B" },
+    json_ld: { brand: { name: `Merek ${id}` } },
+    createdAt,
+    ...(score === undefined ? {} : { votes: { up: score, down: 0, score, myVote: 0 as const } }),
+  });
+
+  it("brandOf baca nama brand, '' bila tak ada", () => {
+    expect(brandOf(mk("a"))).toBe("Merek a");
+    expect(brandOf({ ...mk("b"), json_ld: {} })).toBe("");
+  });
+
+  it("populer urut skor desc, terbaru urut tanggal desc", () => {
+    const list = [mk("x", 1, "2026-01-01"), mk("y", 9, "2026-01-02"), mk("z", 5, "2026-01-03")];
+    expect(sortFeed(list, "populer").map((a) => a.id)).toEqual(["y", "z", "x"]);
+    expect(sortFeed(list, "terbaru").map((a) => a.id)).toEqual(["z", "y", "x"]);
+    expect(sortFeed(list, "untuk-anda").map((a) => a.id)).toEqual(["x", "y", "z"]);
+  });
+
+  it("trendingOf ambil 3 teratas", () => {
+    const list = [mk("a", 2), mk("b", 7), mk("c", 5), mk("d", 9), mk("e", 1)];
+    expect(trendingOf(list).map((a) => a.id)).toEqual(["d", "b", "c"]);
+  });
+
+  it("timeAgo relatif ID/EN", () => {
+    const now = new Date("2026-11-02T12:00:00.000Z").getTime();
+    expect(timeAgo("2026-11-02T11:59:30.000Z", "id", now)).toBe("baru saja");
+    expect(timeAgo("2026-11-02T11:00:00.000Z", "id", now)).toBe("1 jam lalu");
+    expect(timeAgo("2026-10-30T12:00:00.000Z", "en", now)).toBe("3d ago");
+    expect(timeAgo("", "id", now)).toBe("");
+    expect(timeAgo("asal", "id", now)).toBe("");
   });
 });

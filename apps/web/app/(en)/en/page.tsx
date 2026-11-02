@@ -17,8 +17,10 @@ export const metadata: Metadata = {
 export default async function HomePageEn({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; tab?: string; brand?: string }>;
 }) {
-  const q = (await searchParams).q ?? "";
-  return <HomeView lang="en" q={q} />;
+  const sp = await searchParams;
+  const q = sp.q ?? "";
+  const tab = sp.tab === "populer" || sp.tab === "terbaru" ? sp.tab : "untuk-anda";
+  return <HomeView lang="en" q={q} tab={tab} brand={sp.brand ?? ""} />;
 }

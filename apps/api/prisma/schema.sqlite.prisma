@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/sqlite-import"
+}
+
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Article {
+  id        String   @id
+  videoUrl  String
+  creator   String?
+  images    String   @default("[]")
+  idTitle   String
+  idMeta    String
+  idBody    String
+  enTitle   String
+  enMeta    String
+  enBody    String
+  jsonLd    String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  job       Job?
+}
+
+model Job {
+  id        String   @id
+  url       String
+  status    String   @default("queued")
+  error     String?
+  creator   String?
+  articleId String?  @unique
+  article   Article? @relation(fields: [articleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Vote forum ala Zhihu: 1 voter 1 suara aktif per artikel (toggle).
+// voterKey = hash(IP + UA) + cookie browser (tanpa akun).
+model Vote {
+  id        String   @id @default(cuid())
+  articleId String
+  value     Int
+  voterKey  String
+  createdAt DateTime @default(now())
+
+  @@unique([articleId, voterKey])
+  @@index([articleId])
+}

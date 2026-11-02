@@ -1,15 +1,15 @@
-# Mobile (Flutter) — Share Receiver
+# Mobile (Flutter) — SABA Upload
 
-Native Share Target: TikTok/YouTube → **Share** → **SEO UGC** → `POST /v1/convert`.
+Upload video dari galeri → `POST /v1/uploads` → artikel dimasak di server.
 
 ## Structure
 
 | Path | Contents |
 |---|---|
-| `android/.../MainActivity.kt` | Receives `ACTION_SEND` (`text/plain`), forwards the text to Dart via MethodChannel `dev.seougc/share` |
-| `android/.../AndroidManifest.xml` | `intent-filter` for `ACTION_SEND` + `launchMode="singleTask"` (works while the app is already open) |
-| `lib/main.dart` | Forum home (header, tabs, trending, kartu) + share receiver → `POST /v1/convert` → poll → detail |
-| `lib/share_handler.dart` | Pure functions: URL extraction, host allowlist, request payload |
+| `android/.../MainActivity.kt` | MethodChannel `dev.seougc/share`: `openUrl` (buka link artikel di browser) |
+| `android/.../AndroidManifest.xml` | `launchMode="singleTask"` + izin INTERNET |
+| `lib/main.dart` | Forum home (header, tabs, trending, kartu) + sheet upload → `POST /v1/uploads` → poll → detail |
+| `lib/upload.dart` | Picker galeri + upload multipart + progress (tanpa dependency tambahan) |
 | `lib/notify.dart` | Local notification when a job finishes while the app is in background (tap opens the article) |
 | `lib/feed.dart` | Article model + brand filter (pure, tested) |
 | `lib/vote.dart` | Chip Setuju + downvote lokal dengan pop, +1 float, ring |
@@ -32,16 +32,15 @@ physical device use the LAN IP, e.g. `--dart-define=API_BASE=http://192.168.1.10
 
 ```bash
 flutter analyze     # 0 issues
-flutter test        # 7 tests (extraction, host allowlist, payload)
+flutter test        # feed, md, profile, vote
 flutter build apk --debug
 ```
 
-Manual check: open TikTok → Share → pick **SEO UGC** → the app shows
-`Job dibuat: <jobId>`. Then poll `GET /v1/articles/<jobId>` until the worker finishes.
+Manual check: ketuk **+** → pilih video dari galeri → app menunjukkan
+progress upload lalu `Artikel jadi: <jobId>`.
 
 ## Notes
 
 - Android-only: no iOS target in this repo.
 - The backend must be running and `API_BASE` must be reachable from the device.
-- Only `https` links to TikTok/YouTube are sent; anything else is ignored
-  in the UI before any request is made.
+- Upload-only: alur link/share (`POST /v1/convert`) sudah dicabut dari mobile.

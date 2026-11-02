@@ -11,7 +11,6 @@ import 'feed.dart';
 import 'login_page.dart';
 import 'notify.dart';
 import 'profile.dart';
-import 'share_handler.dart';
 import 'upload.dart';
 import 'vote.dart';
 
@@ -72,10 +71,7 @@ class SharePage extends StatefulWidget {
 }
 
 class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
-  static const _channel = MethodChannel('dev.seougc/share');
-
-  String _status = 'Bagikan video TikTok/YouTube ke SABA untuk mulai.';
-  String? _lastUrl;
+  String _status = 'Pilih video dari galeri untuk mulai.';
   String? _doneJobId;
   bool _busy = false;
   String? _error;
@@ -87,11 +83,8 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   int _navIndex = 0;
   final _search = TextEditingController();
 
-  String? _lastHandled;
-  DateTime? _lastHandledAt;
   int _pollSeq = 0; // token poll aktif; poll lama berhenti saat tersalip/cancel.
   bool _foreground = true; // false = notifikasi info saat job selesai.
-  final _manual = TextEditingController();
 
   @override
   void initState() {
@@ -100,10 +93,6 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     onNotifTap = (payload) async {
       if (payload != null) _openArticle(payload);
     };
-    _channel.setMethodCallHandler((call) async {
-      if (call.method == 'shared') await _handleText(call.arguments as String?);
-    });
-    _loadInitial();
     _loadFeed();
   }
 
@@ -166,142 +155,58 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
-  /// Sheet tempel link: handle + subtitle + tombol paste + validasi lokal.
+  /// Sheet upload video: pilih dari galeri, artikel dimasak otomatis.
   void _openConvertSheet() {
-    final ctrl = TextEditingController(text: _manual.text);
-    String? hint;
-    bool hintError = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          Future<void> paste() async {
-            final data = await Clipboard.getData('text/plain');
-            final t = data?.text ?? '';
-            setSheet(() {
-              ctrl.text = t;
-              hint = null;
-            });
-          }
-
-          void submit() {
-            final url = supportedSharedUrl(ctrl.text);
-            if (url == null) {
-              setSheet(() {
-                hintError = true;
-                hint = extractSharedUrl(ctrl.text) == null
-                    ? 'Tempel link dulu — belum ada URL.'
-                    : 'Hanya link TikTok/YouTube (https) yang didukung.';
-              });
-              return;
-            }
-            Navigator.of(ctx).pop();
-            _handleText(url);
-          }
-
-          return Padding(
-            padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 8,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: const Color(0xFFE5E8EC),
-                        borderRadius: BorderRadius.circular(999)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text('Buat artikel dari link',
-                    style: Theme.of(ctx).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                const Text(
-                    'Tempel link TikTok/YouTube — artikel dimasak otomatis dari suara kreator.',
-                    style:
-                        TextStyle(fontSize: 12, color: Color(0xFF65676B))),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: ctrl,
-                  keyboardType: TextInputType.url,
-                  onChanged: (_) => setSheet(() => hint = null),
-                  onSubmitted: (_) => submit(),
-                  decoration: InputDecoration(
-                    hintText: 'Tempel link TikTok/YouTube…',
-                    border: const OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.all(Radius.circular(12))),
-                    isDense: true,
-                    prefixIcon: const Icon(Icons.link,
-                        size: 18, color: Color(0xFF65676B)),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          tooltip: 'Tempel',
-                          visualDensity: VisualDensity.compact,
-                          icon: const Icon(Icons.content_paste,
-                              size: 18),
-                          color: sabaBlue,
-                          onPressed: paste,
-                        ),
-                        IconButton(
-                          tooltip: 'Hapus',
-                          visualDensity: VisualDensity.compact,
-                          icon: const Icon(Icons.clear, size: 18),
-                          color: const Color(0xFF65676B),
-                          onPressed: () =>
-                              setSheet(() => ctrl.clear()),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (hint != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(hint!,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: hintError
-                                ? const Color(0xFFCF3A3A)
-                                : sabaBlue)),
-                  ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: _busy ? null : submit,
-                  icon: const Icon(Icons.restaurant_menu, size: 18),
-                  label: const Text('Masak artikel'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _busy
-                      ? null
-                      : () {
-                          Navigator.of(ctx).pop();
-                          _uploadFromGallery();
-                        },
-                  icon: const Icon(Icons.upload, size: 18),
-                  label: const Text('Upload video dari galeri'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Batal'),
-                ),
-              ],
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 8,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: const Color(0xFFE5E8EC),
+                    borderRadius: BorderRadius.circular(999)),
+              ),
             ),
-          );
-        },
+            const SizedBox(height: 12),
+            Text('Buat artikel dari video',
+                style: Theme.of(ctx).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text(
+                'Pilih video dari galeri — artikel dimasak otomatis dari suara kreator.',
+                style:
+                    TextStyle(fontSize: 12, color: Color(0xFF65676B))),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () {
+                      Navigator.of(ctx).pop();
+                      _uploadFromGallery();
+                    },
+              icon: const Icon(Icons.upload, size: 18),
+              label: const Text('Pilih video dari galeri'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Batal'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -310,75 +215,24 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     onNotifTap = null;
-    _manual.dispose();
     _search.dispose();
     super.dispose();
   }
 
-  // Share saat app sudah terbuka (singleTask) bisa datang sebelum channel siap;
-  // ambil ulang pending text setiap app kembali ke depan.
+  // Background/foreground: notifikasi info hanya saat job selesai di background.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
-    if (state == AppLifecycleState.resumed) _loadInitial();
-  }
-
-  Future<void> _loadInitial() async {
-    try {
-      final text = await _channel.invokeMethod<String>('getInitialSharedText');
-      if (text != null) await _handleText(text);
-    } on MissingPluginException {
-      // Non-Android (channel hanya ada di MainActivity Android).
-    }
-  }
-
-  Future<void> _handleText(String? text) async {
-    final url = supportedSharedUrl(text);
-    if (url != null) {
-      final now = DateTime.now();
-      final dup = url == _lastHandled &&
-          _lastHandledAt != null &&
-          now.difference(_lastHandledAt!) < const Duration(seconds: 5);
-      if (dup) return;
-      _lastHandled = url;
-      _lastHandledAt = now;
-    }
-    if (url == null) {
-      _set(
-        extractSharedUrl(text) == null
-            ? 'Tidak ada URL di teks yang dibagikan.'
-            : 'Link diabaikan: hanya TikTok/YouTube (https) yang didukung.',
-        isError: true,
-      );
-      return;
-    }
-    setState(() {
-      _busy = true;
-      _error = null;
-      _lastUrl = url;
-      _doneJobId = null;
-      _status = 'Mengirim $url ...';
-      _manual.clear();
-    });
-    final seq = ++_pollSeq;
-    try {
-      final jobId = await postConvert(url);
-      await _trackJob(jobId, seq, label: url);
-    } catch (e) {
-      if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
-      _set('Gagal: $e', isError: true);
-    }
   }
 
   /// Upload video dari galeri lalu lacak sampai artikel jadi.
-  /// Dipakai sheet convert + halaman Profil.
+  /// Dipakai FAB + halaman Profil.
   Future<void> _uploadFromGallery() async {
     if (_busy) return;
     setState(() {
       _navIndex = 0;
       _busy = true;
       _error = null;
-      _lastUrl = null;
       _doneJobId = null;
       _status = 'Memilih video…';
     });
@@ -408,7 +262,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     }
   }
 
-  /// Poll jobId sampai artikel jadi; dipakai link maupun upload.
+  /// Poll jobId sampai artikel jadi.
   Future<void> _trackJob(String jobId, int seq, {required String label}) async {
     final entry = JobEntry(jobId: jobId, url: label);
     setState(() => _status = 'Job dibuat: $jobId — menunggu artikel...');
@@ -898,9 +752,8 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   doneJobId: _doneJobId,
                   onCancel: () => setState(() => _pollSeq++),
                   onRetry: () {
-                    final u = _lastUrl;
                     setState(() => _error = null);
-                    if (u != null) _handleText(u);
+                    _uploadFromGallery();
                   },
                   onDismiss: () => setState(() {
                     _error = null;
@@ -954,7 +807,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '1. Share video dari TikTok/YouTube ke SABA\n'
+                            '1. Ketuk + lalu pilih video dari galeri\n'
                             '2. Tunggu notifikasi — artikel dimasak di server\n'
                             '3. Buka dan baca artikel di dalam app ini',
                             style: theme.textTheme.bodyMedium
@@ -1219,27 +1072,6 @@ Future<bool> fetchArticle(String jobId) async {
     final res = await req.close().timeout(const Duration(seconds: 20));
     await res.transform(utf8.decoder).join();
     return res.statusCode == 200;
-  } finally {
-    client.close();
-  }
-}
-
-/// POST /v1/convert → jobId. Tanpa dependency tambahan (dart:io).
-Future<String> postConvert(String url) async {
-  final client = HttpClient();
-  try {
-    final req = await client.postUrl(Uri.parse('$apiBase/v1/convert'));
-    req.headers.contentType = ContentType.json;
-    req.write(jsonEncode(convertPayload(url)));
-    final res = await req.close().timeout(const Duration(seconds: 20));
-    final body = await res.transform(utf8.decoder).join();
-    if (res.statusCode != 202) {
-      throw Exception('api ${res.statusCode}: $body');
-    }
-    final jobId =
-        (jsonDecode(body) as Map<String, dynamic>)['jobId'] as String?;
-    if (jobId == null || jobId.isEmpty) throw Exception('api: empty jobId');
-    return jobId;
   } finally {
     client.close();
   }

@@ -1,12 +1,16 @@
 export { default as Background } from "./Background";
 export { default as Button2 } from "./Button2";
 export { default as Button3 } from "./Button3";
+export { default as ButtonBagikan } from "./ButtonBagikan";
+export { default as ButtonKembali } from "./ButtonKembali";
 export { default as ButtonKurangSetuju2 } from "./ButtonKurangSetuju2";
 export { default as ButtonKurangSetuju3 } from "./ButtonKurangSetuju3";
 export { default as ButtonKurangSetuju } from "./ButtonKurangSetuju";
+export { default as ButtonMenuArtikel } from "./ButtonMenuArtikel";
 export { default as ButtonMenuOpsi } from "./ButtonMenuOpsi";
 export { default as ButtonNotifikasi } from "./ButtonNotifikasi";
 export { default as Button } from "./Button";
+export { default as ButtonSimpan } from "./ButtonSimpan";
 export { default as Container10 } from "./Container10";
 export { default as Container11 } from "./Container11";
 export { default as Container12 } from "./Container12";

@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 
 type Item = { name: string; text: string; at: number };
-type Identity = { name: string; email: string };
 
 const itemsKey = (id: string) => `saba-comments:${id}`;
 const identKey = "saba-identity";
+const nameId = "saba-comment-name";
 
 function loadItems(id: string): Item[] {
   try {
@@ -30,146 +30,151 @@ function timeAgo(at: number, lang: "id" | "en"): string {
 export function Comments({
   id,
   lang,
+  handle,
   t,
 }: {
   id: string;
   lang: "id" | "en";
+  handle: string;
   t: {
     title: string;
     empty: string;
     namePh: string;
-    emailPh: string;
     textPh: string;
     send: string;
     needName: string;
   };
 }) {
   const [items, setItems] = useState<Item[]>([]);
-  const [ident, setIdent] = useState<Identity>({ name: "", email: "" });
+  const [name, setName] = useState("");
   const [text, setText] = useState("");
+  const [hint, setHint] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     setItems(loadItems(id));
     try {
       const raw = localStorage.getItem(identKey);
-      if (raw) setIdent({ name: "", email: "", ...JSON.parse(raw) });
+      if (raw) {
+        const ident = JSON.parse(raw) as { name?: unknown };
+        if (typeof ident.name === "string") setName(ident.name);
+      }
     } catch {
       /* abaikan */
     }
     setReady(true);
   }, [id]);
 
-  const canSend = ident.name.trim().length >= 2 && text.trim().length > 0;
+  const nameOk = name.trim().length >= 2;
 
   function send() {
-    if (!canSend) return;
-    const item = {
-      name: ident.name.trim(),
-      text: text.trim().slice(0, 500),
-      at: Date.now(),
-    };
+    if (text.trim().length === 0) return;
+    if (!nameOk) {
+      setHint(true);
+      document.getElementById(nameId)?.focus();
+      return;
+    }
+    const item = { name: name.trim(), text: text.trim().slice(0, 500), at: Date.now() };
     const next = [item, ...items];
     setItems(next);
     try {
       localStorage.setItem(itemsKey(id), JSON.stringify(next));
-      localStorage.setItem(
-        identKey,
-        JSON.stringify({ name: ident.name.trim(), email: ident.email.trim() }),
-      );
+      localStorage.setItem(identKey, JSON.stringify({ name: name.trim() }));
     } catch {
       /* mode privat: tampil sesi ini saja */
     }
     setText("");
+    setHint(false);
   }
 
   if (!ready) return null;
 
   return (
-    <section aria-label={t.title} className="mt-4">
-      <h2 className="mt-0 mb-3 text-lg">
-        {t.title}{" "}
-        <span className="text-sm font-medium text-muted">({items.length})</span>
-      </h2>
+    <section aria-label={t.title}>
+      <div className="flex items-center gap-2">
+        <h2 className="mt-0 text-[17px] font-bold">{t.title}</h2>
+        <span className="rounded-full bg-canvas px-2 py-0.5 text-[11px] font-bold text-[#424656]">
+          {items.length}
+        </span>
+      </div>
+
+      <div className="mt-3">
+        <input
+          id={nameId}
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (e.target.value.trim().length >= 2) setHint(false);
+          }}
+          placeholder={t.namePh}
+          maxLength={30}
+          aria-label={t.namePh}
+          className="w-full rounded-full border border-line bg-white px-3.5 py-2 text-sm outline-none placeholder:text-neutral-500 focus:border-saba"
+        />
+        {hint && !nameOk ? (
+          <p className="mt-1 text-xs text-[#CF3A3A]">{t.needName}</p>
+        ) : null}
+      </div>
+
       {items.length === 0 ? (
-        <p className="mb-4 text-sm text-muted">{t.empty}</p>
+        <p className="mt-3 text-sm text-muted">{t.empty}</p>
       ) : (
-        <ul className="mb-4 grid list-none gap-3 p-0">
+        <ul className="mt-3 grid list-none gap-2.5 p-0">
           {items.map((c, i) => (
             <li
               key={`${c.at}-${i}`}
-              className="rounded-xl border border-line bg-canvas p-3"
+              className="rounded-xl bg-canvas p-3"
             >
               <p className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-saba-soft text-xs font-bold text-saba">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-saba-soft text-sm font-bold text-saba">
                   {c.name.charAt(0).toUpperCase()}
                 </span>
-                <span className="text-xs font-bold">{c.name}</span>
-                <span className="text-[11px] text-muted">
-                  {timeAgo(c.at, lang)}
+                <span className="min-w-0">
+                  <span className="block truncate text-[15px] font-bold">
+                    {c.name}
+                  </span>
+                  <span className="block text-[13px] text-[#727687]">
+                    {timeAgo(c.at, lang)}
+                  </span>
                 </span>
               </p>
-              <p className="mt-1 text-[15px] leading-relaxed whitespace-pre-wrap">
+              <p className="mt-1.5 text-[15px] leading-relaxed whitespace-pre-wrap">
                 {c.text}
               </p>
             </li>
           ))}
         </ul>
       )}
-      <div className="grid gap-2">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <input
-            value={ident.name}
-            onChange={(e) =>
-              setIdent({ ...ident, name: e.target.value })
-            }
-            placeholder={t.namePh}
-            maxLength={30}
-            aria-label={t.namePh}
-            className="rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none placeholder:text-neutral-500 focus:border-saba"
-          />
-          <input
-            value={ident.email}
-            onChange={(e) =>
-              setIdent({ ...ident, email: e.target.value })
-            }
-            placeholder={t.emailPh}
-            type="email"
-            aria-label={t.emailPh}
-            className="rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none placeholder:text-neutral-500 focus:border-saba"
-          />
-        </div>
-        {!canSend && ident.name.trim().length < 2 ? (
-          <p className="text-xs text-muted">{t.needName}</p>
-        ) : null}
-        <div className="flex gap-2">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={t.textPh}
-            rows={2}
-            maxLength={500}
-            aria-label={t.textPh}
-            className="w-full resize-none rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none placeholder:text-neutral-500 focus:border-saba"
-          />
-          <button
-            type="button"
-            onClick={send}
-            disabled={!canSend}
-            aria-label={t.send}
-            title={t.send}
-            className={`h-10 w-10 shrink-0 self-end rounded-full transition-colors ${
-              canSend
-                ? "bg-saba text-white hover:bg-[#0064e0]"
-                : "cursor-not-allowed bg-canvas text-neutral-400"
-            }`}
-          >
-            <span aria-hidden className="text-base leading-none">
-              ➤
-            </span>
-          </button>
-        </div>
+
+      <div className="sticky bottom-2 z-10 mt-3 flex items-center gap-1.5 rounded-full border border-line bg-white/90 p-1.5 pl-3.5 shadow-md backdrop-blur">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") send();
+          }}
+          placeholder={t.textPh}
+          maxLength={500}
+          aria-label={t.textPh}
+          className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-500"
+        />
+        <button
+          type="button"
+          onClick={send}
+          aria-label={t.send}
+          title={t.send}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-saba text-white"
+        >
+          <span aria-hidden className="text-base leading-none">
+            ➤
+          </span>
+        </button>
       </div>
+      <p className="mt-1 text-center text-[11px] text-muted">
+        {lang === "en"
+          ? `Replying as ${name.trim() || "…"}`
+          : `Menjawab sebagai ${name.trim() || "…"} • @${handle}`}
+      </p>
     </section>
   );
 }

@@ -334,7 +334,7 @@ const AVATAR = [
   "bg-[#FAF5FF] text-[#9333EA]",
 ] as const;
 
-function avatarTone(id: string): (typeof AVATAR)[number] {
+export function avatarTone(id: string): (typeof AVATAR)[number] {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i)) % 997;
   return AVATAR[h % AVATAR.length];

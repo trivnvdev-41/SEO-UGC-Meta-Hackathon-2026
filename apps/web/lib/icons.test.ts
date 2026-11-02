@@ -9,11 +9,15 @@ const EXPECTED = [
   "Button",
   "Button2",
   "Button3",
+  "ButtonBagikan",
+  "ButtonKembali",
   "ButtonKurangSetuju",
   "ButtonKurangSetuju2",
   "ButtonKurangSetuju3",
+  "ButtonMenuArtikel",
   "ButtonMenuOpsi",
   "ButtonNotifikasi",
+  "ButtonSimpan",
   "Container",
   "Container2",
   "Container3",
@@ -36,7 +40,7 @@ const EXPECTED = [
 ];
 
 describe("icons", () => {
-  it("28 komponen SVG mockup terdaftar di barrel", () => {
+  it("32 komponen SVG mockup terdaftar di barrel", () => {
     const src = readFileSync(join(DIR, "index.ts"), "utf8");
     for (const name of EXPECTED) {
       expect(src, name).toContain(`as ${name}`);
@@ -48,7 +52,7 @@ describe("icons", () => {
     const files = readdirSync(DIR).filter(
       (f) => f.endsWith(".tsx") && f !== "index.tsx",
     );
-    expect(files).toHaveLength(28);
+    expect(files).toHaveLength(32);
     for (const f of files) {
       const src = readFileSync(join(DIR, f), "utf8");
       expect(src, f).toContain("export default");

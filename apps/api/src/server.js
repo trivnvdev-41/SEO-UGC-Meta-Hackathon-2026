@@ -28,6 +28,10 @@ createServer(
       limit: Number(process.env.RATE_LIMIT_PER_MIN ?? 5),
     }),
     fetch: { queue, mediaDir: MEDIA_DIR, token: FETCH_TOKEN },
+    upload: {
+      queue, mediaDir: MEDIA_DIR,
+      maxMb: Number(process.env.MAX_VIDEO_MB ?? 50) || 50,
+    },
   }),
 ).listen(PORT, () => {
   console.log(`api listening on :${PORT}`);

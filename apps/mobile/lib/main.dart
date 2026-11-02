@@ -12,6 +12,7 @@ import 'login_page.dart';
 import 'notify.dart';
 import 'profile.dart';
 import 'share_handler.dart';
+import 'upload.dart';
 import 'vote.dart';
 
 // 10.0.2.2 = localhost mesin host dari Android emulator.
@@ -282,6 +283,17 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   icon: const Icon(Icons.restaurant_menu, size: 18),
                   label: const Text('Masak artikel'),
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () {
+                          Navigator.of(ctx).pop();
+                          _uploadFromGallery();
+                        },
+                  icon: const Icon(Icons.upload, size: 18),
+                  label: const Text('Upload video dari galeri'),
+                ),
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: const Text('Batal'),
@@ -351,33 +363,76 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     final seq = ++_pollSeq;
     try {
       final jobId = await postConvert(url);
-      final entry = JobEntry(jobId: jobId, url: url);
-      setState(() => _status = 'Job dibuat: $jobId — menunggu artikel...');
-      await _pollArticle(entry, seq);
-      if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
-      setState(() {
-        if (entry.status == 'done') {
-          _doneJobId = jobId;
-          _status = 'Artikel jadi: $jobId';
-        } else {
-          _error = entry.error;
-          _status = 'Job $jobId gagal: ${entry.error}';
-        }
-        _busy = false;
-      });
-      // Info di background saja; di foreground user sudah melihat status card.
-      if (!_foreground) {
-        if (entry.status == 'done') {
-          await notifyJob('Artikel jadi', jobId, payload: jobId);
-        } else {
-          await notifyJob('Job $jobId gagal', entry.error ?? 'unknown');
-        }
-      }
-      if (entry.status == 'done') _loadFeed();
+      await _trackJob(jobId, seq, label: url);
     } catch (e) {
       if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
       _set('Gagal: $e', isError: true);
     }
+  }
+
+  /// Upload video dari galeri lalu lacak sampai artikel jadi.
+  /// Dipakai sheet convert + halaman Profil.
+  Future<void> _uploadFromGallery() async {
+    if (_busy) return;
+    setState(() {
+      _navIndex = 0;
+      _busy = true;
+      _error = null;
+      _lastUrl = null;
+      _doneJobId = null;
+      _status = 'Memilih video…';
+    });
+    final seq = ++_pollSeq;
+    var lastPct = -1;
+    try {
+      final jobId = await uploadVideo(
+        apiBase: apiBase,
+        creator: ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
+        onProgress: (p) {
+          final pct = (p * 100).floor();
+          if (pct >= lastPct + 5 && mounted && seq == _pollSeq) {
+            lastPct = pct;
+            setState(() => _status = 'Mengunggah video… $pct%');
+          }
+        },
+      );
+      if (jobId == null) {
+        if (!mounted || seq != _pollSeq) return;
+        _set('Upload dibatalkan.');
+        return;
+      }
+      await _trackJob(jobId, seq, label: 'Video dari galeri');
+    } catch (e) {
+      if (!mounted || seq != _pollSeq) return;
+      _set('Gagal: $e', isError: true);
+    }
+  }
+
+  /// Poll jobId sampai artikel jadi; dipakai link maupun upload.
+  Future<void> _trackJob(String jobId, int seq, {required String label}) async {
+    final entry = JobEntry(jobId: jobId, url: label);
+    setState(() => _status = 'Job dibuat: $jobId — menunggu artikel...');
+    await _pollArticle(entry, seq);
+    if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
+    setState(() {
+      if (entry.status == 'done') {
+        _doneJobId = jobId;
+        _status = 'Artikel jadi: $jobId';
+      } else {
+        _error = entry.error;
+        _status = 'Job $jobId gagal: ${entry.error}';
+      }
+      _busy = false;
+    });
+    // Info di background saja; di foreground user sudah melihat status card.
+    if (!_foreground) {
+      if (entry.status == 'done') {
+        await notifyJob('Artikel jadi', jobId, payload: jobId);
+      } else {
+        await notifyJob('Job $jobId gagal', entry.error ?? 'unknown');
+      }
+    }
+    if (entry.status == 'done') _loadFeed();
   }
 
   /// Poll `GET /v1/articles/<jobId>` sampai 200 (maks ~10 menit).
@@ -709,6 +764,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 MaterialPageRoute(
                     builder: (_) => const LoginPage()),
               ),
+              onUpload: _uploadFromGallery,
             )
           : SafeArea(
               child: Column(

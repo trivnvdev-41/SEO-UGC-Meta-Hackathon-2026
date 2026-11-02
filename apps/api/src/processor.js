@@ -36,9 +36,8 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
   };
 }
 
-// Poller antrean file: hanya job media_ready (media dari fetch-worker).
-// Job lain dikembalikan (menunggu fetch-worker jam kerja; tak dibakar).
-// Satu job per tick.
+// Poller antrean file: job media_ready (media/fetch-worker) atau queued
+// (upload langsung atau link). Job lain dikembalikan. Satu job per tick.
 export function startPoller({ queue, intervalMs = 5000, ...opts }) {
   const process = makeProcessor(opts);
   const timer = setInterval(async () => {
@@ -52,7 +51,7 @@ export function startPoller({ queue, intervalMs = 5000, ...opts }) {
       queue.release(file);
       return;
     }
-    if (!row || row.status !== 'media_ready') {
+    if (!row || (row.status !== 'media_ready' && row.status !== 'queued')) {
       queue.release(file);
       return;
     }

@@ -196,16 +196,52 @@ def media_inbox(job_id: str) -> Path | None:
     return None
 
 
+def video_inbox(job_id: str) -> Path | None:
+    """Video mentah hasil upload langsung (MEDIA_DIR/<job_id>/video.mp4)."""
+    root = os.environ.get("MEDIA_DIR", "").strip()
+    if not root:
+        return None
+    v = Path(root) / _check_job_id(job_id) / VIDEO_NAME
+    return v if v.is_file() else None
+
+
+def probe_duration(video: Path, run=subprocess.run) -> float:
+    """Durasi detik via ffprobe; ValueError bila tak terbaca."""
+    out = run(["ffprobe", "-v", "error", "-show_entries",
+               "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
+               str(video)],
+              capture_output=True, text=True, timeout=_SOCKET_TIMEOUT)
+    try:
+        return float((out.stdout or "").strip())
+    except (ValueError, AttributeError):
+        raise ValueError("video_unreadable")
+
+
 def pipeline(job_id: str, url: str, run=subprocess.run,
              creator: str | None = None) -> dict:
-    """Media lokal fetch-worker bila ada, else unduh via yt-dlp."""
-    if not is_convertible_url(url):
+    """Media lokal bila ada (upload video / fetch-worker), else unduh via yt-dlp."""
+    if url and not is_convertible_url(url):
         raise ValueError("invalid_url")
     inbox = media_inbox(job_id)
     if inbox is not None:
         frames = sorted(str(p) for p in inbox.glob("frame_*.jpg"))[:10]
         return {"job_id": job_id, "video": None,
                 "audio": str(inbox / AUDIO_NAME), "frames": frames,
+                "creator": creator or None, "local": True}
+    raw = video_inbox(job_id)
+    if raw is not None:
+        check_size(raw)
+        limit = max_seconds_for(url) if url else max_seconds()
+        if probe_duration(raw, run) > limit:
+            raise ValueError("video_too_long")
+        d = job_dir(job_id)
+        d.mkdir(parents=True, exist_ok=True)
+        audio = d / AUDIO_NAME
+        run(extract_cmd(raw, audio, d / FRAME_PATTERN),
+            check=True, timeout=_FFMPEG_TIMEOUT)
+        frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
+        return {"job_id": job_id, "video": str(raw),
+                "audio": str(audio), "frames": frames,
                 "creator": creator or None, "local": True}
     cookies = cookies_file()  # validasi sebelum membuat direktori job
     creator = creator or uploader_of(url, run)

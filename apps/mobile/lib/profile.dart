@@ -38,11 +38,13 @@ class ProfilePage extends StatefulWidget {
       {super.key,
       required this.feed,
       required this.onEdit,
-      required this.onLogin});
+      required this.onLogin,
+      required this.onUpload});
 
   final List<FeedArticle> feed;
   final Future<void> Function() onEdit;
   final void Function() onLogin;
+  final Future<void> Function() onUpload;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -308,7 +310,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () => _soon('Upload video (#14)'),
+                    onTap: () => widget.onUpload(),
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(

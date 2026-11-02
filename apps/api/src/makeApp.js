@@ -1,5 +1,6 @@
 import { isConvertibleUrl } from './validateUrl.js';
 import { handleMediaUpload } from './mediaIngress.js';
+import { handleVideoUpload, maxUploadMb } from './uploadIngress.js';
 
 function send(res, status, body) {
   res.writeHead(status, { 'content-type': 'application/json' });
@@ -26,9 +27,19 @@ function readJson(req) {
 // enqueue: async ({url}) => {id}. db: lihat src/db.js.
 // opts.rateLimiter: (key) => boolean. opts.fetch: {queue, mediaDir, token}
 // untuk fetch-worker lokal (GET /v1/queue/next + POST /v1/media/:id).
-export function makeApp(enqueue, db, { rateLimiter, fetch } = {}) {
+// opts.upload: {queue, mediaDir, maxMb, rateLimiter} untuk POST /v1/uploads.
+export function makeApp(enqueue, db, { rateLimiter, fetch, upload } = {}) {
   return async (req, res) => {
     const { pathname } = new URL(req.url, 'http://localhost');
+
+    if (req.method === 'POST' && pathname === '/v1/uploads') {
+      if (!upload) return send(res, 404, { error: 'not_found' });
+      return handleVideoUpload(req, res, send, {
+        enqueue, db, mediaDir: upload.mediaDir,
+        maxMb: upload.maxMb ?? maxUploadMb(),
+        rateLimiter: upload.rateLimiter ?? rateLimiter,
+      });
+    }
 
     if (req.method === 'GET' && pathname === '/v1/queue/next') {
       if (!fetch || req.headers.authorization !== `Bearer ${fetch.token}`) {

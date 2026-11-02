@@ -12,8 +12,10 @@ from processor.media import (
     max_seconds_for,
     job_dir,
     pipeline,
+    probe_duration,
     purge,
     uploader_of,
+    video_inbox,
 )
 
 
@@ -201,7 +203,73 @@ class MediaTest(unittest.TestCase):
         self.assertIn("fps=1/3", cmd)
         self.assertEqual(cmd[0], "ffmpeg")
 
+    def test_pipeline_video_upload_tanpa_unduh(self):
+        import os
+        import tempfile
+        from unittest.mock import patch
+        from processor import media
+
+        def fake_run(cmd, **kw):
+            if cmd[0] == "ffprobe":
+                from types import SimpleNamespace
+                return SimpleNamespace(stdout="60.0\n")
+            if cmd[0] == "ffmpeg":
+                # pipeline mengekstrak ke /tmp/<job_id> (job_dir), bukan inbox
+                jd = Path("/tmp/jobvUp")
+                jd.mkdir(parents=True, exist_ok=True)
+                (jd / "audio.mp3").write_bytes(b"x")
+                (jd / "frame_001.jpg").write_bytes(b"x")
+            return None
+
+        with tempfile.TemporaryDirectory() as tmp:
+            inbox = Path(tmp) / "jobvUp"
+            inbox.mkdir()
+            (inbox / "video.mp4").write_bytes(b"v" * 100)
+            env = {"MEDIA_DIR": tmp}
+            try:
+                with patch.dict(os.environ, env, clear=True):
+                    self.assertEqual(
+                        video_inbox("jobvUp"), inbox / "video.mp4")
+                    out = media.pipeline("jobvUp", "", run=fake_run,
+                                         creator="@kreator")
+            finally:
+                media.purge("jobvUp")
+        self.assertTrue(out["local"])
+        self.assertEqual(out["creator"], "@kreator")
+        self.assertTrue(out["audio"].endswith("audio.mp3"))
+        self.assertEqual(len(out["frames"]), 1)
+
+    def test_pipeline_video_upload_kepanjangan_ditolak(self):
+        import os
+        import tempfile
+        from unittest.mock import patch
+        from processor import media
+
+        def fake_run(cmd, **kw):
+            from types import SimpleNamespace
+            return SimpleNamespace(stdout="9999.0\n")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            inbox = Path(tmp) / "joblong"
+            inbox.mkdir()
+            (inbox / "video.mp4").write_bytes(b"v")
+            env = {"MEDIA_DIR": tmp}
+            with patch.dict(os.environ, env, clear=True), \
+                    self.assertRaises(ValueError) as cm:
+                media.pipeline("joblong", "", run=fake_run)
+            self.assertEqual(str(cm.exception), "video_too_long")
+
+    def test_probe_duration_tak_terbaca(self):
+        from types import SimpleNamespace
+        with self.assertRaises(ValueError):
+            probe_duration(Path("/tmp/x.mp4"),
+                           run=lambda *a, **k: SimpleNamespace(stdout=""))
+
     def test_uploader_of_tolak_url_tak_izin(self):
+        from types import SimpleNamespace
+        with self.assertRaises(ValueError):
+            probe_duration(Path("/tmp/x.mp4"),
+                           run=lambda *a, **k: SimpleNamespace(stdout=""))
         with self.assertRaises(ValueError):
             uploader_of("https://evil.com/x",
                         run=lambda *a, **k: None)

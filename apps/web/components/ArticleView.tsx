@@ -193,19 +193,21 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
             />
           </div>
           <figcaption className="mt-1 font-sans text-sm text-muted">
-            <a href={a.videoUrl} target="_blank" rel="noreferrer">
-              {lang === "en" ? "Watch the original video" : "Tonton video asli"}
-            </a>
+            {a.videoUrl ? (
+              <a href={a.videoUrl} target="_blank" rel="noreferrer">
+                {lang === "en" ? "Watch the original video" : "Tonton video asli"}
+              </a>
+            ) : null}
           </figcaption>
         </figure>
         </Reveal>
-      ) : (
+      ) : a.videoUrl ? (
         <p className="my-4 font-sans text-sm">
           <a href={a.videoUrl} target="_blank" rel="noreferrer">
             {lang === "en" ? "Watch the original video" : "Tonton video asli"}
           </a>
         </p>
-      )}
+      ) : null}
 
       {renderMd(body.body_md)}
 

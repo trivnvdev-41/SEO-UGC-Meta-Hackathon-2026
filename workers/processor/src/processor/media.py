@@ -164,36 +164,11 @@ def uploader_of(url: str, run=subprocess.run) -> str | None:
     return None
 
 
-def audio_cmd(video: Path, audio: Path) -> list[str]:
-    return ["ffmpeg", "-y", "-i", str(video),
-            "-vn", "-acodec", "libmp3lame", "-q:a", "4", str(audio)]
-
-
-def frames_cmd(video: Path, pattern: Path) -> list[str]:
-    # Berhenti di 10 frame: pipeline hanya memakai 10 pertama.
-    return ["ffmpeg", "-y", "-i", str(video),
-            "-vf", "fps=1/3", "-frames:v", "10", str(pattern)]
-
-
 def extract_cmd(video: Path, audio: Path, pattern: Path) -> list[str]:
     """Satu pass ffmpeg: audio.mp3 + 10 frame sekaligus (hemat 1x decode)."""
     return ["ffmpeg", "-y", "-i", str(video),
             "-map", "0:a?", "-acodec", "libmp3lame", "-q:a", "4", str(audio),
             "-map", "0:v?", "-vf", "fps=1/3", "-frames:v", "10", str(pattern)]
-
-
-def media_inbox(job_id: str) -> Path | None:
-    """Direktori media dari fetch-worker (MEDIA_DIR/<job_id>), bila lengkap.
-
-    Lengkap = ada audio.mp3 + ≥1 frame_*.jpg. None = unduh sendiri."""
-    root = os.environ.get("MEDIA_DIR", "").strip()
-    if not root:
-        return None
-    d = Path(root) / _check_job_id(job_id)
-    frames = sorted(d.glob("frame_*.jpg")) if d.is_dir() else []
-    if (d / AUDIO_NAME).is_file() and frames:
-        return d
-    return None
 
 
 def video_inbox(job_id: str) -> Path | None:
@@ -219,15 +194,9 @@ def probe_duration(video: Path, run=subprocess.run) -> float:
 
 def pipeline(job_id: str, url: str, run=subprocess.run,
              creator: str | None = None) -> dict:
-    """Media lokal bila ada (upload video / fetch-worker), else unduh via yt-dlp."""
+    """Video upload lokal bila ada, else unduh via yt-dlp (alur link)."""
     if url and not is_convertible_url(url):
         raise ValueError("invalid_url")
-    inbox = media_inbox(job_id)
-    if inbox is not None:
-        frames = sorted(str(p) for p in inbox.glob("frame_*.jpg"))[:10]
-        return {"job_id": job_id, "video": None,
-                "audio": str(inbox / AUDIO_NAME), "frames": frames,
-                "creator": creator or None, "local": True}
     raw = video_inbox(job_id)
     if raw is not None:
         check_size(raw)

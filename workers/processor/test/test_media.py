@@ -3,11 +3,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from processor.media import (
-    audio_cmd,
     check_size,
     cookies_file,
     download_cmd,
-    frames_cmd,
     is_convertible_url,
     max_seconds_for,
     job_dir,
@@ -90,15 +88,6 @@ class MediaTest(unittest.TestCase):
         self.assertIn("YTDLP_COOKIES_FILE", str(cm.exception))
         self.assertNotIn("/tmp/tidak-ada", str(cm.exception))
 
-    def test_audio_cmd_mp3_lame(self):
-        cmd = audio_cmd(Path("/tmp/j1/video.mp4"), Path("/tmp/j1/audio.mp3"))
-        self.assertIn("libmp3lame", cmd)
-        self.assertEqual(cmd[-1], "/tmp/j1/audio.mp3")
-
-    def test_frames_cmd_pattern(self):
-        cmd = frames_cmd(Path("/tmp/j1/video.mp4"), Path("/tmp/j1/frame_%03d.jpg"))
-        self.assertIn("fps=1/3", cmd)
-
     def test_pipeline_runs_three_steps(self):
         seen = []
         out = pipeline("testjob1", "https://vt.tiktok.com/x/",
@@ -172,27 +161,6 @@ class MediaTest(unittest.TestCase):
             uploader_of("https://vt.tiktok.com/x/",
                         run=lambda *a, **k: SimpleNamespace(stdout=out)),
             "@wynnearmeline")
-
-    def test_pipeline_pakai_inbox_tanpa_unduh(self):
-        import os
-        import tempfile
-        from unittest.mock import patch
-        from processor import media
-
-        with tempfile.TemporaryDirectory() as tmp:
-            inbox = Path(tmp) / "job9"
-            inbox.mkdir()
-            (inbox / "audio.mp3").write_bytes(b"x")
-            (inbox / "frame_001.jpg").write_bytes(b"x")
-            env = {"MEDIA_DIR": tmp}
-            with patch.dict(os.environ, env, clear=True), \
-                    patch.object(media.subprocess, "run") as run:
-                out = media.pipeline("job9", "https://vt.tiktok.com/x/",
-                                     creator="@hebat")
-            run.assert_not_called()
-        self.assertTrue(out["local"])
-        self.assertEqual(out["creator"], "@hebat")
-        self.assertEqual(len(out["frames"]), 1)
 
     def test_extract_cmd_satu_pass_audio_dan_frame(self):
         from processor.media import extract_cmd

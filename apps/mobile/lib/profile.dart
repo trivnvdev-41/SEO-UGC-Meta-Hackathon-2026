@@ -1,5 +1,4 @@
-// Profil ala mock Stitch: bio Tentang (dummy, tulis via Edit Profil nanti),
-// statistik lokal, dan kotak upload (segera hadir, #14).
+// Profil ala mock Stitch: bio Tentang, statistik lokal, dan kotak upload.
 // Murni lokal tanpa backend; gaya ikut kartu feed (putih, radius 16).
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,7 +7,6 @@ import 'feed.dart';
 import 'vote.dart';
 
 /// Profil lokal sesi ini (in-memory, pola VoteStore).
-/// Backend (nama/bio/topik + auth) ikut #14.
 class ProfileStore {
   static String name = '';
   static String headline = '';

@@ -6,7 +6,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from processor.ai import enrich, settings
-from processor.media import media_inbox, pipeline, purge, video_inbox
+from processor.media import pipeline, purge, video_inbox
 from processor.storage import upload_images
 
 
@@ -56,9 +56,6 @@ def process(job: ConvertJob):
     finally:
         # Satu titik keluar: /tmp/{job_id} tidak bocor walau download/enrich/upload gagal.
         purge(job.job_id)
-        inbox = media_inbox(job.job_id)
-        if inbox is not None:
-            shutil.rmtree(inbox, ignore_errors=True)
         raw = video_inbox(job.job_id)
         if raw is not None:
             shutil.rmtree(raw.parent, ignore_errors=True)

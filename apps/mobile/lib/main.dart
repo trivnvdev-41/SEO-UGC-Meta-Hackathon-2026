@@ -380,10 +380,10 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     }
   }
 
-  /// Poll `GET /v1/articles/<jobId>` sampai 200 (maks ~6 menit).
+  /// Poll `GET /v1/articles/<jobId>` sampai 200 (maks ~10 menit).
   /// Berhenti saat `seq` tersalip (job baru/cancel): entry ditandai dibatalkan.
   Future<void> _pollArticle(JobEntry entry, int seq) async {
-    for (var i = 0; i < 72; i++) {
+    for (var i = 0; i < 120; i++) {
       if (!mounted || seq != _pollSeq) {
         if (entry.status == 'processing') {
           entry
@@ -404,7 +404,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     }
     entry
       ..status = 'failed'
-      ..error = 'timeout: artikel belum jadi setelah 6 menit';
+      ..error = 'timeout: artikel belum jadi setelah 10 menit';
   }
 
   void _set(String status, {bool isError = false}) {
@@ -1145,6 +1145,9 @@ class _StepCyclerState extends State<_StepCycler> {
               ),
           ],
         ),
+        const SizedBox(height: 4),
+        const Text('Biasanya 3–5 menit, jangan tutup app ini.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF65676B))),
       ],
     );
   }

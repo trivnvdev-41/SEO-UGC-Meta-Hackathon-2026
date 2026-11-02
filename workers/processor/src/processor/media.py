@@ -175,6 +175,13 @@ def frames_cmd(video: Path, pattern: Path) -> list[str]:
             "-vf", "fps=1/3", "-frames:v", "10", str(pattern)]
 
 
+def extract_cmd(video: Path, audio: Path, pattern: Path) -> list[str]:
+    """Satu pass ffmpeg: audio.mp3 + 10 frame sekaligus (hemat 1x decode)."""
+    return ["ffmpeg", "-y", "-i", str(video),
+            "-map", "0:a?", "-acodec", "libmp3lame", "-q:a", "4", str(audio),
+            "-map", "0:v?", "-vf", "fps=1/3", "-frames:v", "10", str(pattern)]
+
+
 def media_inbox(job_id: str) -> Path | None:
     """Direktori media dari fetch-worker (MEDIA_DIR/<job_id>), bila lengkap.
 
@@ -210,8 +217,8 @@ def pipeline(job_id: str, url: str, run=subprocess.run,
     # yt-dlp menambah ekstensi kontainer saat merge (video.mp4 -> video.mp4.webm).
     dl = video if video.exists() else next(iter(sorted(d.glob("video.*"))), video)
     check_size(dl)
-    run(audio_cmd(dl, audio), check=True, timeout=_FFMPEG_TIMEOUT)
-    run(frames_cmd(dl, d / FRAME_PATTERN), check=True, timeout=_FFMPEG_TIMEOUT)
+    run(extract_cmd(dl, audio, d / FRAME_PATTERN),
+        check=True, timeout=_FFMPEG_TIMEOUT)
     frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
     return {"job_id": job_id, "video": str(dl),
             "audio": str(audio), "frames": frames, "creator": creator,

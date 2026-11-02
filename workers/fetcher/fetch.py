@@ -27,14 +27,12 @@ from processor.media import (  # noqa: E402
     AUDIO_NAME,
     FRAME_PATTERN,
     VIDEO_NAME,
-    audio_cmd,
     check_size,
     cookies_file,
     download_cmd,
-    frames_cmd,
+    extract_cmd,
     is_convertible_url,
     job_dir,
-    max_seconds_for,
     uploader_of,
 )
 
@@ -97,8 +95,7 @@ def _fetch_one(job_id: str, url: str) -> None:
         dl = (video if video.exists()
               else next(iter(sorted(d.glob("video.*"))), video))
         check_size(dl)
-        subprocess.run(audio_cmd(dl, audio), check=True, timeout=90)
-        subprocess.run(frames_cmd(dl, d / FRAME_PATTERN),
+        subprocess.run(extract_cmd(dl, audio, d / FRAME_PATTERN),
                        check=True, timeout=90)
         frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
         files = [("file", AUDIO_NAME, "audio/mpeg", audio.read_bytes())]

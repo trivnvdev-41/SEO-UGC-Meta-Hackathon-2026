@@ -51,7 +51,7 @@ class MediaTest(unittest.TestCase):
         seen = []
         pipeline("testjob4", "https://vt.tiktok.com/x/",
                  run=lambda cmd, **kw: seen.append(kw.get("timeout")))
-        self.assertEqual(seen, [30, 120, 60, 60])
+        self.assertEqual(seen, [30, 120, 60])
         purge("testjob4")
 
     def test_pipeline_tolak_video_terlalu_besar(self):
@@ -101,7 +101,7 @@ class MediaTest(unittest.TestCase):
         seen = []
         out = pipeline("testjob1", "https://vt.tiktok.com/x/",
                        run=lambda cmd, **kw: seen.append(cmd) or None)
-        self.assertEqual(len(seen), 4)  # uploader + unduh + audio + frame
+        self.assertEqual(len(seen), 3)  # uploader + unduh + ekstrak 1-pass
         self.assertTrue(out["audio"].endswith("audio.mp3"))
         self.assertIsInstance(out["frames"], list)
         self.assertIn("creator", out)
@@ -191,6 +191,15 @@ class MediaTest(unittest.TestCase):
         self.assertTrue(out["local"])
         self.assertEqual(out["creator"], "@hebat")
         self.assertEqual(len(out["frames"]), 1)
+
+    def test_extract_cmd_satu_pass_audio_dan_frame(self):
+        from processor.media import extract_cmd
+        cmd = extract_cmd(Path("/tmp/j/v.mp4"), Path("/tmp/j/a.mp3"),
+                          Path("/tmp/j/frame_%03d.jpg"))
+        self.assertEqual(cmd.count("-i"), 1)
+        self.assertIn("libmp3lame", cmd)
+        self.assertIn("fps=1/3", cmd)
+        self.assertEqual(cmd[0], "ffmpeg")
 
     def test_uploader_of_tolak_url_tak_izin(self):
         with self.assertRaises(ValueError):

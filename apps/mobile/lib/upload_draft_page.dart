@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'saba_theme.dart';
 import 'saba_widgets.dart';
+import 'social_handle.dart';
 import 'upload_draft.dart';
 
 class UploadDraftPage extends StatefulWidget {
@@ -40,6 +41,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
   late final TextEditingController _transcript = TextEditingController();
   late final TextEditingController _title = TextEditingController();
   List<String> _refs = [];
+  final _handles = <String, SocialHandle?>{};
   int? _tapped;
   int? _coverIndex;
   String _origTranscript = '';
@@ -85,6 +87,11 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
               : aiPick.first;
       _tapped = _coverIndex;
     });
+    for (final u in _refs) {
+      lookupSocialHandle(u, cache: _handles).then((h) {
+        if (mounted && h != null) setState(() {});
+      });
+    }
   }
 
   /// Ada editan dibanding draft awal?
@@ -143,6 +150,12 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
       _refs = [..._refs, ...add];
       _link.clear();
     });
+    // Best-effort: baca @handle kreator (YouTube/TikTok via oEmbed).
+    for (final u in add) {
+      lookupSocialHandle(u, cache: _handles).then((h) {
+        if (mounted && h != null) setState(() {});
+      });
+    }
   }
 
   Future<void> _pasteChip() async {
@@ -354,7 +367,10 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
           const Text('Link publik aja, maks 3. Cuma buat referensi.',
               style: TextStyle(fontSize: 12, color: SabaColors.muted2)),
           for (final u in _refs)
-            Container(
+            Builder(builder: (context) {
+              final h = _handles[u];
+              final label = h != null ? '${h.handle} kepasang' : '${_shortHost(u)} kepasang';
+              return Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -367,8 +383,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                       style: TextStyle(
                           fontSize: 12, color: SabaColors.primary)),
                   Expanded(
-                    child: Text(
-                        '${_shortHost(u)} kepasang',
+                    child: Text(label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -387,7 +402,8 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                   ),
                 ],
               ),
-            ),
+              );
+            }),
         ],
       ),
     );

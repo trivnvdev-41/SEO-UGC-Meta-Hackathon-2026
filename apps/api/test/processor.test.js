@@ -148,3 +148,23 @@ test('consumer: faqs llm diteruskan ke saveArticle', async () => {
   assert.deepEqual(saved.id_faqs, [{ q: 'Apa?', a: 'Ini.' }]);
   assert.deepEqual(saved.en_faqs, [{ q: 'What?', a: 'This.' }]);
 });
+
+test('consumer: media dihapus setelah artikel tersimpan', async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, existsSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'upl-'));
+  mkdirSync(join(dir, 'job_1'), { recursive: true });
+  writeFileSync(join(dir, 'job_1', 'video.mp4'), Buffer.from([0, 1]));
+  const db = fakeDb();
+  const processor = makeProcessor({
+    db,
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    mediaDir: dir,
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => bundle }),
+  });
+  await processor(job);
+  assert.equal(existsSync(join(dir, 'job_1')), false);
+  assert.equal(db.calls.some((c) => c[0] === 'article'), true);
+});

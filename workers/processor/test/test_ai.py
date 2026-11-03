@@ -199,10 +199,6 @@ class AiTest(unittest.TestCase):
         self.assertIn("AI_STT_BASE_URL", msg)
         self.assertNotIn("RAHASIA-JANGAN-MUNCUL", msg)
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_prompt_faq_sitasi_dan_heading_tanya(self):
         cap = {}
         payload = json.dumps(
@@ -215,3 +211,6 @@ if __name__ == "__main__":
         self.assertIn("faqs", text)
         self.assertIn("pertanyaan", text)
         self.assertIn("SITASI", text)
+
+if __name__ == "__main__":
+    unittest.main()

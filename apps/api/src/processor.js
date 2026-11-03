@@ -1,11 +1,11 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { Worker } from 'bullmq';
 import { MAX_ATTEMPTS, QUEUE_NAME } from './queue.js';
 
 // Handler murni: worker HTTP -> artikel + status job. Diinject agar ter-test.
 // Bentuk job internal: { id, data: { url?, creator? } } (url '' = upload).
-export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
+export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch, mediaDir = '' }) {
   return async (job) => {
     const url = job.data.url ?? '';
     const creator = job.data.creator ?? null;
@@ -41,6 +41,15 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
       en_faqs: b.articles.en?.faqs ?? [],
     });
     await db.setJobStatus(job.id, 'done', { url, articleId: job.id });
+    // Sumber video dihapus HANYA setelah artikel tersimpan + status done.
+    // Retry selalu butuh input utuh; hapus lebih awal = media_not_ready permanen.
+    if (mediaDir) {
+      try {
+        rmSync(join(mediaDir, job.id), { recursive: true, force: true });
+      } catch {
+        /* sisa media: aman, bukan fatal */
+      }
+    }
   };
 }
 
@@ -60,7 +69,7 @@ function mediaPresent(mediaDir, jobId) {
 // Handler BullMQ: cek kesiapan media, lalu proses. Diekspor agar ter-test
 // tanpa Redis; startWorker hanya memasang wiring BullMQ di atasnya.
 export function createJobHandler({ db, workerUrl, token, fetchImpl, mediaDir = '' }) {
-  const process = makeProcessor({ db, workerUrl, token, fetchImpl });
+  const process = makeProcessor({ db, workerUrl, token, fetchImpl, mediaDir });
   return async (bullJob) => {
     const job = { id: bullJob.id, data: bullJob.data ?? {} };
     if (!job.data.url && !mediaPresent(mediaDir, job.id)) {
@@ -92,9 +101,13 @@ export function startWorker({
   const worker = new Worker(queueName, handler, {
     connection: connection ?? { url: redisUrl },
     concurrency,
+    // Transkrip 60 detik + LLM bisa >60 dtk; lock default 30 dtk memicu
+    // duplikat proses. 10 menit aman untuk video ≤180 dtk.
+    lockDuration: 600000,
   });
   worker.on('failed', async (job, err) => {
     if (!job) return;
+    console.error(`job ${job.id} attempt ${job.attemptsMade} failed: ${String(err?.message ?? err).slice(0, 200)}`);
     if (job.attemptsMade >= MAX_ATTEMPTS) {
       await db
         .setJobStatus(job.id, 'failed', {

@@ -69,6 +69,29 @@ class AppTest(unittest.TestCase):
         self.assertEqual(getattr(cm.exception, "status_code", None), 400)
         purge.assert_called_once_with("j1")
 
+    def test_media_sumber_tidak_dihapus_worker(self):
+        # Regression job_6a2a: finally app.py dulu rmtree MEDIA_DIR/<job>,
+        # sehingga retry selalu media_not_ready. Sekarang worker hanya purge /tmp;
+        # penghapusan sumber milik gateway setelah artikel tersimpan.
+        import os
+        import tempfile
+        from pathlib import Path
+        tmp = Path(tempfile.mkdtemp())
+        (tmp / "j9" / "video.mp4").parent.mkdir(parents=True, exist_ok=True)
+        (tmp / "j9" / "video.mp4").write_bytes(b"\x00")
+        with patch.dict(os.environ, {"MEDIA_DIR": str(tmp)}), \
+                patch("processor.app.pipeline",
+                      return_value={"audio": "a", "frames": []}), \
+                patch("processor.app.enrich", side_effect=RuntimeError("ai")), \
+                self.assertRaises(RuntimeError):
+            process(ConvertJob(job_id="j9"))
+        self.assertTrue((tmp / "j9" / "video.mp4").is_file())
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
 
 if __name__ == "__main__":
     unittest.main()

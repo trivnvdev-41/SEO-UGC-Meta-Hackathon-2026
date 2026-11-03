@@ -1,12 +1,11 @@
 from contextlib import asynccontextmanager
 import os
-import shutil
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from processor.ai import enrich, settings
-from processor.media import pipeline, purge, video_inbox
+from processor.media import pipeline, purge
 from processor.storage import upload_images
 
 
@@ -53,9 +52,10 @@ def process(job: ConvertJob):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     finally:
-        # Satu titik keluar: /tmp/{job_id} tidak bocor walau olah/enrich/upload gagal.
+        # /tmp/{job_id} ephemeraL: selalu dibersihkan, sukses maupun gagal.
+        # Video sumber di MEDIA_DIR/<job_id>/ JANGAN dihapus di sini:
+        # kepemilikannya di gateway, yang menghapus hanya SETELAH artikel
+        # tersimpan (lihat saveArticle di API). Menghapus di sini membuat
+        # retry BullMQ selalu gagal media_not_ready + video user hilang.
         purge(job.job_id)
-        raw = video_inbox(job.job_id)
-        if raw is not None:
-            shutil.rmtree(raw.parent, ignore_errors=True)
     return {"job_id": job.job_id, **bundle}

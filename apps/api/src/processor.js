@@ -9,6 +9,7 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
   return async (job) => {
     const url = job.data.url ?? '';
     const creator = job.data.creator ?? null;
+    const references = job.data.references ?? [];
     await db.setJobStatus(job.id, 'processing', { url });
 
     const res = await fetchImpl(`${workerUrl}/process`, {
@@ -35,6 +36,7 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
       id_body: b.articles.id,
       en_body: b.articles.en,
       json_ld: b.json_ld ?? {},
+      references,
     });
     await db.setJobStatus(job.id, 'done', { url, articleId: job.id });
   };

@@ -137,3 +137,53 @@ test('rate limit upload → 429', async () => {
   assert.equal((await callRaw(app, opts)).status, 202);
   assert.equal((await callRaw(app, opts)).status, 429);
 });
+
+test('x-references valid → diteruskan ke queue', async () => {
+  const db = fakeDb();
+  const dir = mkdtempSync(join(tmpdir(), 'upl-'));
+  const added = [];
+  const queue = {
+    enqueue: async (job) => {
+      added.push(job);
+      return { id: job.id };
+    },
+  };
+  const app = makeApp(async () => { throw new Error('no direct'); }, db, {
+    upload: { queue, newJobId: () => 'job_ref1', mediaDir: dir, maxMb: 50 },
+  });
+  const r = await callRaw(app, {
+    url: '/v1/uploads',
+    headers: {
+      ...videoHeaders,
+      'x-references': JSON.stringify(['https://tiktok.com/@a/video/1']),
+    },
+    chunks: [Buffer.from([0, 1])],
+  });
+  assert.equal(r.status, 202);
+  assert.deepEqual(added, [{
+    id: 'job_ref1', url: '', creator: null,
+    references: ['https://tiktok.com/@a/video/1'],
+  }]);
+});
+
+test('x-references sampah → 400 bad_references', async () => {
+  for (const bad of [
+    'bukan-json',
+    '"cuma-string"',
+    '["https://a.test/1","https://a.test/2","https://a.test/3","https://a.test/4"]',
+    '["http://tanpa-s.test/x"]',
+    `["https://ok.test/${'x'.repeat(500)}"]`,
+    '[42]',
+  ]) {
+    const db = fakeDb();
+    const dir = mkdtempSync(join(tmpdir(), 'upl-'));
+    const app = makeUploadApp(db, dir);
+    const r = await callRaw(app, {
+      url: '/v1/uploads',
+      headers: { ...videoHeaders, 'x-references': bad },
+      chunks: [Buffer.from([0, 1])],
+    });
+    assert.equal(r.status, 400, bad);
+    assert.equal(r.body.error, 'bad_references');
+  }
+});

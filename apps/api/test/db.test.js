@@ -12,7 +12,7 @@ test('withGeoMeta: author + tanggal deterministik', () => {
   assert.equal(out.dateModified, '2026-11-02T00:00:00.000Z');
 });
 
-test('withGeoMeta: tanpa kreator tanpa author; published lama dipertahankan', () => {
+test('withGeoMeta: tanpa kreator -> fallback ke review.author, terakhir Tim SABA', () => {
   const prev = JSON.stringify({
     datePublished: '2026-01-01T00:00:00.000Z',
     review: { '@type': 'Review' },
@@ -21,10 +21,20 @@ test('withGeoMeta: tanpa kreator tanpa author; published lama dipertahankan', ()
     publishedAt: '2026-05-05T00:00:00.000Z',
     nowIso: '2026-11-02T00:00:00.000Z',
   }));
-  assert.equal(out.author, undefined);
+  assert.deepEqual(out.author, { '@type': 'Person', name: 'Tim SABA' });
   assert.equal(out.datePublished, '2026-01-01T00:00:00.000Z');
   assert.equal(out.dateModified, '2026-11-02T00:00:00.000Z');
   assert.deepEqual(out.review, { '@type': 'Review' });
+});
+
+test('withGeoMeta: fallback pakai nama penulis di review LLM', () => {
+  const prev = JSON.stringify({
+    review: { '@type': 'Review', author: { '@type': 'Person', name: '@penulis' } },
+  });
+  const out = JSON.parse(withGeoMeta(prev, {
+    nowIso: '2026-11-02T00:00:00.000Z',
+  }));
+  assert.deepEqual(out.author, { '@type': 'Person', name: '@penulis' });
 });
 
 test('withGeoMeta: JSON rusak tidak meledak', () => {

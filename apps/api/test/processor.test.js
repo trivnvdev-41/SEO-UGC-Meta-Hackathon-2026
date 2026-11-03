@@ -113,3 +113,17 @@ test('normalizeConcurrency: valid 1..32, fallback untuk sampah', () => {
   assert.equal(normalizeConcurrency('abc'), 2);
   assert.equal(normalizeConcurrency('999'), 2);
 });
+
+test('consumer: references job diteruskan ke saveArticle', async () => {
+  const db = fakeDb();
+  const refs = ['https://instagram.com/p/abc/'];
+  const processor = makeProcessor({
+    db,
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => bundle }),
+  });
+  await processor({ id: 'job_r', data: { url: '', creator: null, references: refs } });
+  const saved = db.calls.find((c) => c[0] === 'article')[1];
+  assert.deepEqual(saved.references, refs);
+});

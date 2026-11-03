@@ -4,6 +4,7 @@ import { SITE_URL } from "../lib/site";
 const AI_BOTS = [
   "GPTBot", // OpenAI ChatGPT crawl
   "ChatGPT-User", // OpenAI ChatGPT user browsing
+  "OAI-SearchBot", // OpenAI ChatGPT real-time search
   "ClaudeBot", // Anthropic Claude crawl
   "Claude-Web", // Anthropic Claude web fetch
   "Google-Extended", // Google Gemini training/search

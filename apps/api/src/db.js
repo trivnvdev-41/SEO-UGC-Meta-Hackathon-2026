@@ -10,6 +10,7 @@ const toArticle = (row) => ({
   id_body: { title: row.idTitle, meta: row.idMeta, body_md: row.idBody },
   en_body: { title: row.enTitle, meta: row.enMeta, body_md: row.enBody },
   json_ld: JSON.parse(row.jsonLd || '{}'),
+  references: JSON.parse(row.references || '[]'),
   createdAt: row.createdAt?.toISOString?.() ?? row.createdAt,
 });
 
@@ -27,6 +28,12 @@ export function withGeoMeta(jsonLd, { creator, publishedAt = null, nowIso = null
   const out = { ...ld };
   if (creator) {
     out.author = { '@type': 'Person', name: creator };
+  } else {
+    // Fallback GEO: kreator kosong (artikel lama/seed) -> pakai nama penulis
+    // di review LLM, terakhir Tim SABA. Author tak boleh hilang (E-E-A-T).
+    const ra = ld.review?.author;
+    const fallback = typeof ra === 'string' ? ra : ra?.name;
+    out.author = { '@type': 'Person', name: fallback || 'Tim SABA' };
   }
   const now = nowIso ?? new Date().toISOString();
   const prev = typeof out.datePublished === 'string' && out.datePublished ? out.datePublished : null;
@@ -74,6 +81,7 @@ export function createDb(client = prisma) {
           enMeta: a.en_body.meta,
           enBody: a.en_body.body_md,
           jsonLd,
+          references: JSON.stringify(a.references ?? []),
         },
         update: {
           videoUrl: a.videoUrl,
@@ -86,6 +94,7 @@ export function createDb(client = prisma) {
           enMeta: a.en_body.meta,
           enBody: a.en_body.body_md,
           jsonLd,
+          references: JSON.stringify(a.references ?? []),
         },
       });
     },

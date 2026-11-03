@@ -45,6 +45,26 @@ function streamToFile(req, dest, maxBytes) {
   });
 }
 
+// Referensi sosmed opsional via header x-references (JSON array string).
+// Validasi: array ≤3, tiap string https:// ≤500 char. Server TIDAK fetch
+// URL ini (tanpa SSRF); hanya disimpan + dirender sebagai kartu referensi.
+export function parseReferences(raw) {
+  if (!raw) return [];
+  let arr;
+  try {
+    arr = JSON.parse(raw);
+  } catch {
+    throw new Error('bad_references');
+  }
+  if (!Array.isArray(arr) || arr.length > 3) throw new Error('bad_references');
+  for (const u of arr) {
+    if (typeof u !== 'string' || u.length > 500 || !u.startsWith('https://')) {
+      throw new Error('bad_references');
+    }
+  }
+  return arr;
+}
+
 // POST /v1/uploads -> true bila job dibuat (res 202). False bila ditolak.
 // Urutan: simpan file -> tandai media_ready -> antrekan. Worker BullMQ
 // hanya melihat job yang medianya sudah ada, jadi tak ada balapan.
@@ -67,6 +87,13 @@ export async function handleVideoUpload(req, res, send, { queue, newJobId = defa
     return false;
   }
   const creator = (req.headers['x-creator'] ?? '').toString().trim().slice(0, 64);
+  let references;
+  try {
+    references = parseReferences(req.headers['x-references']);
+  } catch {
+    send(res, 400, { error: 'bad_references' });
+    return false;
+  }
   const id = newJobId();
   const dir = join(mediaDir, id);
   mkdirSync(dir, { recursive: true });
@@ -81,7 +108,7 @@ export async function handleVideoUpload(req, res, send, { queue, newJobId = defa
   }
   try {
     await db.setJobStatus(id, 'media_ready', { url: '', creator: creator || null });
-    await queue.enqueue({ id, url: '', creator: creator || null });
+    await queue.enqueue({ id, url: '', creator: creator || null, references });
   } catch {
     rmSync(dir, { recursive: true, force: true });
     await db.setJobStatus(id, 'failed', { url: '', error: 'queue_unavailable' }).catch(() => {});

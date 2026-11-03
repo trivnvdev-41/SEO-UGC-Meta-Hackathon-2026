@@ -202,3 +202,16 @@ class AiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_prompt_faq_sitasi_dan_heading_tanya(self):
+        cap = {}
+        payload = json.dumps(
+            {"choices": [{"message": {"content": "{}"}}]}
+        ).encode()
+        with patch("urllib.request.urlopen",
+                   _fake_urlopen_factory(cap, payload)):
+            ai.generate_article("teks", [], "K", model="m", base="https://t")
+        text = json.loads(cap["body"])["messages"][0]["content"][0]["text"]
+        self.assertIn("faqs", text)
+        self.assertIn("pertanyaan", text)
+        self.assertIn("SITASI", text)

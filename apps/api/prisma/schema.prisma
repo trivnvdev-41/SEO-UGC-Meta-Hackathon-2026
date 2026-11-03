@@ -19,6 +19,7 @@ model Article {
   enMeta    String
   enBody    String
   jsonLd    String   @default("{}")
+  references String  @default("[]")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   job       Job?

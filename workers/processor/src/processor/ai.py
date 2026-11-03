@@ -158,15 +158,22 @@ PROMPT = ("Kamu analis review produk. Dari TRANSKRIP + FOTO berikut, "
            "BLUF: paragraf pertama body_md WAJIB langsung menjawab inti "
            "ulasan (produk apa + verdict 1 kalimat), tanpa basa-basi. "
            "STRUKTUR: body_md wajib memakai subheading ### tiap 100-150 kata, "
+           "utamakan heading berbentuk pertanyaan (mis. ### Apa Kelebihan X?), "
            "list - atau 1. untuk poin, dan > untuk catatan penting. "
            "Bila ada 3+ poin pembanding (kelebihan/kekurangan/fitur/harga), "
            "sajikan sebagai TABEL Markdown (| ... |), bukan list. "
+           "SITASI: bila menyebut klaim faktual (angka, tanggal, spesifikasi), "
+           "cantumkan 1 link sumber https + 1 angka spesifik di kalimat itu. "
+           "FAQ: akhiri tiap artikel dengan 2-3 pasang Q&A singkat di "
+           "faqs (tiap item punya q dan a, maksimal 3, jawab ≤2 kalimat). "
            "{creator_rule} "
-          "Balas HANYA JSON: "
-          '{{"selected_image_indices": [0], '
-          '"articles": {{"id": {{"title": ..., "meta": ..., "body_md": ...}}, '
-          '"en": {{"title": ..., "meta": ..., "body_md": ...}}}}, '
-          '"json_ld": {{...Product Review schema...}}}}. '
+           "Balas HANYA JSON dengan bentuk: "
+           '{{"selected_image_indices": [0], "articles": {{"id": '
+           '{{"title": ..., "meta": ..., "body_md": ..., '
+           '"faqs": [{{"q": ..., "a": ...}}]}}, "en": '
+           '{{"title": ..., "meta": ..., "body_md": ..., '
+           '"faqs": [{{"q": ..., "a": ...}}]}}}}, '
+           '"json_ld": {{...Product Review schema...}}}}. '
           "TRANSKRIP:\n{transcript}")
 
 

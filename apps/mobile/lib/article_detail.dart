@@ -5,11 +5,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'feed.dart';
 import 'md.dart';
 import 'saba_theme.dart';
+import 'share.dart';
 import 'vote.dart';
 
 /// Tombol Ikut ala mock, toggle lokal per sesi (tanpa backend, pola VoteStore).
@@ -125,10 +125,11 @@ class _RefCard extends StatelessWidget {
 }
 
 class ArticleDetailPage extends StatefulWidget {  const ArticleDetailPage(
-      {super.key, required this.jobId, required this.apiBase});
+      {super.key, required this.jobId, required this.apiBase, this.webBase = ''});
 
   final String jobId;
   final String apiBase;
+  final String webBase;
 
   @override
   State<ArticleDetailPage> createState() => _ArticleDetailPageState();
@@ -155,13 +156,13 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     }
   }
 
+  /// Sheet share WA/X/FB/TG/salin (ganti salin langsung).
   Future<void> _copyLink(String id) async {
-    await Clipboard.setData(
-        ClipboardData(text: '${widget.apiBase}/v1/articles/$id'));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Link artikel disalin')),
-    );
+    if (!mounted || _article == null) return;
+    final url = widget.webBase.isEmpty
+        ? '${widget.apiBase}/v1/articles/$id'
+        : '${widget.webBase}/article/$id';
+    await showShareSheet(context, url: url, title: _article!.title);
   }
 
   Future<void> _openVideo(String url) async {

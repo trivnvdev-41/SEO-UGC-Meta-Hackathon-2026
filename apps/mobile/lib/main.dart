@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'article_detail.dart';
 import 'edit_profile_page.dart';
@@ -14,6 +13,7 @@ import 'profile.dart';
 import 'saba_screens.dart';
 import 'saba_theme.dart';
 import 'saba_widgets.dart';
+import 'share.dart';
 import 'upload.dart';
 import 'vote.dart';
 
@@ -140,9 +140,9 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       builder: (ctx) => UploadSourceSheet(
         onGallery: _busy
             ? null
-            : () {
+            : (refs) {
                 Navigator.of(ctx).pop();
-                _uploadFromGallery();
+                _uploadFromGallery(refs);
               },
       ),
     );
@@ -162,8 +162,8 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   }
 
   /// Upload video dari galeri lalu lacak sampai artikel jadi.
-  /// Dipakai FAB + halaman Profil.
-  Future<void> _uploadFromGallery() async {
+  /// Dipakai FAB + halaman Profil. refs: link referensi opsional (maks 3).
+  Future<void> _uploadFromGallery([List<String> refs = const []]) async {
     if (_busy) return;
     setState(() {
       _navIndex = 0;
@@ -179,6 +179,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       final jobId = await uploadVideo(
         apiBase: apiBase,
         creator: ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
+        references: refs,
         onProgress: (p) {
           if (record != null) JobHistory.progress(record.id, p);
           final pct = (p * 100).floor();
@@ -289,13 +290,14 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     });
   }
 
+  /// Sheet share WA/X/FB/TG/salin (ganti salin langsung).
   Future<void> _copyArticle(String jobId) async {
-    await Clipboard.setData(
-        ClipboardData(text: '$webBase/article/$jobId'));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Link artikel disalin')),
-    );
+    final title =
+        _feed.where((a) => a.id == jobId).map((a) => a.title).firstOrNull ??
+            'Artikel SABA';
+    await showShareSheet(context,
+        url: '$webBase/article/$jobId', title: title);
   }
 
   /// Detail artikel native di dalam app.
@@ -304,7 +306,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     await Navigator.of(context).push(
       MaterialPageRoute(
           builder: (_) =>
-              ArticleDetailPage(jobId: jobId, apiBase: apiBase)),
+              ArticleDetailPage(jobId: jobId, apiBase: apiBase, webBase: webBase)),
     );
   }
 

@@ -118,10 +118,18 @@ export function FeedActions({
   }
 
   async function share() {
+    const url = `${window.location.origin}${path}`;
     try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}${path}`,
-      );
+      // @ts-expect-error Web Share API: belum di semua lib.dom
+      if (typeof navigator.share === "function") {
+        await navigator.share({ url });
+        return;
+      }
+    } catch {
+      /* batal -> fallback salin */
+    }
+    try {
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {

@@ -57,10 +57,12 @@ class JobHistory {
 }
 
 /// Pilih video dari galeri lalu streaming ke `POST /v1/uploads`.
+/// references: link sosmed tambahan (maks 3, https) via header x-references.
 /// onProgress: 0..1 selama kirim. Lempar bila gagal; null bila batal.
 Future<String?> uploadVideo({
   required String apiBase,
   String? creator,
+  List<String> references = const [],
   void Function(double)? onProgress,
 }) async {
   final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
@@ -76,6 +78,9 @@ Future<String?> uploadVideo({
     req.headers.contentType = ContentType('video', 'mp4');
     if (creator != null && creator.isNotEmpty) {
       req.headers.set('x-creator', creator);
+    }
+    if (references.isNotEmpty) {
+      req.headers.set('x-references', jsonEncode(references));
     }
     req.contentLength = len;
     var sent = 0;

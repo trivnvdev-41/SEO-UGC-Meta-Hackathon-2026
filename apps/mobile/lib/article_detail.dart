@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 
 import 'feed.dart';
 import 'md.dart';
+import 'saba_theme.dart';
 import 'vote.dart';
 
 /// Tombol Ikut ala mock, toggle lokal per sesi (tanpa backend, pola VoteStore).
@@ -37,13 +38,13 @@ class _FollowButtonState extends State<_FollowButton> {
         padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-            color: on ? const Color(0xFFF0F2F5) : sabaBlue,
+            color: on ? SabaColors.greyFill : sabaBlue,
             borderRadius: BorderRadius.circular(999)),
         child: Text(on ? 'Diikuti' : 'Ikut',
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: on ? const Color(0xFF65676B) : Colors.white)),
+                color: on ? SabaColors.muted2 : Colors.white)),
       ),
     );
   }
@@ -105,10 +106,10 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     final a = _article;
     if (a == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF0F2F5),
-        appBar: AppBar(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white),
+      backgroundColor: SabaColors.bgCool,
+      appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white),
         body: _error != null
             ? Center(child: Text('Gagal memuat: $_error'))
             : const Center(child: CircularProgressIndicator()),
@@ -118,7 +119,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     final tag =
         a.brand.replaceAll(RegExp(r'\s+'), '');
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: SabaColors.greyFill,
       appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
@@ -131,14 +132,14 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
               tooltip: 'Bagikan',
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.share_outlined, size: 20),
-              color: const Color(0xFF65676B),
+              color: SabaColors.muted2,
               onPressed: () => _copyLink(a.id),
             ),
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: CircleAvatar(
                 radius: 14,
-                backgroundColor: const Color(0xFFE7F3FF),
+                backgroundColor: SabaColors.chipBlueBg,
                 child: Text(
                     a.creator.isNotEmpty
                         ? a.creator.trim().replaceAll('@', '')[0].toUpperCase()
@@ -159,7 +160,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: const Color(0xFFE4E6EB))),
+                              color: SabaColors.borderSoft)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -170,7 +171,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                 height: 28,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
+                                    color: SabaColors.okBg,
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                         color: sabaBlue.withValues(
@@ -200,7 +201,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                         style: const TextStyle(
                                             fontSize: 10,
                                             color:
-                                                Color(0xFF65676B))),
+                                                SabaColors.muted2)),
                                   ],
                                 ),
                               ),
@@ -252,7 +253,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                      color: const Color(0xFFE7F3FF),
+                                      color: SabaColors.chipBlueBg,
                                       borderRadius:
                                           BorderRadius.circular(
                                               999)),
@@ -287,7 +288,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                         vertical: 6),
                                 decoration: BoxDecoration(
                                     color:
-                                        const Color(0xFFF0F2F5),
+                                        SabaColors.greyFill,
                                     borderRadius:
                                         BorderRadius.circular(
                                             999),
@@ -309,7 +310,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                 icon: const Icon(Icons.share_outlined,
                                     size: 18),
                                 color:
-                                    const Color(0xFF65676B),
+                                    SabaColors.muted2,
                                 onPressed: () => _copyLink(a.id),
                               ),
                               IconButton(
@@ -319,7 +320,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                     Icons.bookmark_border,
                                     size: 18),
                                 color:
-                                    const Color(0xFF65676B),
+                                    SabaColors.muted2,
                                 onPressed: () =>
                                     ScaffoldMessenger.of(
                                             context)
@@ -341,7 +342,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                                color: const Color(0xFFE4E6EB))),
+                                color: SabaColors.borderSoft)),
                         child: Column(
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
@@ -397,7 +398,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: const Color(0xFFE4E6EB))),
+                              color: SabaColors.borderSoft)),
                       child: Column(
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
@@ -429,7 +430,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: const Color(0xFFE4E6EB))),
+                              color: SabaColors.borderSoft)),
                       child: Column(
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
@@ -480,8 +481,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                             color: _tab ==
                                                     i
                                                 ? sabaBlue
-                                                : const Color(
-                                                    0xFF65676B))),
+                                                : SabaColors.muted2)),
                                   ),
                                 ),
                             ],
@@ -492,7 +492,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                               'Belum ada tanggapan. Jadilah yang pertama menanggapi ulasan ini.',
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF65676B))),
+                                  color: SabaColors.muted2)),
                           const SizedBox(height: 10),
                           GestureDetector(
                             onTap: () => ScaffoldMessenger.of(
@@ -507,7 +507,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                       vertical: 10),
                               decoration: BoxDecoration(
                                   color:
-                                      const Color(0xFFF0F2F5),
+                                      SabaColors.greyFill,
                                   borderRadius:
                                       BorderRadius.circular(
                                           999)),
@@ -515,14 +515,13 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                 children: [
                                   Icon(Icons.chat_bubble_outline,
                                       size: 16,
-                                      color: Color(0xFF65676B)),
+                                      color: SabaColors.muted2),
                                   SizedBox(width: 8),
                                   Text(
                                       'Tulis tanggapan…',
                                       style: TextStyle(
                                           fontSize: 12,
-                                          color: Color(
-                                              0xFF65676B))),
+                                          color: SabaColors.muted2)),
                                 ],
                               ),
                             ),

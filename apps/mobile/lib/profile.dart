@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'feed.dart';
+import 'saba_screens.dart';
+import 'saba_theme.dart';
 import 'vote.dart';
 
 /// Profil lokal sesi ini (in-memory, pola VoteStore).
@@ -49,9 +51,20 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  void _soon(String what) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$what segera hadir')),
+  void _openInsights() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => InsightPage(feed: widget.feed)),
+    );
+  }
+
+  void _openMenu() {
+    showProfileMenu(
+      context,
+      onEdit: () async {
+        await widget.onEdit();
+        if (context.mounted) setState(() {});
+      },
+      onInsights: _openInsights,
     );
   }
 
@@ -61,7 +74,7 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE4E6EB))),
+          border: Border.all(color: SabaColors.borderSoft)),
       child: child,
     );
   }
@@ -80,7 +93,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ? 'S'
         : ProfileStore.name.trim()[0].toUpperCase();
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: SabaColors.bgWarm,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(12),
@@ -100,8 +113,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.settings_outlined, size: 20),
-                  color: const Color(0xFF65676B),
+                  color: SabaColors.muted2,
                   onPressed: widget.onLogin,
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Menu',
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  color: SabaColors.muted2,
+                  onPressed: _openMenu,
                 ),
               ],
             ),
@@ -112,19 +132,22 @@ class _ProfilePageState extends State<ProfilePage> {
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      Container(
-                        width: 84,
-                        height: 84,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: sabaBlue, width: 3)),
-                        child: Text(initial,
-                            style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                color: sabaBlue)),
+                      GestureDetector(
+                        onTap: _openMenu,
+                        child: Container(
+                          width: 84,
+                          height: 84,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: sabaBlue, width: 3)),
+                          child: Text(initial,
+                              style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  color: sabaBlue)),
+                        ),
                       ),
                     ],
                   ),
@@ -137,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF65676B))),
+                          color: SabaColors.muted2)),
                   const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -146,7 +169,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                            color: const Color(0xFFE7F3FF),
+                            color: SabaColors.chipBlueBg,
                             borderRadius:
                                 BorderRadius.circular(999)),
                         child: const Text('PRO',
@@ -189,7 +212,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                            color: const Color(0xFFE7F3FF),
+                            color: SabaColors.chipBlueBg,
                             borderRadius:
                                 BorderRadius.circular(8)),
                         child: const Icon(
@@ -207,7 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                            color: const Color(0xFFE7F3FF),
+                            color: SabaColors.chipBlueBg,
                             borderRadius:
                                 BorderRadius.circular(999)),
                         child: const Text('Aktif',
@@ -236,12 +259,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: FilledButton(
                             style: FilledButton.styleFrom(
                               backgroundColor:
-                                  const Color(0xFFE4E6EB),
+                                  SabaColors.borderSoft,
                               foregroundColor:
                                   const Color(0xFF050505),
                             ),
-                            onPressed: () =>
-                                _soon('Insights'),
+                            onPressed: _openInsights,
                             child:
                                 const Text('Lihat Insights')),
                       ),
@@ -303,7 +325,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF65676B))),
+                              color: SabaColors.muted2)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -316,21 +338,21 @@ class _ProfilePageState extends State<ProfilePage> {
                               BorderRadius.circular(12),
                           border: Border.all(
                               color:
-                                  const Color(0xFFE4E6EB))),
+                                  SabaColors.borderSoft)),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                                 color:
-                                    const Color(0xFFF0F2F5),
+                                    SabaColors.greyFill,
                                 borderRadius:
                                     BorderRadius.circular(
                                         8)),
                             child: const Icon(
                                 Icons.videocam_off_outlined,
                                 size: 20,
-                                color: Color(0xFF65676B)),
+                                color: SabaColors.muted2),
                           ),
                           const SizedBox(width: 10),
                           const Expanded(
@@ -347,8 +369,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                     'Format MP4, MOV maks 50MB',
                                     style: TextStyle(
                                         fontSize: 11,
-                                        color: Color(
-                                            0xFF65676B))),
+                                        color: SabaColors
+                                            .muted2)),
                               ],
                             ),
                           ),
@@ -359,7 +381,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     vertical: 6),
                             decoration: BoxDecoration(
                                 color:
-                                    const Color(0xFFF0F2F5),
+                                    SabaColors.greyFill,
                                 borderRadius:
                                     BorderRadius.circular(
                                         999)),
@@ -369,7 +391,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     fontWeight:
                                         FontWeight.w600,
                                     color:
-                                        Color(0xFF65676B))),
+                                        SabaColors.muted2)),
                           ),
                         ],
                       ),
@@ -391,13 +413,13 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE4E6EB))),
+          border: Border.all(color: SabaColors.borderSoft)),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: const Color(0xFFE7F3FF),
+                color: SabaColors.chipBlueBg,
                 borderRadius: BorderRadius.circular(8)),
             child: Icon(icon, size: 20, color: sabaBlue),
           ),
@@ -412,7 +434,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Text(label,
                   style: const TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF65676B))),
+                      color: SabaColors.muted2)),
             ],
           ),
         ],

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import 'profile.dart';
+import 'saba_theme.dart';
 import 'vote.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -105,7 +106,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             const Spacer(),
             Text(counter,
                 style: const TextStyle(
-                    fontSize: 11, color: Color(0xFF65676B))),
+                    fontSize: 11, color: SabaColors.muted2)),
           ],
         ],
       ),
@@ -130,7 +131,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           hintText: hint,
           prefixIcon: icon == null
               ? null
-              : Icon(icon, size: 18, color: const Color(0xFF65676B)),
+              : Icon(icon, size: 18, color: SabaColors.muted2),
           border: const OutlineInputBorder(
               borderRadius:
                   BorderRadius.all(Radius.circular(12))),
@@ -149,7 +150,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ? 'S'
         : _name.text.trim()[0].toUpperCase();
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: SabaColors.bgWarm,
       appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
@@ -173,7 +174,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border:
-                    Border.all(color: const Color(0xFFE4E6EB))),
+                    Border.all(color: SabaColors.borderSoft)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -189,7 +190,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor:
-                              const Color(0xFFE7F3FF),
+                              SabaColors.chipBlueBg,
                           child: Text(initial,
                               style: const TextStyle(
                                   fontSize: 22,
@@ -231,20 +232,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               const Text('  •  ',
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF65676B))),
+                                      color: SabaColors.muted2)),
                               GestureDetector(
                                 onTap: () => _soon('Hapus foto'),
                                 child: const Text('Hapus',
                                     style: TextStyle(
                                         fontSize: 13,
-                                        color: Color(0xFF65676B))),
+                                        color: SabaColors.muted2)),
                               ),
                             ],
                           ),
                           const Text('Format JPG, PNG maks. 2MB',
                               style: TextStyle(
                                   fontSize: 11,
-                                  color: Color(0xFF65676B))),
+                                  color: SabaColors.muted2)),
                         ],
                       ),
                     ),
@@ -280,7 +281,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border:
-                    Border.all(color: const Color(0xFFE4E6EB))),
+                    Border.all(color: SabaColors.borderSoft)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -305,7 +306,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 const Text('Belum ada pengalaman.',
                     style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF65676B))),
+                        color: SabaColors.muted2)),
                 Row(
                   children: [
                     const Text('Pendidikan',
@@ -324,7 +325,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 const Text('Belum ada pendidikan.',
                     style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF65676B))),
+                        color: SabaColors.muted2)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -336,7 +337,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     Text('${_topics.length} Terpilih',
                         style: const TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF65676B))),
+                            color: SabaColors.muted2)),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -349,7 +350,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         padding: const EdgeInsets.only(
                             left: 10, top: 4, bottom: 4, right: 4),
                         decoration: BoxDecoration(
-                            color: const Color(0xFFE7F3FF),
+                            color: SabaColors.chipBlueBg,
                             borderRadius:
                                 BorderRadius.circular(999)),
                         child: Row(
@@ -401,7 +402,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border:
-                    Border.all(color: const Color(0xFFE4E6EB))),
+                    Border.all(color: SabaColors.borderSoft)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -471,7 +472,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Text(sub,
                     style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF65676B))),
+                        color: SabaColors.muted2)),
               ],
             ),
           ),

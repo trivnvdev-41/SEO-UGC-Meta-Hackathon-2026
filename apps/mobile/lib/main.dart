@@ -11,6 +11,9 @@ import 'feed.dart';
 import 'login_page.dart';
 import 'notify.dart';
 import 'profile.dart';
+import 'saba_screens.dart';
+import 'saba_theme.dart';
+import 'saba_widgets.dart';
 import 'upload.dart';
 import 'vote.dart';
 
@@ -39,16 +42,8 @@ class SeoUgcApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SABA',
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF0866FF),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: sabaBlue,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ),
-      home: const SharePage(),
+      theme: sabaTheme(),
+      home: const SplashScreen(child: SharePage()),
     );
   }
 }
@@ -146,67 +141,29 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   }
 
   void _onNav(int i) {
-    if (i == 0 || i == 3) {
+    if (i == 0 || i == 1 || i == 2 || i == 3) {
       setState(() => _navIndex = i);
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Segera hadir — baru Beranda dan Profil yang jadi')),
+      const SnackBar(content: Text('Segera hadir — baru Beranda yang jadi')),
     );
   }
 
-  /// Sheet upload video: pilih dari galeri, artikel dimasak otomatis.
+  /// Sheet upload video: Langkah 1 Sumber (galeri), artikel dimasak otomatis.
   void _openConvertSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 8,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: const Color(0xFFE5E8EC),
-                    borderRadius: BorderRadius.circular(999)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text('Buat artikel dari video',
-                style: Theme.of(ctx).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text(
-                'Pilih video dari galeri — artikel dimasak otomatis dari suara kreator.',
-                style:
-                    TextStyle(fontSize: 12, color: Color(0xFF65676B))),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _busy
-                  ? null
-                  : () {
-                      Navigator.of(ctx).pop();
-                      _uploadFromGallery();
-                    },
-              icon: const Icon(Icons.upload, size: 18),
-              label: const Text('Pilih video dari galeri'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Batal'),
-            ),
-          ],
-        ),
+      builder: (ctx) => UploadSourceSheet(
+        onGallery: _busy
+            ? null
+            : () {
+                Navigator.of(ctx).pop();
+                _uploadFromGallery();
+              },
       ),
     );
   }
@@ -344,7 +301,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
-  Color get _bg => const Color(0xFFF0F2F5);
+  Color get _bg => SabaColors.bgCool;
 
   Widget _pill(String label, bool selected, VoidCallback onTap) {
     return GestureDetector(
@@ -352,7 +309,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? sabaBlue : const Color(0xFFF0F2F5),
+          color: selected ? sabaBlue : SabaColors.greyFill,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(label,
@@ -368,13 +325,13 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   Widget _trendingCard() {
     final top = _trending();
     if (top.isEmpty) return const SizedBox();
-    const rankColors = [Color(0xFFFF5A00), Colors.amber, Color(0xFF65676B)];
+    const rankColors = [Color(0xFFFF5A00), Colors.amber, SabaColors.muted2];
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE4E6EB))),
+          borderRadius: BorderRadius.circular(SabaRadius.card),
+          border: Border.all(color: SabaColors.borderCard)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -402,7 +359,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
               ),
             ],
           ),
-          const Divider(height: 16, color: Color(0xFFF0F2F5)),
+          const Divider(height: 16, color: SabaColors.greyFill),
           for (var i = 0; i < top.length; i++)
             GestureDetector(
               onTap: () => _openArticle(top[i].id),
@@ -436,7 +393,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                               '${compactVotes(baseVotes(top[i].id))} popularitas • ${top[i].brand.isNotEmpty ? top[i].brand : 'ulasan'}',
                               style: const TextStyle(
                                   fontSize: 10,
-                                  color: Color(0xFF65676B))),
+                                  color: SabaColors.muted2)),
                         ],
                       ),
                     ),
@@ -452,11 +409,11 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   Widget _forumCard(FeedArticle a) {
     final comments = baseVotes(a.id) ~/ 6;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(SabaSpacing.cardPad),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE4E6EB))),
+          borderRadius: BorderRadius.circular(SabaRadius.card),
+          border: Border.all(color: SabaColors.borderCard)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -467,7 +424,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 height: 28,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: SabaColors.okBg,
                     shape: BoxShape.circle,
                     border: Border.all(
                         color: sabaBlue.withValues(alpha: 0.3))),
@@ -490,7 +447,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                             fontSize: 12, fontWeight: FontWeight.bold)),
                     const Text('Ulasan produk • dari video kreator',
                         style: TextStyle(
-                            fontSize: 10, color: Color(0xFF65676B))),
+                            fontSize: 10, color: SabaColors.muted2)),
                   ],
                 ),
               ),
@@ -532,12 +489,12 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                     const Text('  •  ',
                         style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF65676B))),
+                            color: SabaColors.muted2)),
                   if (source.isNotEmpty)
                     Text(source,
                         style: const TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF65676B),
+                            color: SabaColors.muted2,
                             fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -555,7 +512,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
             ),
           ],
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xFFF0F2F5)),
+          const Divider(height: 1, color: SabaColors.greyFill),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -569,10 +526,10 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                      color: const Color(0xFFF0F2F5),
+                      color: SabaColors.greyFill,
                       borderRadius: BorderRadius.circular(999),
                       border:
-                          Border.all(color: const Color(0xFFE5E8EC))),
+                          Border.all(color: SabaColors.borderSoft)),
                   child: Text('$comments Komentar',
                       style: const TextStyle(
                           fontSize: 12,
@@ -584,13 +541,13 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
               IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.share_outlined, size: 18),
-                color: const Color(0xFF65676B),
+                color: SabaColors.muted2,
                 onPressed: () => _copyArticle(a.id),
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.bookmark_border, size: 18),
-                color: const Color(0xFF65676B),
+                color: SabaColors.muted2,
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text('Disimpan (demo lokal)'))),
@@ -605,6 +562,28 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    if (_navIndex == 1) {
+      return Scaffold(
+        body: JelajahPage(feed: _feed, onOpen: _openArticle),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _openConvertSheet,
+          backgroundColor: sabaBlue,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+        bottomNavigationBar: _navBar(),
+      );
+    }
+    if (_navIndex == 2) {
+      return Scaffold(
+        body: const InboxPage(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _openConvertSheet,
+          backgroundColor: sabaBlue,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+        bottomNavigationBar: _navBar(),
+      );
+    }
     return Scaffold(
       backgroundColor: _bg,
       body: _navIndex == 3
@@ -636,7 +615,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                         height: 32,
                         alignment: Alignment.center,
                         decoration: const BoxDecoration(
-                            color: Color(0xFF0866FF),
+                            color: SabaColors.primary,
                             shape: BoxShape.circle),
                         child: const Text('S',
                             style: TextStyle(
@@ -655,12 +634,12 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10),
                           decoration: BoxDecoration(
-                              color: const Color(0xFFF0F2F5),
+                              color: SabaColors.greyFill,
                               borderRadius:
                                   BorderRadius.circular(999),
                               border: Border.all(
                                   color:
-                                      const Color(0xFFE5E8EC))),
+                                      SabaColors.borderSoft)),
                           child: TextField(
                             controller: _search,
                             onChanged: (v) =>
@@ -671,7 +650,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                               isDense: true,
                               icon: Icon(Icons.search,
                                   size: 16,
-                                  color: Color(0xFF65676B)),
+                                  color: SabaColors.muted2),
                             ),
                             style:
                                 const TextStyle(fontSize: 12),
@@ -836,12 +815,17 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         backgroundColor: sabaBlue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: _navBar(),
+    );
+  }
+
+  BottomNavigationBar _navBar() {
+    return BottomNavigationBar(
         currentIndex: _navIndex,
         onTap: _onNav,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: sabaBlue,
-        unselectedItemColor: const Color(0xFF65676B),
+        unselectedItemColor: SabaColors.muted2,
         selectedFontSize: 10,
         unselectedFontSize: 10,
         items: const [
@@ -857,8 +841,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
               icon: Icon(Icons.person_outline),
               label: 'Profil'),
         ],
-      ),
-    );
+      );
   }
 }
 
@@ -891,14 +874,14 @@ class _ConvertStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     final isError = error != null;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(SabaSpacing.cardPad),
       decoration: BoxDecoration(
-          color: isError ? const Color(0xFFFFF7F7) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: isError ? SabaColors.failBg : Colors.white,
+          borderRadius: BorderRadius.circular(SabaRadius.card),
           border: Border.all(
               color: isError
-                  ? const Color(0xFFF0C4C4)
-                  : const Color(0xFFE4E6EB))),
+                  ? SabaColors.fail
+                  : SabaColors.borderSoft)),
       child: busy
           ? Row(
               children: [
@@ -909,7 +892,7 @@ class _ConvertStatus extends StatelessWidget {
                     strokeWidth: 3.5,
                     strokeCap: StrokeCap.round,
                     color: sabaBlue,
-                    backgroundColor: Color(0xFFF0F2F5),
+                    backgroundColor: SabaColors.greyFill,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -918,7 +901,7 @@ class _ConvertStatus extends StatelessWidget {
                   tooltip: 'Batal',
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.close, size: 18),
-                  color: const Color(0xFF65676B),
+                  color: SabaColors.muted2,
                   onPressed: onCancel,
                 ),
               ],
@@ -926,13 +909,12 @@ class _ConvertStatus extends StatelessWidget {
           : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                    isError
-                        ? Icons.error_outline
-                        : Icons.check_circle_outline,
-                    color: isError
-                        ? const Color(0xFFCF3A3A)
-                        : sabaBlue),
+                // Langkah 3 Sukses: ikon check handoff; gagal: ikon error fail.
+                if (isError)
+                  const Icon(Icons.error_outline,
+                      color: SabaColors.fail)
+                else
+                  SabaIcons.check(size: 40),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -949,7 +931,7 @@ class _ConvertStatus extends StatelessWidget {
                       Text(isError ? error! : status,
                           style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF65676B))),
+                              color: SabaColors.muted2)),
                       const SizedBox(height: 10),
                       if (isError)
                         Row(
@@ -1049,14 +1031,14 @@ class _StepCyclerState extends State<_StepCycler> {
                 decoration: BoxDecoration(
                     color: s <= _i
                         ? sabaBlue
-                        : const Color(0xFFE5E8EC),
+                        : SabaColors.borderSoft,
                     borderRadius: BorderRadius.circular(999)),
               ),
           ],
         ),
         const SizedBox(height: 4),
         const Text('Biasanya 3–5 menit, jangan tutup app ini.',
-            style: TextStyle(fontSize: 11, color: Color(0xFF65676B))),
+            style: TextStyle(fontSize: 11, color: SabaColors.muted2)),
       ],
     );
   }

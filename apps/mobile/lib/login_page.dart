@@ -2,6 +2,7 @@
 // semua aksi masuk/daftar/sosmed menjawab snackbar jujur.
 import 'package:flutter/material.dart';
 
+import 'saba_theme.dart';
 import 'vote.dart';
 
 class LoginPage extends StatefulWidget {
@@ -33,13 +34,12 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: SabaColors.bgWarm,
       appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
           title: const Text('Masuk Ke Saba',
-              style:
-                  TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              style: SabaTextStyles.headerTitle),
           actions: const [
             Padding(
               padding: EdgeInsets.only(right: 12),
@@ -60,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
               height: 72,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: const Color(0xFFE4E6EB),
+                  color: SabaColors.borderSoft,
                   borderRadius: BorderRadius.circular(20)),
               child: const Text('S',
                   style: TextStyle(
@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
               padding: const EdgeInsets.symmetric(
                   horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                  color: const Color(0xFFE7F3FF),
+                  color: SabaColors.chipBlueBg,
                   borderRadius: BorderRadius.circular(999)),
               child: const Text('DISKUSI • OPINI • ESAI',
                   style: TextStyle(
@@ -94,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
             child: Text('Ruang Dialog & Komunitas\nPengetahuan Terverifikasi',
                 textAlign: TextAlign.center,
                 style:
-                    TextStyle(fontSize: 13, color: Color(0xFF65676B))),
+                    TextStyle(fontSize: 13, color: SabaColors.muted2)),
           ),
           const SizedBox(height: 16),
           const Text('Email atau Nama',
@@ -107,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
             decoration: const InputDecoration(
               hintText: 'contoh@saba.id atau @nama',
               prefixIcon: Icon(Icons.alternate_email,
-                  size: 18, color: Color(0xFF65676B)),
+                  size: 18, color: SabaColors.muted2),
               border: OutlineInputBorder(
                   borderRadius:
                       BorderRadius.all(Radius.circular(12))),
@@ -140,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
             decoration: InputDecoration(
               hintText: 'Masukkan kata sandi akun',
               prefixIcon: const Icon(Icons.lock_outline,
-                  size: 18, color: Color(0xFF65676B)),
+                  size: 18, color: SabaColors.muted2),
               suffixIcon: IconButton(
                 visualDensity: VisualDensity.compact,
                 icon: Icon(
@@ -148,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
                     size: 18),
-                color: const Color(0xFF65676B),
+                color: SabaColors.muted2,
                 onPressed: () =>
                     setState(() => _showPass = !_showPass),
               ),
@@ -189,16 +189,16 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 12),
           const Row(
             children: [
-              Expanded(child: Divider(color: Color(0xFFE4E6EB))),
+              Expanded(child: Divider(color: SabaColors.borderSoft)),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text('ATAU MASUK DENGAN',
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF65676B))),
+                        color: SabaColors.muted2)),
               ),
-              Expanded(child: Divider(color: Color(0xFFE4E6EB))),
+              Expanded(child: Divider(color: SabaColors.borderSoft)),
             ],
           ),
           const SizedBox(height: 12),
@@ -206,7 +206,7 @@ class _LoginPageState extends State<LoginPage> {
             width: double.infinity,
             child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFE4E6EB),
+                  backgroundColor: SabaColors.borderSoft,
                   foregroundColor: const Color(0xFF050505),
                 ),
                 onPressed: () => _soon('Lanjut dengan Google'),
@@ -217,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
             width: double.infinity,
             child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFE4E6EB),
+                  backgroundColor: SabaColors.borderSoft,
                   foregroundColor: const Color(0xFF050505),
                 ),
                 onPressed: () => _soon('Lanjut dengan Apple'),
@@ -227,7 +227,7 @@ class _LoginPageState extends State<LoginPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-                color: const Color(0xFFE7F3FF),
+                color: SabaColors.chipBlueBg,
                 borderRadius: BorderRadius.circular(12)),
             child: const Text(
                 'Intelektualitas Kolaboratif. Diskusi santun berbasis referensi terpercaya. Bergabunglah dengan puluhan ribu pemikir independen.',

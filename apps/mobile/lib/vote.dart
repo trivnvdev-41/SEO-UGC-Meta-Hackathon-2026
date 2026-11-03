@@ -3,7 +3,10 @@
 // counter +1, badge +1 melayang + ring burst, downvote press scale.
 import 'package:flutter/material.dart';
 
-const sabaBlue = Color(0xFF0866FF);
+import 'saba_theme.dart';
+
+// Alias kompat: kode lama pakai sabaBlue, sumber tunggal SabaColors.primary.
+const sabaBlue = SabaColors.primary;
 
 /// Store in-memory per sesi agar feed + detail konsisten.
 class VoteStore {
@@ -140,7 +143,7 @@ class _VotePillState extends State<VotePill>
                   horizontal: widget.compact ? 10 : 12,
                   vertical: widget.compact ? 5 : 6),
               decoration: BoxDecoration(
-                color: active ? sabaBlue : const Color(0xFFEFF6FF),
+                color: active ? sabaBlue : SabaColors.okBg,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                     color: active
@@ -260,7 +263,7 @@ class _VoteDownState extends State<VoteDown> {
           decoration: BoxDecoration(
             color: active
                 ? const Color(0xFFE2E8F0)
-                : const Color(0xFFEFF6FF),
+                : SabaColors.okBg,
             shape: BoxShape.circle,
             border: Border.all(
                 color: active

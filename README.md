@@ -1,8 +1,9 @@
 # SABA
 
-Ulasan produk jujur dari video kreator: turn UGC video links (TikTok /
-YouTube) and direct uploads into SEO-ready web articles with **JSON-LD
-schema** and an **official embed**, served in a forum-style app.
+**Ulasan produk jujur dari video kreator.** SABA turns TikTok /
+YouTube links and direct video uploads into SEO-ready web articles —
+with **JSON-LD schema** and the **official video embed**. Readers then
+discuss each review in a forum-style app.
 
 > Nama produk: **SABA**. Slug teknis lama (`seo-ugc-*` di `package.json`,
 > `seougc` di DB/user, channel `dev.seougc/share`) masih dipakai di kode

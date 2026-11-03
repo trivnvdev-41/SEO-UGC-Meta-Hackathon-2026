@@ -120,7 +120,6 @@ export function FeedActions({
   async function share() {
     const url = `${window.location.origin}${path}`;
     try {
-      // @ts-expect-error Web Share API: belum di semua lib.dom
       if (typeof navigator.share === "function") {
         await navigator.share({ url });
         return;

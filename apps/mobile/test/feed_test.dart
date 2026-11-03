@@ -101,7 +101,7 @@ void main() {
     ]);
   });
 
-  test('timeAgo label Indonesia', () {
+  test('timeAgo English labels', () {
     final now = DateTime(2026, 11, 1, 12);
     expect(timeAgo('not-a-date', now: now), isEmpty);
     expect(timeAgo('', now: now), isEmpty);
@@ -109,22 +109,38 @@ void main() {
         timeAgo(
             now.subtract(const Duration(seconds: 10)).toIso8601String(),
             now: now),
-        'baru saja');
+        'just now');
+    expect(
+        timeAgo(now.subtract(const Duration(minutes: 1)).toIso8601String(),
+            now: now),
+        '1 min ago');
+    expect(
+        timeAgo(now.subtract(const Duration(hours: 1)).toIso8601String(),
+            now: now),
+        '1 hr ago');
+    expect(
+        timeAgo(now.subtract(const Duration(days: 1)).toIso8601String(),
+            now: now),
+        '1 day ago');
+    expect(
+        timeAgo(now.subtract(const Duration(days: 60)).toIso8601String(),
+            now: now),
+        '2 mos ago');
     expect(
         timeAgo(now.subtract(const Duration(minutes: 5)).toIso8601String(),
             now: now),
-        '5 mnt lalu');
+        '5 mins ago');
     expect(
         timeAgo(now.subtract(const Duration(hours: 3)).toIso8601String(),
             now: now),
-        '3 jam lalu');
+        '3 hrs ago');
     expect(
         timeAgo(now.subtract(const Duration(days: 3)).toIso8601String(),
             now: now),
-        '3 hari lalu');
+        '3 days ago');
     expect(
         timeAgo(now.subtract(const Duration(days: 14)).toIso8601String(),
             now: now),
-        '2 mgg lalu');
+        '2 wks ago');
   });
 }

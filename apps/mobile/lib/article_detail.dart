@@ -1,5 +1,5 @@
-// Detail artikel native: judul, foto, isi, skor, link video asli.
-// Pengganti WebView untuk bacaan di dalam app.
+// Native article detail: title, photos, body, score, original video link.
+// WebView replacement for in-app reading.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -13,7 +13,7 @@ import 'saba_theme.dart';
 import 'share.dart';
 import 'vote.dart';
 
-/// Tombol Ikut ala mock, toggle lokal per sesi (tanpa backend, pola VoteStore).
+/// Mockup-style Follow button, per-session local toggle (no backend, VoteStore pattern).
 class _FollowButton extends StatefulWidget {
   const _FollowButton({required this.creator});
 
@@ -41,7 +41,7 @@ class _FollowButtonState extends State<_FollowButton> {
         decoration: BoxDecoration(
             color: on ? SabaColors.greyFill : sabaBlue,
             borderRadius: BorderRadius.circular(999)),
-        child: Text(on ? 'Diikuti' : 'Ikut',
+        child: Text(on ? 'Following' : 'Follow',
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -51,8 +51,8 @@ class _FollowButtonState extends State<_FollowButton> {
   }
 }
 
-/// Kartu referensi: label platform + URL, ketuk untuk buka.
-/// Tanpa script embed pihak ketiga (ringan).
+/// Reference card: platform label + URL, tap to open.
+/// No third-party embed scripts (lightweight).
 class _RefCard extends StatelessWidget {
   const _RefCard(
       {required this.url, required this.isVideo, required this.onOpen});
@@ -65,12 +65,12 @@ class _RefCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final source = articleSource(url);
     final label = isVideo && source.isEmpty
-        ? 'Video asli'
+        ? 'Original video'
         : isVideo
-            ? 'Video asli • $source'
-            : source.isEmpty
-                ? 'Tautan'
-                : source;
+            ? 'Original video • $source'
+                    : source.isEmpty
+                        ? 'Link'
+                        : source;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: GestureDetector(
@@ -140,7 +140,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
   static const _channel = MethodChannel('saba/share');
   FeedArticle? _article;
   String? _error;
-  int _tab = 0; // tab diskusi lokal (visual, isi ikut backend #12).
+  int _tab = 0; // local discussion tab (visual only, content follows backend #12).
 
   @override
   void initState() {
@@ -157,7 +157,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     }
   }
 
-  /// Sheet share WA/X/FB/TG/salin (ganti salin langsung).
+  /// WA/X/FB/TG/copy share sheet (replaces direct copy).
   Future<void> _copyLink(String id) async {
     if (!mounted || _article == null) return;
     final url = widget.webBase.isEmpty
@@ -172,7 +172,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak bisa membuka browser')),
+        const SnackBar(content: Text('Could not open browser')),
       );
     }
   }
@@ -187,15 +187,15 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white),
         body: _error != null
-            ? Center(child: Text('Gagal memuat: $_error'))
+            ? Center(child: Text('Failed to load: $_error'))
             : const Center(child: CircularProgressIndicator()),
       );
     }
     final ago = timeAgo(a.createdAt);
-    final handle = '@${a.brand.isNotEmpty ? a.brand : 'ulasan'}';
+    final handle = '@${a.brand.isNotEmpty ? a.brand : 'review'}';
     final tags = [
       if (a.brand.isNotEmpty) '#$handle',
-      '#Ulasan',
+      '#Review',
       if (articleSource(a.videoUrl).isNotEmpty)
         '#${articleSource(a.videoUrl)}',
     ];
@@ -204,31 +204,31 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
       appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
-          title: Text('$handle • Komunitas',
+          title: Text('$handle • Community',
               style: const TextStyle(
                   fontSize: 15, fontWeight: FontWeight.bold)),
           actions: [
             IconButton(
-              tooltip: 'Bagikan',
+              tooltip: 'Share',
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.share_outlined, size: 20),
               color: SabaColors.muted2,
               onPressed: () => _copyLink(a.id),
             ),
             IconButton(
-              tooltip: 'Lainnya',
+              tooltip: 'More',
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.more_horiz, size: 20),
               color: SabaColors.muted2,
               onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                      content: Text('Laporkan & blokir segera hadir'))),
+                      content: Text('Report & block coming soon'))),
             ),
           ]),
       body: ListView(
           padding: const EdgeInsets.all(12),
           children: [
-            // Kartu penulis + judul + tag.
+                  // Author card + title + tags.
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -272,8 +272,8 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                 style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold)),
-                            Text(
-                                'Kreator SABA • ${ago.isEmpty ? 'baru saja' : ago}',
+                      Text(
+                          'SABA Creator • ${ago.isEmpty ? 'just now' : ago}',
                                 style: const TextStyle(
                                     fontSize: 11,
                                     color: SabaColors.muted2)),
@@ -333,7 +333,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 ],
               ),
             ),
-            // Isi artikel (serif).
+            // Article body (serif).
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(14),
@@ -390,7 +390,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
                         children: [
-                          const Text('REFERENSI',
+                          const Text('REFERENCES',
                               style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -411,7 +411,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 ],
               ),
             ),
-            // Bar aksi.
+            // Action bar.
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(14),
@@ -426,7 +426,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 onShare: () => _copyLink(a.id),
               ),
             ),
-            // Komentar.
+            // Comments.
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(14),
@@ -441,7 +441,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 children: [
                   Row(
                     children: [
-                      const Text('Tanggapan & Jawaban Komunitas',
+                      const Text('Community Replies & Answers',
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold)),
@@ -463,7 +463,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                       GestureDetector(
                         onTap: () => ScaffoldMessenger.of(context)
                             .showSnackBar(const SnackBar(
-                                content: Text('Filter segera hadir'))),
+                                content: Text('Filter coming soon'))),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
@@ -506,8 +506,8 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                                             ? SabaColors.primary
                                             : Colors.transparent,
                                         width: 2))),
-                            child: Text(
-                                ['Semua', 'Terkurasi', 'Praktisi'][i],
+                      child: Text(
+                          ['All', 'Curated', 'Practitioners'][i],
                                 style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: _tab == i
@@ -522,7 +522,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                      'Belum ada tanggapan. Jadilah yang pertama menanggapi ulasan ini.',
+                      'No replies yet. Be the first to respond to this review.',
                       style: TextStyle(
                           fontSize: 12, color: SabaColors.muted2)),
                   const SizedBox(height: 10),
@@ -530,7 +530,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                     onTap: () => ScaffoldMessenger.of(context)
                         .showSnackBar(const SnackBar(
                             content:
-                                Text('Diskusi segera hadir'))),
+                                Text('Discussion coming soon'))),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
@@ -543,7 +543,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                           Icon(Icons.chat_bubble_outline,
                               size: 16, color: SabaColors.muted2),
                           SizedBox(width: 8),
-                          Text('Tulis tanggapan…',
+                          Text('Write a reply…',
                               style: TextStyle(
                                   fontSize: 12,
                                   color: SabaColors.muted2)),
@@ -560,7 +560,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
   }
 }
 
-/// GET `/v1/articles/<jobId>` -> FeedArticle (null bila 404).
+/// GET `/v1/articles/<jobId>` -> FeedArticle (null on 404).
 Future<FeedArticle?> fetchFeedArticle(String apiBase, String jobId) async {
   final client = HttpClient();
   try {

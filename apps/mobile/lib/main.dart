@@ -8,12 +8,13 @@ import 'notify.dart';
 import 'profile.dart';
 import 'saba_screens.dart';
 import 'saba_theme.dart';
+import 'saba_widgets.dart';
 import 'share.dart';
 import 'upload_draft_page.dart';
 import 'upload.dart';
 import 'vote.dart';
 
-// 10.0.2.2 = localhost mesin host dari Android emulator.
+// 10.0.2.2 = host machine localhost as seen from the Android emulator.
 // Override: flutter run --dart-define=API_BASE=https://api.example.com
 //   --dart-define=WEB_BASE=https://web.example.com
 const apiBase = String.fromEnvironment(
@@ -53,11 +54,12 @@ class SharePage extends StatefulWidget {
 
 class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   bool _busy = false;
+  double _uploadPct = 0; // 0..1, progres real kirim video (Blok A: honest %).
   List<FeedArticle> _feed = [];
   bool _feedLoading = true;
   int _navIndex = 0;
 
-  bool _foreground = true; // false = notifikasi info saat job selesai.
+  bool _foreground = true; // false = info notification only when a job finishes in background.
 
   @override
   void initState() {
@@ -69,8 +71,8 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     _loadFeed();
   }
 
-  /// Muat feed artikel untuk home. Gagal = feed kosong (status card bicara).
-  /// Paralel (bukan serial) agar memenuhi AC feed <2 dtk.
+  /// Load the home article feed. Failure = empty feed (empty state speaks).
+  /// Parallel (not serial) to meet the <2s feed requirement.
   Future<void> _loadFeed() async {
     if (!mounted) return;
     setState(() => _feedLoading = true);
@@ -92,10 +94,10 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     }
   }
 
-  /// Feed tampil apa adanya (urutan server); filter/search pindah ke Jelajah.
+  /// Feed shown as-is (server order); filter/search moved to Explore.
   List<FeedArticle> _visibleFeed() => _feed;
 
-  /// 3 teratas by votes untuk seksi trending.
+  /// Top 3 by votes for the trending section.
   List<FeedArticle> _trending() {
     final list = [..._feed]
       ..sort((a, b) => baseVotes(b.id).compareTo(baseVotes(a.id)));
@@ -108,11 +110,11 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Segera hadir — baru Beranda yang jadi')),
+      const SnackBar(content: Text('Coming soon — only Home is ready')),
     );
   }
 
-  /// Sheet upload video: Langkah 1 Sumber (galeri), artikel dimasak otomatis.
+  /// Video upload sheet: Step 1 Source (gallery), article cooked automatically.
   void _openConvertSheet() {
     showModalBottomSheet(
       context: context,
@@ -137,19 +139,20 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // Background/foreground: notifikasi info hanya saat job selesai di background.
+  // Background/foreground: info notification only when a job finishes in background.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
   }
 
-  /// Upload video dari galeri lalu buka Langkah 2 (draft).
-  /// Dipakai FAB + halaman Profil + Inbox (coba lagi).
+  /// Upload a video from the gallery, then open Step 2 (draft).
+  /// Used by FAB + Profile page + Inbox (retry).
   Future<void> _uploadFromGallery() async {
     if (_busy) return;
     setState(() {
       _navIndex = 0;
       _busy = true;
+      _uploadPct = 0;
     });
     JobRecord? record;
     try {
@@ -158,26 +161,29 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         creator: ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
         onProgress: (p) {
           if (record != null) JobHistory.progress(record.id, p);
+          if (!mounted) return;
+          // Light throttle: setState per callback but cheap (one bar).
+          setState(() => _uploadPct = p.clamp(0.0, 1.0));
         },
       );
       if (!mounted) return;
       setState(() => _busy = false);
       if (jobId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Upload dibatalkan.')));
+            const SnackBar(content: Text('Upload cancelled.')));
         return;
       }
-      record = JobHistory.add(jobId, 'Video dari galeri');
+      record = JobHistory.add(jobId, 'Video from gallery');
       _openDraft(jobId);
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal: $e')));
+          SnackBar(content: Text('Failed: $e')));
     }
   }
 
-  /// Langkah 2/3 ala mockup: halaman draft penuh (link, sampul, transkrip).
+  /// Mockup-style Step 2/3: full draft page (links, cover, transcript).
   void _openDraft(String jobId) {
     if (!mounted) return;
     Navigator.of(context).push(
@@ -188,7 +194,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
           onDone: (publishJobId) {
             JobHistory.done(jobId);
             if (!_foreground) {
-              notifyJob('Artikel jadi', publishJobId,
+              notifyJob('Article ready', publishJobId,
                   payload: publishJobId);
             }
             _loadFeed();
@@ -197,16 +203,16 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
           onFail: (failedId, error) {
             JobHistory.fail(failedId, error);
             if (!_foreground) {
-              notifyJob('Job $failedId gagal', error);
+              notifyJob('Job $failedId failed', error);
             }
           },
-          onCancel: () => JobHistory.fail(jobId, 'dibatalkan'),
+          onCancel: () => JobHistory.fail(jobId, 'cancelled'),
         ),
       ),
     );
   }
 
-  /// Langkah 3/3 ala mockup: halaman sukses penuh.
+  /// Mockup-style Step 3/3: full success page.
   void _openSuccess(String jobId) {
     if (!mounted) return;
     Navigator.of(context).push(
@@ -223,17 +229,17 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
-  /// Sheet share WA/X/FB/TG/salin (ganti salin langsung).
+  /// WA/X/FB/TG/copy share sheet (replaces direct copy).
   Future<void> _copyArticle(String jobId) async {
     if (!mounted) return;
     final title =
         _feed.where((a) => a.id == jobId).map((a) => a.title).firstOrNull ??
-            'Artikel SABA';
+            'SABA article';
     await showShareSheet(context,
         url: '$webBase/article/$jobId', title: title);
   }
 
-  /// Detail artikel native di dalam app.
+  /// Native article detail inside the app.
   Future<void> _openArticle(String jobId) async {
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -266,7 +272,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   decoration: const BoxDecoration(
                       color: Color(0xFFFF5A00), shape: BoxShape.circle)),
               const SizedBox(width: 6),
-              const Text('TOPIK PALING RAMAI SAAT INI',
+              const Text('HOTTEST TOPICS RIGHT NOW',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -277,7 +283,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Lihat Semua',
+                    Text('See All',
                         style: TextStyle(fontSize: 11, color: sabaBlue)),
                     Icon(Icons.chevron_right,
                         size: 14, color: sabaBlue),
@@ -317,7 +323,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                                   fontWeight: FontWeight.w600)),
                           const SizedBox(height: 2),
                           Text(
-                              '${compactVotes(baseVotes(top[i].id))} popularitas • ${top[i].brand.isNotEmpty ? top[i].brand : 'ulasan'}',
+                              '${compactVotes(baseVotes(top[i].id))} popularity • ${top[i].brand.isNotEmpty ? top[i].brand : 'review'}',
                               style: const TextStyle(
                                   fontSize: 10,
                                   color: SabaColors.muted2)),
@@ -333,10 +339,10 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
-  /// Kartu post ala mockup: author, judul, kutipan serif, foto + caption,
-  /// chip tag, bar aksi gabungan.
+  /// Mockup-style post card: author, title, serif quote, photo + caption,
+  /// tag chip, combined action bar.
   Widget _forumCard(FeedArticle a) {
-    final handle = a.brand.isNotEmpty ? '@${a.brand}' : '@ulasan';
+    final handle = a.brand.isNotEmpty ? '@${a.brand}' : '@review';
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -365,14 +371,14 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   children: [
                     Text(
                         a.creator.isNotEmpty
-                            ? '$handle  •  diterbitkan oleh ${a.creator}'
+                            ? '$handle  •  published by ${a.creator}'
                             : handle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.bold)),
                     Text(
-                        'Ulasan produk • ${timeAgo(a.createdAt).isEmpty ? 'baru saja' : timeAgo(a.createdAt)}',
+                        'Product review • ${timeAgo(a.createdAt).isEmpty ? 'just now' : timeAgo(a.createdAt)}',
                         style: const TextStyle(
                             fontSize: 10, color: SabaColors.muted2)),
                   ],
@@ -431,7 +437,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                             Icon(Icons.photo_library,
                                 size: 12, color: Colors.white),
                             SizedBox(width: 4),
-                            Text('Galeri',
+                            Text('Gallery',
                                 style: TextStyle(
                                     fontSize: 10, color: Colors.white)),
                           ],
@@ -580,20 +586,45 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                           BorderRadius.circular(SabaRadius.card),
                       border: Border.all(
                           color: SabaColors.borderSoft)),
-                  child: const Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 3),
+                      const Text('Please wait.',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      const RotatingStatusText(
+                        lines: SabaWaitLines.working,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: SabaColors.muted2),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                          child: Text('Mengunggah video…',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold))),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                  SabaRadius.pill),
+                              child: LinearProgressIndicator(
+                                value: _uploadPct > 0 ? _uploadPct : null,
+                                minHeight: 8,
+                                backgroundColor: SabaColors.track,
+                                valueColor:
+                                    const AlwaysStoppedAnimation<Color>(
+                                        SabaColors.primary),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('${(_uploadPct * 100).floor()}%',
+                              style: SabaTextStyles.tabularNumber
+                                  .copyWith(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -642,9 +673,9 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '1. Ketuk + lalu pilih video dari galeri\n'
-                            '2. Tunggu notifikasi — artikel dimasak di server\n'
-                            '3. Buka dan baca artikel di dalam app ini',
+                            '1. Tap + then pick a video from the gallery\n'
+                            '2. Wait for the notification — the article is cooked on the server\n'
+                            '3. Open and read the article inside this app',
                             style: theme.textTheme.bodyMedium
                                 ?.copyWith(
                               color: theme
@@ -686,16 +717,16 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         unselectedFontSize: 10,
         items: const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home), label: 'Beranda'),
+                      icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
               icon: Icon(Icons.explore_outlined),
-              label: 'Jelajah'),
+                      label: 'Explore'),
           BottomNavigationBarItem(
               icon: Icon(Icons.chat_bubble_outline),
-              label: 'Kotak Masuk'),
+                                    label: 'Inbox'),
           BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
-              label: 'Profil'),
+                                    label: 'Profile'),
         ],
       );
   }

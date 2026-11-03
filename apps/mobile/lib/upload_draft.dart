@@ -1,9 +1,9 @@
-// Klien draft Langkah 2: ambil / PATCH / publish draft.
-// Murni (tanpa widget) agar bisa di-unit-test.
+// Step 2 draft client: fetch / PATCH / publish a draft.
+// Pure (no widgets) so it stays unit-testable.
 import 'dart:convert';
 import 'dart:io';
 
-/// Draft dari GET /v1/drafts/:id (bentuk publik, tanpa bundle internal).
+/// Draft from GET /v1/drafts/:id (public shape, no internal bundle).
 class DraftData {
   DraftData({
     required this.transcript,
@@ -23,9 +23,9 @@ class DraftData {
   final String creator;
   final List<String> references;
 
-  /// Label keyakinan ala mockup ("92% pas"); '-' bila tak ada.
+  /// Mockup-style confidence label ("92% match"); '-' when missing.
   String get confidenceLabel =>
-      confidence == null ? '–' : '${confidence!.toStringAsFixed(0)}% pas';
+      confidence == null ? '–' : '${confidence!.toStringAsFixed(0)}% match';
 
   factory DraftData.fromJson(Map<String, dynamic> json) {
     final d = (json['draft'] as Map?) ?? const {};
@@ -50,7 +50,7 @@ class DraftData {
   }
 }
 
-/// GET /v1/drafts/:id -> DraftData (null bila 404/belum siap).
+/// GET /v1/drafts/:id -> DraftData (null on 404/not ready).
 Future<DraftData?> fetchDraft(String apiBase, String jobId) async {
   final client = HttpClient();
   try {
@@ -66,7 +66,7 @@ Future<DraftData?> fetchDraft(String apiBase, String jobId) async {
   }
 }
 
-/// PATCH /v1/drafts/:id -> true bila 200.
+/// PATCH /v1/drafts/:id -> true on 200.
 Future<bool> patchDraft(String apiBase, String jobId,
     {String? title,
     int? coverIndex,
@@ -92,7 +92,7 @@ Future<bool> patchDraft(String apiBase, String jobId,
   }
 }
 
-/// POST /v1/drafts/:id/publish -> jobId artikel (null bila gagal).
+/// POST /v1/drafts/:id/publish -> article jobId (null on failure).
 Future<String?> publishDraft(String apiBase, String jobId,
     {String? title,
     int? coverIndex,
@@ -121,8 +121,8 @@ Future<String?> publishDraft(String apiBase, String jobId,
   }
 }
 
-/// Poll draft sampai siap (maks ~10 menit). Null bila timeout/batal.
-/// `alive` dipanggil tiap putaran; kembalikan false untuk berhenti.
+/// Poll a draft until ready (max ~10 min). Null on timeout/cancel.
+/// `alive` is called each round; return false to stop.
 Future<DraftData?> pollDraft(String apiBase, String jobId,
     {bool Function()? alive}) async {
   for (var i = 0; i < 120; i++) {
@@ -131,14 +131,14 @@ Future<DraftData?> pollDraft(String apiBase, String jobId,
       final d = await fetchDraft(apiBase, jobId);
       if (d != null) return d;
     } catch (_) {
-      // Jaringan putus: coba lagi sampai batas poll.
+      // Network dropped: retry until the poll limit.
     }
     await Future<void>.delayed(const Duration(seconds: 5));
   }
   return null;
 }
 
-/// Poll artikel sampai 200 (maks ~10 menit). False bila timeout/batal.
+/// Poll an article until 200 (max ~10 min). False on timeout/cancel.
 Future<bool> pollArticleDone(String apiBase, String jobId,
     {bool Function()? alive}) async {
   final client = HttpClient();
@@ -153,7 +153,7 @@ Future<bool> pollArticleDone(String apiBase, String jobId,
         await res.transform(utf8.decoder).join();
         if (res.statusCode == 200) return true;
       } catch (_) {
-        // Coba lagi.
+        // Retry.
       }
       await Future<void>.delayed(const Duration(seconds: 5));
     }
@@ -163,7 +163,7 @@ Future<bool> pollArticleDone(String apiBase, String jobId,
   }
 }
 
-/// Pecah input link ref (koma/baris baru/spasi), saring https, maks 3.
+/// Split ref link input (comma/newline/space), keep https, max 3.
 List<String> parseRefInput(String raw) {
   final out = <String>[];
   for (final part in raw.split(RegExp(r'[\s,]+'))) {

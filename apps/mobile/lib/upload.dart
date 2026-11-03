@@ -1,11 +1,11 @@
-// Upload video langsung ke server: galeri -> POST /v1/uploads -> jobId.
-// Null = pengguna batal memilih. Tanpa dependency tambahan selain image_picker.
+// Upload a video straight to the server: gallery -> POST /v1/uploads -> jobId.
+// Null = user cancelled picking. No extra dependency besides image_picker.
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:image_picker/image_picker.dart';
 
-/// Status job untuk Inbox ala mockup (selesai / progres / gagal).
+/// Job status for the mockup-style Inbox (done / progress / failed).
 class JobRecord {
   JobRecord({required this.id, required this.label}) : at = DateTime.now();
 
@@ -17,7 +17,7 @@ class JobRecord {
   DateTime at;
 }
 
-/// Riwayat upload sesi ini (in-memory, pola VoteStore).
+/// This session's upload history (in-memory, VoteStore pattern).
 class JobHistory {
   static final List<JobRecord> records = [];
 
@@ -56,9 +56,9 @@ class JobHistory {
   }
 }
 
-/// Pilih video dari galeri lalu streaming ke `POST /v1/uploads`.
-/// references: link sosmed tambahan (maks 3, https) via header x-references.
-/// onProgress: 0..1 selama kirim. Lempar bila gagal; null bila batal.
+/// Pick a video from the gallery, then stream it to `POST /v1/uploads`.
+/// references: extra social links (max 3, https) via the x-references header.
+/// onProgress: 0..1 while sending. Throws on failure; null if cancelled.
 Future<String?> uploadVideo({
   required String apiBase,
   String? creator,
@@ -69,7 +69,7 @@ Future<String?> uploadVideo({
   if (picked == null) return null;
   final file = File(picked.path);
   final len = await file.length();
-  if (len == 0) throw Exception('upload: file kosong');
+  if (len == 0) throw Exception('upload: empty file');
   final client = HttpClient();
   try {
     final req = await client

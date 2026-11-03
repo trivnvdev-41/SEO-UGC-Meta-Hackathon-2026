@@ -1,5 +1,5 @@
-// Tebak @handle kreator dari link sosmed via oEmbed publik (tanpa API key).
-// Didukung: YouTube + TikTok. Instagram/Facebook/X butuh token (tidak didukung).
+// Guess a creator @handle from a social link via public oEmbed (no API key).
+// Supported: YouTube + TikTok. Instagram/Facebook/X need tokens (unsupported).
 // Best-effort: gagal jaringan/format -> null, penelepon pakai label fallback.
 import 'dart:convert';
 import 'dart:io';
@@ -57,8 +57,8 @@ String _oembedEndpoint(String pageUrl) {
   return 'https://www.tiktok.com/oembed?url=$u';
 }
 
-/// Lookup handle kreator. Hanya YouTube/TikTok; lainnya langsung null.
-/// [cache] opsional: map url -> handle untuk hemat request per sesi.
+/// Look up a creator handle. YouTube/TikTok only; anything else is null.
+/// Optional [cache]: url -> handle map to save requests per session.
 Future<SocialHandle?> lookupSocialHandle(String pageUrl,
     {Map<String, SocialHandle?>? cache, HttpClient Function()? clientFactory}) async {
   final host = Uri.tryParse(pageUrl)?.host.toLowerCase() ?? '';

@@ -1,10 +1,87 @@
-// Shell standar SABA (dari saba-handoff): header 64, kartu, tombol, ikon SVG.
+// Standard SABA shell (from saba-handoff): 64 header, card, buttons, SVG icons.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'saba_theme.dart';
 
-/// Header standar semua layar: h=64, bg putih, border bawah, judul tengah.
+/// Rotating status text with fade/slide animation for AI waiting phases.
+/// Example: "Please wait." -> "The AI agents are working now." -> ...
+class RotatingStatusText extends StatefulWidget {
+  const RotatingStatusText({
+    super.key,
+    required this.lines,
+    this.interval = const Duration(seconds: 3),
+    this.style,
+    this.textAlign,
+  });
+
+  final List<String> lines;
+  final Duration interval;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+
+  @override
+  State<RotatingStatusText> createState() => _RotatingStatusTextState();
+}
+
+class _RotatingStatusTextState extends State<RotatingStatusText> {
+  int _i = 0;
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(widget.interval, (_) {
+      if (!mounted) return;
+      setState(() => _i = (_i + 1) % widget.lines.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.lines.isEmpty) return const SizedBox.shrink();
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 450),
+      transitionBuilder: (child, anim) => FadeTransition(
+        opacity: anim,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.3),
+            end: Offset.zero,
+          ).animate(anim),
+          child: child,
+        ),
+      ),
+      child: Text(
+        widget.lines[_i % widget.lines.length],
+        key: ValueKey(_i),
+        style: widget.style,
+        textAlign: widget.textAlign ?? TextAlign.center,
+      ),
+    );
+  }
+}
+
+/// Kalimat status baku fase tunggu AI (Inggris, grammar final).
+class SabaWaitLines {
+  static const headline = 'Please wait.';
+  static const working = [
+    'Please wait.',
+    'The AI agents are working now.',
+    'Transcribing your video into text…',
+    'Capturing your important scenes…',
+  ];
+}
+
+/// Standard header for all screens: h=64, white bg, bottom border, centered title.
 class SabaHeader extends StatelessWidget implements PreferredSizeWidget {
   const SabaHeader({super.key, required this.title, this.actions});
 
@@ -23,7 +100,7 @@ class SabaHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Kartu standar: putih, radius 12, border #EBEBEB.
+/// Standard card: white, radius 12, #EBEBEB border.
 class SabaCard extends StatelessWidget {
   const SabaCard({super.key, required this.child, this.padding});
 
@@ -47,7 +124,7 @@ class SabaCard extends StatelessWidget {
   }
 }
 
-/// Tombol primer: h=44, pill, biru.
+/// Primary button: h=44, pill, blue.
 class SabaPrimaryButton extends StatelessWidget {
   const SabaPrimaryButton({
     super.key,
@@ -74,7 +151,7 @@ class SabaPrimaryButton extends StatelessWidget {
   }
 }
 
-/// Ikon SVG handoff (check, check-lg, play, search).
+/// Handoff SVG icons (check, check-lg, play, search).
 class SabaIcons {
   static Widget check({double size = 56}) => SvgPicture.asset(
         'assets/icons/check.svg',
@@ -98,7 +175,7 @@ class SabaIcons {
       );
 }
 
-/// Stepper 3 langkah upload ala mockup: 1 Sumber • 2 Frame • 3 Sukses.
+/// Mockup-style 3-step upload stepper: 1 Source • 2 Frame • 3 Done.
 class SabaStepper extends StatelessWidget {
   const SabaStepper({super.key, required this.current});
 
@@ -106,7 +183,7 @@ class SabaStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['Sumber', 'Frame', 'Sukses'];
+    const labels = ['Source', 'Frame', 'Done'];
     return Row(
       children: [
         for (var i = 1; i <= 3; i++) ...[

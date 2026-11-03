@@ -1,5 +1,5 @@
-// Profil ala mockup 10: header Insight, avatar verifikasi, aksi, statistik,
-// daftar Artikel saya. Murni lokal tanpa backend.
+// Profile per mockup 10: Insight header, verified avatar, actions, stats,
+// My Articles list. Purely local, no backend.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,7 +9,7 @@ import 'saba_theme.dart';
 import 'saba_widgets.dart';
 import 'vote.dart';
 
-/// Profil lokal sesi ini (in-memory, pola VoteStore).
+/// This session's local profile (in-memory, VoteStore pattern).
 class ProfileStore {
   static String name = '';
   static String headline = '';
@@ -82,8 +82,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _shareProfile() async {
     final messenger = ScaffoldMessenger.of(context);
     await Clipboard.setData(const ClipboardData(
-        text: 'SABA — ulasan produk dari video kreator'));
-    messenger.showSnackBar(const SnackBar(content: Text('Profil disalin')));
+        text: 'SABA — honest product reviews from creator videos'));
+    messenger.showSnackBar(const SnackBar(content: Text('Profile copied')));
   }
 
   void _openArticle(String id) => widget.onOpenArticle(id);
@@ -93,7 +93,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final name =
         ProfileStore.name.isEmpty ? 'Dimas Pratama' : ProfileStore.name;
     final headline = ProfileStore.headline.isEmpty
-        ? 'Principal Designer & Software Architect • Spesialis Design System & AI-UI'
+        ? 'Principal Designer & Software Architect • Design System & AI-UI Specialist'
         : ProfileStore.headline;
     final initial = name.trim().isEmpty
         ? 'D'
@@ -140,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             const SizedBox(height: 12),
-            // Kartu identitas.
+            // Identity card.
             SabaCard(
               child: Column(
                 children: [
@@ -193,9 +193,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             color: SabaColors.greyFill,
                             borderRadius:
                                 BorderRadius.circular(999)),
-                        child: Text(
-                            ProfileStore.name.isEmpty
-                                ? '@ Belum klaim'
+                      child: Text(
+                          ProfileStore.name.isEmpty
+                              ? '@ Unclaimed'
                                 : '@${ProfileStore.name.replaceAll(' ', '').toLowerCase()}',
                             style: const TextStyle(
                                 fontSize: 11,
@@ -227,7 +227,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             const SizedBox(height: 12),
-            // Aksi Profil.
+            // Profile actions.
             SabaCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,7 +243,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             size: 16, color: SabaColors.primary),
                       ),
                       const SizedBox(width: 8),
-                      const Text('Aksi Profil',
+                      const Text('Profile Actions',
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold)),
@@ -255,7 +255,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             color: SabaColors.chipBlueBg,
                             borderRadius:
                                 BorderRadius.circular(999)),
-                        child: const Text('Aktif',
+                        child: const Text('Active',
                             style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -274,7 +274,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 setState(() {});
                               }
                             },
-                            child: const Text('Edit Profil')),
+                            child: const Text('Edit Profile')),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -285,7 +285,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             onPressed: _openInsights,
                             child:
-                                const Text('Lihat Insights')),
+                                const Text('View Insights')),
                       ),
                     ],
                   ),
@@ -294,29 +294,29 @@ class _ProfilePageState extends State<ProfilePage> {
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: _shareProfile,
-                      child: const Text('Bagikan Profil'),
+                      child: const Text('Share Profile'),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            // Statistik.
+            // Stats.
             Row(
               children: [
                 Expanded(
                     child: _stat(Icons.article_outlined,
-                        '${widget.feed.length}', 'Artikel saya')),
+                        '${widget.feed.length}', 'My Articles')),
                 const SizedBox(width: 12),
                 Expanded(
                     child: _stat(
                         Icons.thumb_up_outlined,
                         compactVotes(VoteStore.upvoted.length),
-                        'Setuju saya')),
+                        'My Agrees')),
               ],
             ),
             const SizedBox(height: 12),
-            // Artikel saya.
+            // My articles.
             SabaCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,12 +326,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       const Icon(Icons.menu_book_outlined,
                           size: 18, color: SabaColors.primary),
                       const SizedBox(width: 6),
-                      const Text('Artikel saya',
+                      const Text('My Articles',
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold)),
                       const Spacer(),
-                      Text('${widget.feed.length} Konten',
+                      Text('${widget.feed.length} Posts',
                           style: const TextStyle(
                               fontSize: 11,
                               color: SabaColors.muted2)),
@@ -339,7 +339,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 8),
                   if (widget.feed.isEmpty)
-                    const Text('Belum ada artikel.',
+                    const Text('No articles yet.',
                         style: TextStyle(
                             fontSize: 12,
                             color: SabaColors.muted2)),
@@ -398,10 +398,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                                         .muted2)),
                                       ),
                                       const SizedBox(width: 6),
-                                      Text(
-                                          timeAgo(a.createdAt).isEmpty
-                                              ? 'baru saja'
-                                              : timeAgo(a.createdAt),
+                      Text(
+                          timeAgo(a.createdAt).isEmpty
+                              ? 'just now'
+                              : timeAgo(a.createdAt),
                                           style: const TextStyle(
                                               fontSize: 11,
                                               color:

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// SABA design tokens — diekstrak dari mockup FigCraft (14 layar, terverifikasi).
-/// Font: daftarkan Inter + Merriweather di pubspec.yaml (keduanya OFL).
-/// Angka Insight: pakai fontFeature tabular (lihat [SabaTextStyles]).
+/// SABA design tokens — extracted from the FigCraft mockup (14 screens, verified).
+/// Font: register Inter + Merriweather in pubspec.yaml (both OFL).
+/// Insight numbers: use fontFeature tabular (see [SabaTextStyles]).
 abstract final class SabaColors {
   static const primary = Color(0xFF0866FF);
   static const primaryDark = Color(0xFF0050CD);
@@ -83,7 +83,7 @@ abstract final class SabaTextStyles {
     fontFamily: 'Inter', fontSize: 11, color: SabaColors.muted,
   );
 
-  /// Angka tabular ala Insight (Views 2.264 / Viewers 1.702).
+  /// Insight-style tabular numbers (Views 2,264 / Viewers 1,702).
   static const tabularNumber = TextStyle(
     fontFamily: 'Inter',
     fontFeatures: [FontFeature.tabularFigures()],

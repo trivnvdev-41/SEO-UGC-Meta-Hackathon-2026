@@ -1,6 +1,6 @@
-// Langkah 2 Upload ala mockup 08: link referensi, pilih sampul (AI praseleksi),
-// edit transkrip, judul, Simpan Draft + Publikasikan. Draft lokal di memori;
-// tombol kembali saat ada editan memunculkan opsi Batalkan / Lanjut.
+// Step 2 Upload per mockup 08: reference links, cover pick (AI preselected),
+// transcript edit, title, Save Draft + Publish. Draft lives in memory;
+// the back button with unsaved edits offers Cancel vs Keep editing.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -69,7 +69,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
         alive: () => mounted && !_cancelled);
     if (!mounted || _cancelled) return;
     if (d == null) {
-      setState(() => _error = 'Draft tak kunjung siap. Coba lagi.');
+      setState(() => _error = 'Draft is taking too long. Try again.');
       return;
     }
     final aiPick = d.selectedIndices.where((i) => i < d.frames.length);
@@ -94,7 +94,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     }
   }
 
-  /// Ada editan dibanding draft awal?
+  /// Any edits compared to the loaded draft?
   bool get _dirty {
     final d = _draft;
     if (d == null) return false;
@@ -116,17 +116,17 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     final r = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Batalkan upload?'),
+        title: const Text('Cancel upload?'),
         content: const Text(
-            'Editan draft (transkrip, judul, sampul, link) akan hilang.'),
+            'Draft edits (transcript, title, cover, links) will be lost.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop('cancel'),
-              child: const Text('Batalkan upload',
+              child: const Text('Cancel upload',
                   style: TextStyle(color: SabaColors.fail))),
           FilledButton(
               onPressed: () => Navigator.of(ctx).pop('stay'),
-              child: const Text('Lanjut')),
+              child: const Text('Keep editing')),
         ],
       ),
     );
@@ -138,7 +138,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     if (d == null) return;
     if (_refs.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Maksimal 3 link referensi.')));
+          content: Text('Maximum 3 reference links.')));
       return;
     }
     final add = parseRefInput(_link.text)
@@ -150,7 +150,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
       _refs = [..._refs, ...add];
       _link.clear();
     });
-    // Best-effort: baca @handle kreator (YouTube/TikTok via oEmbed).
+    // Best-effort: read the creator @handle (YouTube/TikTok via oEmbed).
     for (final u in add) {
       lookupSocialHandle(u, cache: _handles).then((h) {
         if (mounted && h != null) setState(() {});
@@ -165,7 +165,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
       setState(() => _link.text = t);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Clipboard bukan link https')));
+          content: Text('Clipboard is not an https link')));
     }
   }
 
@@ -179,14 +179,14 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
         references: _refs);
     if (!mounted) return;
     setState(() {
-      _savedFlash = ok;
+      _savedFlash = ok; // ("Saved ✓" indicator)
       if (ok) {
         _origTranscript = _transcript.text;
         _origTitle = _title.text.trim();
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Draft tersimpan.' : 'Gagal menyimpan draft.')));
+        content: Text(ok ? 'Draft saved.' : 'Failed to save draft.')));
     if (ok) {
       await Future<void>.delayed(const Duration(seconds: 2));
       if (mounted) setState(() => _savedFlash = false);
@@ -214,7 +214,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
       if (mounted) {
         setState(() {
           _publishing = false;
-          _error = 'Gagal mempublikasi. Coba lagi.';
+          _error = 'Failed to publish. Try again.';
         });
       } else {
         widget.onFail(widget.jobId, 'publish_gagal');
@@ -228,7 +228,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     } else if (mounted) {
       setState(() {
         _publishing = false;
-        _error = 'Artikel tak kunjung jadi. Coba lagi.';
+        _error = 'Article is taking too long. Try again.';
       });
       widget.onFail(widget.jobId, 'timeout');
     } else {
@@ -265,27 +265,44 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                     children: [
                       const SabaStepper(current: 2),
                       const SizedBox(height: SabaSpacing.gapCard),
-                      if (_publishing) ...[
-                        const SabaCard(
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 3),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                  child: Text('Mempublikasikan…',
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold))),
-                            ],
-                          ),
+                    if (_publishing) ...[
+                      const SabaCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Please wait.',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold)),
+                            SizedBox(height: 4),
+                            RotatingStatusText(
+                              lines: SabaWaitLines.working,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: SabaColors.muted2),
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 32,
+                                  height: 32,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 3),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                    child: Text('Publishing your article…',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: SabaColors.muted2))),
+                              ],
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: SabaSpacing.gapCard),
-                      ],
+                      ),
+                      const SizedBox(height: SabaSpacing.gapCard),
+                    ],
                       _refsCard(),
                       const SizedBox(height: SabaSpacing.gapCard),
                       _framesCard(),
@@ -310,8 +327,8 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                               onPressed:
                                   _publishing ? null : _saveDraft,
                               child: Text(_savedFlash
-                                  ? 'Tersimpan ✓'
-                                  : 'Simpan Draft'),
+                                  ? 'Saved ✓'
+                                  : 'Save Draft'),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -319,7 +336,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                             child: FilledButton(
                               onPressed:
                                   _publishing ? null : _publish,
-                              child: const Text('Publikasikan →'),
+                              child: const Text('Publish →'),
                             ),
                           ),
                         ],
@@ -340,7 +357,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
             controller: _link,
             keyboardType: TextInputType.url,
             decoration: const InputDecoration(
-              hintText: 'Paste link FB / IG di sini…',
+              hintText: 'Paste FB / IG link here…',
               hintStyle:
                   TextStyle(fontSize: 13, color: SabaColors.muted2),
               border: OutlineInputBorder(
@@ -362,14 +379,14 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
           ),
           const SizedBox(height: 8),
           SabaPrimaryButton(
-              label: 'Simpan Link', onPressed: _saveRefs),
+              label: 'Save Link', onPressed: _saveRefs),
           const SizedBox(height: 8),
-          const Text('Link publik aja, maks 3. Cuma buat referensi.',
+          const Text('Public links only, max 3. For reference only.',
               style: TextStyle(fontSize: 12, color: SabaColors.muted2)),
           for (final u in _refs)
             Builder(builder: (context) {
               final h = _handles[u];
-              final label = h != null ? '${h.handle} kepasang' : '${_shortHost(u)} kepasang';
+              final label = h != null ? '${h.handle} attached' : '${_shortHost(u)} attached';
               return Container(
               margin: const EdgeInsets.only(top: 8),
               padding: const EdgeInsets.all(10),
@@ -446,7 +463,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     final d = _draft!;
     if (d.frames.isEmpty) {
       return const SabaCard(
-        child: Text('Frame sampul tak tersedia.',
+        child: Text('No cover frame available.',
             style: TextStyle(fontSize: 13, color: SabaColors.muted2)),
       );
     }
@@ -475,11 +492,11 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                     height: 200,
                     color: SabaColors.ink,
                     alignment: Alignment.center,
-                    child: const Text('SAMPUL',
+                    child: const Text('COVER',
                         style: TextStyle(color: Colors.white)))),
           ),
           const SizedBox(height: 8),
-          const Text('Pilih frame buat sampul',
+          const Text('Pick a frame for the cover',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           SizedBox(
@@ -525,7 +542,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                               color: SabaColors.primary,
                               borderRadius: BorderRadius.circular(
                                   SabaRadius.pill)),
-                          child: const Text('Pilihan AI',
+                          child: const Text('AI pick',
                               style: TextStyle(
                                   fontSize: 8,
                                   fontWeight: FontWeight.bold,
@@ -539,7 +556,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
           ),
           const SizedBox(height: 8),
           SabaPrimaryButton(
-              label: 'Ambil gambar ini',
+              label: 'Use this image',
               onPressed: () => setState(() => _coverIndex = tapped)),
         ],
       ),
@@ -552,7 +569,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Edit artikel • ${d.confidenceLabel}',
+          Text('Edit article • ${d.confidenceLabel}',
               style: SabaTextStyles.sectionTitle),
           const SizedBox(height: 8),
           TextField(
@@ -572,7 +589,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
           TextField(
             controller: _title,
             decoration: const InputDecoration(
-              prefixText: 'Judul: ',
+              prefixText: 'Title: ',
               prefixStyle:
                   TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               border: OutlineInputBorder(
@@ -608,11 +625,14 @@ class _WaitingBody extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 3.5),
           ),
           SizedBox(height: 12),
-          Text('Menyiapkan draft…',
+          Text('Please wait.',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           SizedBox(height: 4),
-          Text('Mentranskrip suara kreator…',
-              style: TextStyle(fontSize: 12, color: SabaColors.muted2)),
+          RotatingStatusText(
+            lines: SabaWaitLines.working,
+            style:
+                TextStyle(fontSize: 12, color: SabaColors.muted2),
+          ),
         ],
       ),
     );
@@ -644,9 +664,9 @@ class _ErrorBody extends StatelessWidget {
             children: [
               FilledButton(
                   onPressed: onRetry,
-                  child: const Text('Coba lagi')),
+                  child: const Text('Try again')),
               const SizedBox(width: 8),
-              TextButton(onPressed: onClose, child: const Text('Tutup')),
+              TextButton(onPressed: onClose, child: const Text('Close')),
             ],
           ),
         ],

@@ -1,5 +1,5 @@
-// Markdown minimal cerminan renderMd web: heading, list, quote, bold, link.
-// parseMd murni (bisa unit-test); mdBlocks membangun widget-nya.
+// Minimal markdown mirroring web renderMd: heading, list, quote, bold, link.
+// parseMd is pure (unit-testable); mdBlocks builds the widgets.
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -53,7 +53,7 @@ final _orderedRe = RegExp(r'^\d+\. ');
 final _headingRe = RegExp(r'^(#{1,4})\s+(.*)$|^(#{2,})([^#\s].*)$');
 final _hrRe = RegExp(r'^\s*([-*_=])(\s*\1){1,}\s*$');
 
-/// Em dash tulisan tangan (` -- `) jadi — yang benar. URL tak tersentuh.
+/// Handwritten em dash (` -- `) becomes proper —. URLs untouched.
 String emDash(String s) => s.replaceAllMapped(
     RegExp(r'(\s)--(\s)'), (m) => '${m[1]}—${m[2]}');
 
@@ -85,8 +85,8 @@ bool _isDelim(String l) {
   return t.contains('|') && t.contains('-') && RegExp(r'^[\s:|\-]+$').hasMatch(t);
 }
 
-/// Parser tahan banting: heading tanpa baris kosong tetap heading,
-/// garis pemisah (--, ---) dibuang, tabel tanpa pipe tepi tetap tabel.
+/// Forgiving parser: headings stay headings without blank lines,
+/// separators (--, ---) are dropped, tables without edge pipes still parse.
 List<MdBlock> parseMd(String md) {
   final lines = md.split('\n');
   final blocks = <MdBlock>[];
@@ -95,7 +95,7 @@ List<MdBlock> parseMd(String md) {
 
   while (i < lines.length) {
     final line = lines[i];
-    // Lewati baris kosong dan garis pemisah (---, --, ***, ===).
+    // Skip blank lines and separator rules (---, --, ***, ===).
     if (line.trim().isEmpty || _hrRe.hasMatch(line)) {
       i++;
       continue;
@@ -108,7 +108,7 @@ List<MdBlock> parseMd(String md) {
       i++;
       continue;
     }
-    // Tabel: baris berisi | + baris delimiter dalam 2 baris berikut.
+    // Table: |-containing row + delimiter row within the next 2 lines.
     if (line.contains('|')) {
       var di = -1;
       for (var k = 1; k <= 2 && i + k < lines.length; k++) {
@@ -159,7 +159,7 @@ List<MdBlock> parseMd(String md) {
       blocks.add(MdQuote(quotes.join('\n')));
       continue;
     }
-    // Paragraf: gabung baris biasa berurutan.
+    // Paragraph: join consecutive plain lines.
     final para = <String>[];
     while (i < lines.length &&
         lines[i].trim().isNotEmpty &&
@@ -176,7 +176,7 @@ List<MdBlock> parseMd(String md) {
       blocks.add(MdPara(para.join('\n')));
       continue;
     }
-    // Pengaman: baris pipa yatim dirender sebagai teks tanpa karakter |.
+    // Fallback: orphan pipe rows render as text without | characters.
     blocks.add(MdPara(
         lines[i].replaceAll('|', ' ').replaceAll(RegExp(r'\s+'), ' ').trim()));
     i++;
@@ -245,7 +245,7 @@ List<Widget> mdBlocks(BuildContext context, String md,
                   ),
               ],
             ),
-          // Quote tanpa garis vertikal: kartu lembut, bukan border kiri.
+          // Quote without vertical bar: soft card, not a left border.
           MdQuote(text: final t) => Container(
               decoration: BoxDecoration(
                 color: SabaColors.greyFill,

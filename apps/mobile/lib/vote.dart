@@ -1,14 +1,14 @@
-// Vote ala forum: chip "Setuju" + downvote, murni lokal (tanpa backend).
-// Micro-interaction: pop elastis 0.92 -> 1.08 -> 1, toggle biru solid,
-// counter +1, badge +1 melayang + ring burst, downvote press scale.
+// Forum-style vote: "Agree" chip + downvote, purely local (no backend).
+// Micro-interaction: elastic pop 0.92 -> 1.08 -> 1, solid blue toggle,
+// counter +1, floating +1 badge + ring burst, downvote press scale.
 import 'package:flutter/material.dart';
 
 import 'saba_theme.dart';
 
-// Alias kompat: kode lama pakai sabaBlue, sumber tunggal SabaColors.primary.
+// Compat alias: old code uses sabaBlue, single source is SabaColors.primary.
 const sabaBlue = SabaColors.primary;
 
-/// Store in-memory per sesi agar feed + detail konsisten.
+/// In-memory store per session so feed and detail stay consistent.
 class VoteStore {
   static final Set<String> upvoted = {};
   static final Set<String> downvoted = {};
@@ -32,7 +32,7 @@ class VoteStore {
   }
 }
 
-/// Angka dasar stabil per artikel agar demo terasa hidup.
+/// Stable base number per article so the demo feels alive.
 int baseVotes(String id) => 100 + (id.hashCode.abs() % 2000);
 
 String compactVotes(int n) {
@@ -165,7 +165,7 @@ class _VotePillState extends State<VotePill>
                       size: 14,
                       color: active ? Colors.white : sabaBlue),
                   const SizedBox(width: 4),
-                  Text('Setuju $label',
+                    Text('Agree $label',
                       style: TextStyle(
                           fontSize: 12,
                           color: active ? Colors.white : sabaBlue,
@@ -235,7 +235,7 @@ class _VotePillState extends State<VotePill>
   }
 }
 
-/// Bookmark lokal per sesi (pola VoteStore).
+/// Per-session local bookmarks (VoteStore pattern).
 class SavedStore {
   static final Set<String> saved = {};
 
@@ -244,8 +244,8 @@ class SavedStore {
   }
 }
 
-/// Bar aksi ala mockup: pill gabungan [↑ count ↓] + komentar + simpan + bagikan.
-/// Angka komentar/simpan turunan stabil dari baseVotes (demo lokal).
+/// Mockup-style action bar: combined pill [↑ count ↓] + comments + save + share.
+/// Comment/save counts derived stably from baseVotes (local demo).
 class VoteBar extends StatelessWidget {
   const VoteBar({
     super.key,

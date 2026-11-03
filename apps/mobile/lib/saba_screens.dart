@@ -1,5 +1,5 @@
-// Layar baru dari 14 PNG mockup (saba-handoff). Semua dummy lokal,
-// backend tetap out-of-scope; Login juga dummy (pop langsung).
+// New screens from the 14 saba-handoff PNG mockups. All local dummies,
+// backend stays out of scope; Login is also dummy (plain pop).
 import 'package:flutter/material.dart';
 
 import 'feed.dart';
@@ -8,7 +8,7 @@ import 'saba_widgets.dart';
 import 'upload.dart';
 import 'vote.dart';
 
-/// 01 - Splash: logo S di atas primary, lanjut otomatis.
+/// 01 - Splash: S logo on primary, auto-continue.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.child});
 
@@ -59,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-/// 05 - Jelajah: cari, chip kategori, terakhir dicari, topik + ikuti, hot.
+/// 05 - Explore: search, category chips, recent searches, topics + follow, hot.
 class JelajahPage extends StatefulWidget {
   const JelajahPage({super.key, required this.feed, required this.onOpen});
 
@@ -73,7 +73,7 @@ class JelajahPage extends StatefulWidget {
 class _JelajahPageState extends State<JelajahPage> {
   final _search = TextEditingController();
   String _query = '';
-  int _cat = 0; // 0 Semua, 1 Topik, 2 Komunitas, 3 Kreator
+  int _cat = 0; // 0 All, 1 Topics, 2 Communities, 3 Creators
   final List<String> _recent = [];
   final Set<String> _following = {};
 
@@ -122,15 +122,15 @@ class _JelajahPageState extends State<JelajahPage> {
 
   @override
   Widget build(BuildContext context) {
-    const cats = ['Semua', 'Topik', 'Komunitas', 'Kreator'];
+    const cats = ['All', 'Topics', 'Communities', 'Creators'];
     final brands = feedBrands(widget.feed);
     return Scaffold(
       backgroundColor: SabaColors.bgCool,
-      appBar: const SabaHeader(title: 'Jelajah'),
+      appBar: const SabaHeader(title: 'Explore'),
       body: ListView(
         padding: const EdgeInsets.all(SabaSpacing.screen),
         children: [
-          // Search.
+          // Search field.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
@@ -142,7 +142,7 @@ class _JelajahPageState extends State<JelajahPage> {
               onChanged: (v) => setState(() => _query = v),
               onSubmitted: _submitSearch,
               decoration: const InputDecoration(
-                hintText: 'Cari di SABA…',
+                        hintText: 'Search SABA…',
                 border: InputBorder.none,
                 isDense: true,
                 icon: Icon(Icons.search,
@@ -151,7 +151,7 @@ class _JelajahPageState extends State<JelajahPage> {
             ),
           ),
           const SizedBox(height: 10),
-          // Kategori.
+          // Categories.
           SizedBox(
             height: 34,
             child: ListView.separated(
@@ -186,14 +186,14 @@ class _JelajahPageState extends State<JelajahPage> {
               ),
             ),
           ),
-          // Terakhir dicari.
+          // Recently searched.
           if (_recent.isNotEmpty) ...[
             const SizedBox(height: SabaSpacing.gapCard),
             SabaCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Terakhir dicari',
+                    const Text('Recent searches',
                       style: SabaTextStyles.sectionTitle),
                   const SizedBox(height: 6),
                   for (final r in _recent)
@@ -220,14 +220,14 @@ class _JelajahPageState extends State<JelajahPage> {
               ),
             ),
           ],
-          // Topik + ikuti.
+          // Topics + follow.
           if (brands.isNotEmpty) ...[
             const SizedBox(height: SabaSpacing.gapCard),
             SabaCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Jelajahi topik • Ikuti favoritmu',
+                    const Text('Explore topics • Follow your favorites',
                       style: SabaTextStyles.sectionTitle),
                   const SizedBox(height: 10),
                   Wrap(
@@ -269,8 +269,8 @@ class _JelajahPageState extends State<JelajahPage> {
                                               SabaRadius.pill)),
                                   child: Text(
                                       _following.contains(b)
-                                          ? 'Diikuti'
-                                          : 'Ikuti',
+                                          ? 'Following'
+                                          : 'Follow',
                                       style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -289,14 +289,14 @@ class _JelajahPageState extends State<JelajahPage> {
               ),
             ),
           ],
-          // Hot hari ini.
+          // Hot today.
           if (_hot.isNotEmpty) ...[
             const SizedBox(height: SabaSpacing.gapCard),
             SabaCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Hot hari ini • Lihat Semua',
+                    const Text('Hot today • See All',
                       style: SabaTextStyles.sectionTitle),
                   const SizedBox(height: 8),
                   for (var i = 0; i < _hot.length; i++)
@@ -306,7 +306,7 @@ class _JelajahPageState extends State<JelajahPage> {
                         padding: EdgeInsets.only(
                             bottom: i < _hot.length - 1 ? 8 : 0),
                         child: Text(
-                            '${i + 1}. ${_hot[i].title} • ${compactVotes(baseVotes(_hot[i].id))} panas',
+                            '${i + 1}. ${_hot[i].title} • ${compactVotes(baseVotes(_hot[i].id))} hot',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 13)),
@@ -316,12 +316,12 @@ class _JelajahPageState extends State<JelajahPage> {
               ),
             ),
           ],
-          // Hasil.
+          // Results.
           if (_query.isNotEmpty || _cat != 0) ...[
             const SizedBox(height: SabaSpacing.gapCard),
             if (_filtered.isEmpty)
-              const SabaCard(
-                  child: Text('Tidak ada hasil untuk filter ini.'))
+                    const SabaCard(
+                        child: Text('No results for this filter.'))
             else
               for (final a in _filtered) ...[
                 SabaCard(
@@ -347,7 +347,7 @@ class _JelajahPageState extends State<JelajahPage> {
   }
 }
 
-/// 06 - Kotak Masuk: riwayat job upload (selesai / progres / gagal).
+/// 06 - Inbox: upload job history (done / progress / failed).
 class InboxPage extends StatelessWidget {
   const InboxPage(
       {super.key,
@@ -363,10 +363,10 @@ class InboxPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SabaColors.bgCool,
-      appBar: const SabaHeader(title: 'Kotak Masuk'),
+      appBar: const SabaHeader(title: 'Inbox'),
       body: jobs.isEmpty
           ? const Center(
-              child: Text('Belum ada aktivitas upload.\nKetuk + untuk mulai.',
+              child: Text('No upload activity yet.\nTap + to get started.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 13, color: SabaColors.muted2)))
@@ -421,7 +421,7 @@ class InboxPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text('$pct% • Estimasi 2 mnt',
+                      Text('$pct% • Est. 2 min',
                 style: const TextStyle(
                     fontSize: 11, color: SabaColors.muted2)),
           ],
@@ -430,7 +430,7 @@ class InboxPage extends StatelessWidget {
             Row(
               children: [
                 _chip(
-                    job.status == 'done' ? 'Selesai' : 'Gagal',
+                      job.status == 'done' ? 'Done' : 'Failed',
                     job.status == 'done'
                         ? SabaColors.chipBlueBg
                         : SabaColors.failBg,
@@ -445,7 +445,7 @@ class InboxPage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16)),
                       onPressed: () => onOpen(job.id),
-                      child: const Text('Lihat artikel'))
+                      child: const Text('Read article'))
                 else
                   FilledButton(
                       style: FilledButton.styleFrom(
@@ -453,7 +453,7 @@ class InboxPage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16)),
                       onPressed: onRetry,
-                      child: const Text('Coba lagi')),
+                      child: const Text('Try again')),
               ],
             ),
           ],
@@ -502,15 +502,15 @@ class InboxPage extends StatelessWidget {
   String _subtitle(JobRecord job, int pct) {
     final ago = DateTime.now().difference(job.at);
     final when = ago.inMinutes < 1
-        ? 'baru saja'
+        ? 'just now'
         : ago.inHours < 1
-            ? '${ago.inMinutes} mnt lalu'
-            : '${ago.inHours} jam lalu';
-    if (job.status == 'done') return 'Convert selesai • $when';
+            ? '${ago.inMinutes} min ago'
+            : '${ago.inHours} hr ago';
+    if (job.status == 'done') return 'Convert done • $when';
     if (job.status == 'failed') {
-      return 'Gagal • ${(job.error ?? '').split(':').first}';
+      return 'Failed • ${(job.error ?? '').split(':').first}';
     }
-    return 'Mengonversi… • $pct%';
+    return 'Converting… • $pct%';
   }
 
   Widget _chip(String label, Color bg, Color fg) {
@@ -526,7 +526,7 @@ class InboxPage extends StatelessWidget {
   }
 }
 
-/// 12 - Pengaturan: kartu sukses (bila baru publish) + notif + tentang + keluar.
+/// 12 - Settings: success card (when just published) + notif + about + logout.
 class SettingsPage extends StatefulWidget {
   const SettingsPage(
       {super.key,
@@ -549,7 +549,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _soon(String what) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$what segera hadir')),
+      SnackBar(content: Text('$what coming soon')),
     );
   }
 
@@ -557,7 +557,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SabaColors.bgWarm,
-      appBar: const SabaHeader(title: 'Pengaturan'),
+      appBar: const SabaHeader(title: 'Settings'),
       body: ListView(
         padding: const EdgeInsets.all(SabaSpacing.screen),
         children: [
@@ -567,11 +567,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   SabaIcons.check(size: 64),
                   const SizedBox(height: 8),
-                  const Text('Terpublish!',
+                    const Text('Published!',
                       style: SabaTextStyles.sectionTitle),
                   const SizedBox(height: 4),
-                  const Text(
-                      'Artikel kamu sudah live dan bisa dibagikan.',
+                    const Text(
+                        'Your article is live and ready to share.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 12, color: SabaColors.muted2)),
@@ -581,13 +581,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       Expanded(
                         child: FilledButton(
                             onPressed: widget.onOpenArticle,
-                            child: const Text('Lihat artikel')),
+                            child: const Text('Read article')),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton(
                             onPressed: widget.onShareArticle,
-                            child: const Text('Bagikan')),
+                            child: const Text('Share')),
                       ),
                     ],
                   ),
@@ -601,7 +601,7 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Row(
                   children: [
-                    const Text('Notifikasi',
+                    const Text('Notifications',
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600)),
@@ -617,19 +617,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     height: 16, color: SabaColors.borderSoft),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Tentang',
+                    title: const Text('About',
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600)),
                   trailing: const Icon(Icons.chevron_right,
                       color: SabaColors.muted2),
-                  onTap: () => _soon('Tentang SABA'),
+                  onTap: () => _soon('About SABA'),
                 ),
                 const Divider(
                     height: 16, color: SabaColors.borderSoft),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Keluar',
+                    title: const Text('Log out',
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -645,7 +645,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-/// 13 - Bottom Sheet Menu Profil: baris teks ala mockup.
+/// 13 - Profile menu bottom sheet: mockup-style text rows.
 Future<void> showProfileMenu(BuildContext context,
     {required VoidCallback onEdit,
     required VoidCallback onInsights,
@@ -669,22 +669,22 @@ Future<void> showProfileMenu(BuildContext context,
                     borderRadius:
                         BorderRadius.circular(SabaRadius.pill))),
           ),
-          _sheetRow(ctx, 'Bagikan Profil', onShare),
-          _sheetRow(ctx, 'Salin link', () {
+          _sheetRow(ctx, 'Share Profile', onShare),
+          _sheetRow(ctx, 'Copy link', () {
             Navigator.of(ctx).pop();
             onShare();
           }),
-          _sheetRow(ctx, 'Lihat versi publik', () {
+          _sheetRow(ctx, 'View public version', () {
             Navigator.of(ctx).pop();
             ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text('Versi publik segera hadir')));
+                    content: Text('Public version coming soon')));
           }),
-          _sheetRow(ctx, 'Edit Profil', () {
+          _sheetRow(ctx, 'Edit Profile', () {
             Navigator.of(ctx).pop();
             onEdit();
           }),
-          _sheetRow(ctx, 'Lihat Insights', () {
+          _sheetRow(ctx, 'View Insights', () {
             Navigator.of(ctx).pop();
             onInsights();
           }),
@@ -696,8 +696,8 @@ Future<void> showProfileMenu(BuildContext context,
                 GestureDetector(
                   onTap: () => ScaffoldMessenger.of(context)
                       .showSnackBar(const SnackBar(
-                          content: Text('Laporan terkirim. Terima kasih.'))),
-                  child: const Text('Laporkan',
+                          content: Text('Report sent. Thank you.'))),
+                  child: const Text('Report',
                       style: TextStyle(fontSize: 15)),
                 ),
                 const Text('   •   ',
@@ -705,7 +705,7 @@ Future<void> showProfileMenu(BuildContext context,
                         fontSize: 15, color: SabaColors.muted2)),
                 GestureDetector(
                   onTap: () => Navigator.of(ctx).pop(),
-                  child: const Text('Batal',
+                  child: const Text('Cancel',
                       style: TextStyle(fontSize: 15)),
                 ),
               ],
@@ -728,7 +728,7 @@ Widget _sheetRow(
     ),
   );
 }
-/// 14 - Insight Threads Light: angka tabular + grafik + daftar posts.
+/// 14 - Insight Threads Light: tabular numbers + chart + post list.
 class InsightPage extends StatefulWidget {
   const InsightPage({super.key, required this.feed});
 
@@ -753,7 +753,7 @@ class _InsightPageState extends State<InsightPage> {
   }
 
   List<double> _demo(int seed) {
-    // Bentuk kurva demo ala mockup (naik-turun lalu datar).
+    // Demo curve shape per mockup (up-down then flat).
     final n = (seed % 7) / 7;
     return [0.2, 0.9, 0.35, 0.75, 0.3, 0.2 + n * 0.1, 0.18, 0.18, 0.17];
   }
@@ -830,7 +830,7 @@ class _InsightPageState extends State<InsightPage> {
             const Padding(
               padding: EdgeInsets.only(top: 24),
               child: Center(
-                  child: Text('Data audiens segera hadir.',
+                  child: Text('Audience data coming soon.',
                       style: TextStyle(
                           fontSize: 13, color: SabaColors.muted2))),
             )
@@ -856,7 +856,7 @@ class _InsightPageState extends State<InsightPage> {
             ),
             const SizedBox(height: 8),
             SizedBox(height: 120, child: _Sparkline(values: _demo(views))),
-            const Text('Okt 10   Okt 22   Nov 1',
+            const Text('Oct 10   Oct 22   Nov 1',
                 style:
                     TextStyle(fontSize: 10, color: SabaColors.muted2)),
             const SizedBox(height: 16),
@@ -945,7 +945,7 @@ class _InsightPageState extends State<InsightPage> {
                                   fontWeight: FontWeight.w600)),
                           const SizedBox(height: 2),
                           Text(
-                              '${timeAgo(a.createdAt).isEmpty ? 'baru' : timeAgo(a.createdAt)} • Hati ${compactVotes(baseVotes(a.id))} • Komen ${baseVotes(a.id) ~/ 6}',
+                              '${timeAgo(a.createdAt).isEmpty ? 'new' : timeAgo(a.createdAt)} • Likes ${compactVotes(baseVotes(a.id))} • Comments ${baseVotes(a.id) ~/ 6}',
                               style: const TextStyle(
                                   fontSize: 11,
                                   color: SabaColors.muted2)),
@@ -1004,9 +1004,9 @@ class _SparkPainter extends CustomPainter {
       old.values != values;
 }
 
-/// 07 - Langkah 1 Sumber (dipakai di bottom sheet).
-/// 08 - Langkah 2 Frame Transkrip = status converting di kartu home/Inbox
-/// (server mentranskrip otomatis; tanpa edit manual).
+/// 07 - Step 1 Source (used in the bottom sheet).
+/// 08 - Step 2 Frame Transcript = converting status on the home/Inbox card
+/// (server transcribes automatically; no manual editing).
 class UploadSourceSheet extends StatelessWidget {
   const UploadSourceSheet({super.key, required this.onGallery});
 
@@ -1042,14 +1042,14 @@ class UploadSourceSheet extends StatelessWidget {
                 children: [
                   _PlayDot(),
                   SizedBox(height: 8),
-                  Text('Pakai video dari HP aja, gampang',
+                  Text('Just use a video from your phone, easy',
                       style: SabaTextStyles.sectionTitle),
                 ],
               ),
             ),
             const SizedBox(height: 12),
             SabaPrimaryButton(
-                label: 'Pilih video', onPressed: onGallery),
+                label: 'Choose video', onPressed: onGallery),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -1057,13 +1057,13 @@ class UploadSourceSheet extends StatelessWidget {
                   color: SabaColors.chipBlueBg,
                   borderRadius: BorderRadius.circular(SabaRadius.card)),
               child: const Text(
-                  'Biar mulus: MP4 max 50MB, min 720p, suara jelas ya',
+                  'For best results: MP4 max 50MB, min 720p, clear audio',
                   style: TextStyle(
                       fontSize: 12, color: SabaColors.body)),
             ),
             TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Batal')),
+                child: const Text('Cancel')),
           ],
         ),
       ),
@@ -1078,7 +1078,7 @@ class _PlayDot extends StatelessWidget {
   Widget build(BuildContext context) => SabaIcons.play(size: 64);
 }
 
-/// 09 - Langkah 3 Sukses penuh.
+/// 09 - Full Step 3 Success.
 class UploadSuccessPage extends StatelessWidget {
   const UploadSuccessPage(
       {super.key,
@@ -1094,7 +1094,7 @@ class UploadSuccessPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SabaColors.bgWarm,
-      appBar: const SabaHeader(title: 'Upload • Langkah 3/3'),
+      appBar: const SabaHeader(title: 'Upload • Step 3 of 3'),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -1103,27 +1103,27 @@ class UploadSuccessPage extends StatelessWidget {
             children: [
               SabaIcons.checkLg(size: 120),
               const SizedBox(height: 16),
-              const Text('Terpublish!',
+              const Text('Published!',
                   style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 20,
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               const Text(
-                  '✓ 3/3 Sukses • Lihat artikel • Bagikan • datePublished tercatat',
+                  '✓ 3/3 Done • Read article • Share • datePublished recorded',
                   textAlign: TextAlign.center,
                   style:
                       TextStyle(fontSize: 13, color: SabaColors.muted2)),
               const SizedBox(height: 20),
               SabaPrimaryButton(
-                  label: 'Lihat artikel →', onPressed: onOpen),
+                  label: 'Read article →', onPressed: onOpen),
               TextButton(
                   onPressed: onShare,
-                  child: const Text('Bagikan')),
+                  child: const Text('Share')),
               TextButton(
                   onPressed: () => Navigator.of(context)
                       .popUntil((r) => r.isFirst),
-                  child: const Text('Kembali ke Beranda')),
+                  child: const Text('Back to Home')),
             ],
           ),
         ),

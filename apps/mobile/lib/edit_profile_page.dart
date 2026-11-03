@@ -1,5 +1,5 @@
-// Edit Profil ala mock Stitch. State tersimpan lokal (ProfileStore);
-// backend + foto asli ikut #14.
+// Edit Profile per Stitch mockup. State stored locally (ProfileStore);
+// backend + real photo follows #14.
 import 'package:flutter/material.dart';
 
 import 'profile.dart';
@@ -48,13 +48,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
     ProfileStore.showActivity = _activity;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profil tersimpan di perangkat.')),
+      const SnackBar(content: Text('Profile saved on this device.')),
     );
   }
 
   void _soon(String what) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$what segera hadir (#14)')),
+      SnackBar(content: Text('$what is coming soon (#14)')),
     );
   }
 
@@ -63,12 +63,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final v = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Topik Baru'),
+        title: const Text('New Topic'),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: '@teknologi',
+            hintText: '@technology',
             border: OutlineInputBorder(
                 borderRadius:
                     BorderRadius.all(Radius.circular(12))),
@@ -80,11 +80,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Batal')),
+              child: const Text('Cancel')),
           FilledButton(
               onPressed: () =>
                   Navigator.of(ctx).pop(ctrl.text.trim()),
-              child: const Text('Tambah')),
+              child: const Text('Add')),
         ],
       ),
     );
@@ -94,7 +94,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  /// Baris contoh kredensial ala mockup (demo lokal, tanpa backend).
+  /// Mockup-style sample credential row (local demo, no backend).
   Widget _credRow(IconData icon, String title, String sub) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -129,7 +129,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
           ),
           GestureDetector(
-            onTap: () => _soon('Ubah kredensial'),
+            onTap: () => _soon('Edit credentials'),
             child: const Icon(Icons.edit_outlined,
                 size: 16, color: SabaColors.muted2),
           ),
@@ -206,7 +206,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
-          title: const Text('Edit Profil',
+          title: const Text('Edit Profile',
               style:
                   TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           actions: [
@@ -219,7 +219,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         horizontal: 20),
                   ),
                   onPressed: _save,
-                  child: const Text('Simpan')),
+                  child: const Text('Save')),
             ),
           ]),
       body: ListView(
@@ -235,7 +235,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Informasi Dasar',
+                const Text('Basic Information',
                     style: TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
@@ -258,7 +258,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           right: -2,
                           bottom: -2,
                           child: GestureDetector(
-                            onTap: () => _soon('Ubah foto'),
+                            onTap: () => _soon('Change photo'),
                             child: const CircleAvatar(
                               radius: 11,
                               backgroundColor: sabaBlue,
@@ -278,8 +278,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           Row(
                             children: [
                               GestureDetector(
-                                onTap: () => _soon('Ubah foto'),
-                                child: const Text('Ubah Foto',
+                                onTap: () => _soon('Change photo'),
+                                child: const Text('Change Photo',
                                     style: TextStyle(
                                         fontSize: 13,
                                         fontWeight:
@@ -291,15 +291,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                       fontSize: 12,
                                       color: SabaColors.muted2)),
                               GestureDetector(
-                                onTap: () => _soon('Hapus foto'),
-                                child: const Text('Hapus',
+                                onTap: () => _soon('Remove photo'),
+                                child: const Text('Remove',
                                     style: TextStyle(
                                         fontSize: 13,
                                         color: SabaColors.muted2)),
                               ),
                             ],
                           ),
-                          const Text('Format JPG, PNG maks. 2MB',
+                          const Text('JPG, PNG format, 2MB max',
                               style: TextStyle(
                                   fontSize: 11,
                                   color: SabaColors.muted2)),
@@ -308,24 +308,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                   ],
                 ),
-                _label('Nama Lengkap'),
-                _field(_name, hint: 'Nama lengkap'),
-                _label('Jabatan & Organisasi (Bio Singkat)'),
+                _label('Full Name'),
+                _field(_name, hint: 'Full name'),
+                _label('Role & Organization (Short Bio)'),
                 _field(_headline,
-                    hint: 'Principal Designer di SABA'),
-                _label('Tentang',
+                    hint: 'Principal Designer at SABA'),
+                _label('About',
                     counter: '${_about.text.length}/240'),
                 _field(_about,
-                    hint: 'Ceritakan tentang dirimu…',
+                    hint: 'Tell us about yourself…',
                     maxLines: 4,
                     maxLength: 240),
-                _label('Lokasi Saat Ini'),
+                _label('Current Location'),
                 _field(_location,
                     hint: 'Jakarta, Indonesia',
                     icon: Icons.location_on_outlined),
-                _label('Situs Web / Portofolio'),
+                _label('Website / Portfolio'),
                 _field(_website,
-                    hint: 'https://namamu.id',
+                    hint: 'https://yourname.id',
                     icon: Icons.language_outlined,
                     keyboard: TextInputType.url),
               ],
@@ -342,46 +342,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Kredensial & Afiliasi',
+                const Text('Credentials & Affiliations',
                     style: TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold)),
                 Row(
                   children: [
-                    const Text('Pengalaman',
+                    const Text('Experience',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
                     const Spacer(),
                     TextButton.icon(
                       onPressed: () =>
-                          _soon('Tambah pengalaman'),
+                          _soon('Add experience'),
                       icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Tambah'),
+                      label: const Text('Add'),
                     ),
                   ],
                 ),
-                const Text('Belum ada pengalaman.',
+                const Text('No experience yet.',
                     style: TextStyle(
                         fontSize: 12,
                         color: SabaColors.muted2)),
                 _credRow(Icons.business_outlined, 'Nexus Labs',
-                    'Principal Designer • 2020 — Sekarang'),
+                    'Principal Designer • 2020 — Present'),
                 Row(
                   children: [
-                    const Text('Pendidikan',
+                    const Text('Education',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
                     const Spacer(),
                     TextButton.icon(
                       onPressed: () =>
-                          _soon('Tambah pendidikan'),
+                          _soon('Add education'),
                       icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Tambah'),
+                      label: const Text('Add'),
                     ),
                   ],
                 ),
-                const Text('Belum ada pendidikan.',
+                const Text('No education yet.',
                     style: TextStyle(
                         fontSize: 12,
                         color: SabaColors.muted2)),
@@ -391,12 +391,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Text('Topik',
+                    const Text('Topics',
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600)),
                     const Spacer(),
-                    Text('${_topics.length} Terpilih',
+                    Text('${_topics.length} Selected',
                         style: const TextStyle(
                             fontSize: 11,
                             color: SabaColors.muted2)),
@@ -445,7 +445,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 BorderRadius.circular(999),
                             border: Border.all(
                                 color: sabaBlue)),
-                        child: const Text('+ Topik Baru',
+                        child: const Text('+ New Topic',
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -468,17 +468,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Privasi & Visibilitas Publik',
+                const Text('Privacy & Public Visibility',
                     style: TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold)),
-                _toggle('Lencana Top Kreator',
-                    'Tampilkan lencana reputasi di samping nama pada feed diskusi',
+                _toggle('Top Creator Badge',
+                    'Show the reputation badge next to your name on the discussion feed',
                     _badge, (v) => setState(() => _badge = v)),
-                _toggle('Izinkan Pesan Langsung (DM)',
-                    'Beri izin sesama anggota komunitas untuk memulai obrolan',
+                _toggle('Allow Direct Messages (DM)',
+                    'Let fellow community members start a chat with you',
                     _dm, (v) => setState(() => _dm = v)),
-                _toggle('Aktivitas di Feed Publik',
-                    'Tampilkan jawaban & tanggapan favorit Anda di tab linimasa',
+                _toggle('Public Feed Activity',
+                    'Show your favorite answers & replies on the timeline tab',
                     _activity,
                     (v) => setState(() => _activity = v)),
               ],
@@ -489,7 +489,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             width: double.infinity,
             child: FilledButton(
                 onPressed: _save,
-                child: const Text('Simpan Perubahan')),
+                child: const Text('Save Changes')),
           ),
           const SizedBox(height: 8),
           Row(
@@ -498,7 +498,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 child: OutlinedButton(
                     onPressed: () =>
                         Navigator.of(context).pop(),
-                    child: const Text('Batal')),
+                    child: const Text('Cancel')),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -508,7 +508,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     icon: const Icon(
                         Icons.visibility_outlined,
                         size: 16),
-                    label: const Text('Pratinjau')),
+                    label: const Text('Preview')),
               ),
             ],
           ),

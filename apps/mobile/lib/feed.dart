@@ -1,5 +1,5 @@
-// Model + helper feed artikel (murni, tanpa I/O agar bisa di-unit-test).
-// Sumber: GET /v1/articles -> {ids} lalu GET /v1/articles/<id> per item.
+// Article feed model + helpers (pure, no I/O so it stays unit-testable).
+// Source: GET /v1/articles -> {ids} then GET /v1/articles/<id> per item.
 
 class FeedArticle {
   FeedArticle({
@@ -29,8 +29,8 @@ class FeedArticle {
   final List<String> references;
 
   factory FeedArticle.fromJson(Map<String, dynamic> json) {
-    // API kadang mengembalikan object sebagai list (mis. brand: [...]);
-    // cast langsung (as Map?) akan throw dan membunuh seluruh feed.
+    // The API sometimes returns an object as a list (e.g. brand: [...]);
+    // a direct cast (as Map?) would throw and kill the whole feed.
     Map m(dynamic v) => v is Map ? v : const {};
     final body = m(json['id_body']);
     final ld = m(json['json_ld']);
@@ -57,20 +57,33 @@ class FeedArticle {
   }
 }
 
-/// Label waktu relatif ID ala mock ("3 hari lalu"); '' bila tak terparse.
+/// Relative time label ("3 days ago"); '' when unparseable.
 String timeAgo(String iso, {DateTime? now}) {
   final dt = DateTime.tryParse(iso);
   if (dt == null) return '';
   final d = (now ?? DateTime.now()).difference(dt);
-  if (d.inMinutes < 1) return 'baru saja';
-  if (d.inHours < 1) return '${d.inMinutes} mnt lalu';
-  if (d.inHours < 24) return '${d.inHours} jam lalu';
-  if (d.inDays < 7) return '${d.inDays} hari lalu';
-  if (d.inDays < 30) return '${d.inDays ~/ 7} mgg lalu';
-  return '${d.inDays ~/ 30} bln lalu';
+  if (d.inMinutes < 1) return 'just now';
+  if (d.inHours < 1) {
+    final m = d.inMinutes;
+    return '$m min${m == 1 ? '' : 's'} ago';
+  }
+  if (d.inHours < 24) {
+    final h = d.inHours;
+    return '$h hr${h == 1 ? '' : 's'} ago';
+  }
+  if (d.inDays < 7) {
+    final days = d.inDays;
+    return '$days day${days == 1 ? '' : 's'} ago';
+  }
+  if (d.inDays < 30) {
+    final w = d.inDays ~/ 7;
+    return '$w wk${w == 1 ? '' : 's'} ago';
+  }
+  final mo = d.inDays ~/ 30;
+  return '$mo mo${mo == 1 ? '' : 's'} ago';
 }
 
-/// Merek unik untuk chip filter; kosong bila tak ada merek.
+/// Unique brands for filter chips; empty when there are none.
 List<String> feedBrands(List<FeedArticle> articles) {
   final seen = <String>[];
   for (final a in articles) {
@@ -84,7 +97,7 @@ List<FeedArticle> filterFeed(List<FeedArticle> articles, String? brand) {
   return articles.where((a) => a.brand == brand).toList();
 }
 
-/// Referensi https valid, maks 4 (kartu referensi detail artikel).
+/// Valid https references, max 4 (article detail reference cards).
 List<String> _httpsRefs(dynamic raw) {
   final out = <String>[];
   for (final u in (raw as List?) ?? const []) {
@@ -95,8 +108,8 @@ List<String> _httpsRefs(dynamic raw) {
   return out;
 }
 
-/// Label sumber video untuk kartu feed; '' bila tak dikenali.
-/// 5 platform: TikTok / YouTube / Instagram / Facebook / X.
+/// Video source label for feed cards; '' when unrecognized.
+/// 5 platforms: TikTok / YouTube / Instagram / Facebook / X.
 String articleSource(String videoUrl) {
   final host = Uri.tryParse(videoUrl)?.host.toLowerCase() ?? '';
   if (host.contains('tiktok.com')) return 'TikTok';

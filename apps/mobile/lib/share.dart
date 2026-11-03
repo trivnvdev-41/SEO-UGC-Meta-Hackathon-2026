@@ -1,5 +1,5 @@
-// Share ke semua sosmed ala web: bottom sheet WA/X/FB/TG/salin.
-// Buka link via MethodChannel openUrl yang sama (tanpa plugin baru).
+// Web-style share to all socials: WA/X/FB/TG/copy bottom sheet.
+// Opens links via the same openUrl MethodChannel (no new plugin).
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,7 +14,7 @@ class ShareTarget {
   final String href;
 }
 
-/// Pure (ter-test): 5 target share dengan URL ter-encode.
+/// Pure (tested): 5 share targets with encoded URL.
 List<ShareTarget> buildShareLinks(String url, String title) {
   final u = Uri.encodeComponent(url);
   final t = Uri.encodeComponent(title);
@@ -33,7 +33,7 @@ List<ShareTarget> buildShareLinks(String url, String title) {
         key: 'tg',
         label: 'Telegram',
         href: 'https://t.me/share/url?url=$u&text=$t'),
-    ShareTarget(key: 'copy', label: 'Salin link', href: url),
+    ShareTarget(key: 'copy', label: 'Copy link', href: url),
   ];
 }
 
@@ -42,11 +42,11 @@ Future<void> _openExternal(String url) async {
   try {
     await ch.invokeMethod('openUrl', url);
   } catch (_) {
-    // Abaikan: perangkat tanpa browser terdaftar.
+    // Ignore: device has no registered browser.
   }
 }
 
-/// Bottom sheet share: WA/X/FB/TG buka browser, salin via clipboard.
+/// Bottom sheet share: WA/X/FB/TG open the browser, copy via clipboard.
 Future<void> showShareSheet(BuildContext context,
     {required String url, required String title}) {
   final messenger = ScaffoldMessenger.of(context);
@@ -76,8 +76,8 @@ Future<void> showShareSheet(BuildContext context,
                 if (t.key == 'copy') {
                   await Clipboard.setData(
                       ClipboardData(text: t.href));
-                  messenger.showSnackBar(const SnackBar(
-                      content: Text('Link artikel disalin')));
+                    messenger.showSnackBar(const SnackBar(
+                        content: Text('Article link copied')));
                 } else {
                   await _openExternal(t.href);
                 }

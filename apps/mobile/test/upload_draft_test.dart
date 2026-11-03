@@ -38,7 +38,7 @@ void main() {
   });
 
   test('confidenceLabel persen atau strip', () {
-    expect(DraftData.fromJson(draftJson()).confidenceLabel, '92% pas');
+    expect(DraftData.fromJson(draftJson()).confidenceLabel, '92% match');
     expect(DraftData.fromJson(draftJson(confidence: null)).confidenceLabel,
         '–');
   });

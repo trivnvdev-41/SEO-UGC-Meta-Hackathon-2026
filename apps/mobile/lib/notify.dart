@@ -1,11 +1,11 @@
-// Local notification Android: info saat job selesai selagi app di background.
-// Tap notifikasi artikel → dibuka via callback [onNotifTap] (payload = URL).
+// Android local notification: info when a job finishes while app is in background.
+// Tapping an article notification opens it via callback [onNotifTap] (payload = URL).
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 final _notif = FlutterLocalNotificationsPlugin();
 bool _ready = false;
 
-/// Dipasang oleh UI (punya akses MethodChannel `openUrl`); null = tanpa aksi tap.
+/// Installed by the UI (has MethodChannel `openUrl` access); null = no tap action.
 Future<void> Function(String? payload)? onNotifTap;
 
 Future<void> initNotif() async {
@@ -23,7 +23,7 @@ Future<void> initNotif() async {
   _ready = true;
 }
 
-/// shortcut: no-op sebelum init / tanpa pesan — pemanggil tak perlu cek state.
+/// shortcut: no-op before init / without a message — callers skip state checks.
 Future<void> notifyJob(String title, String body, {String? payload}) async {
   if (!_ready || body.isEmpty) return;
   const details = AndroidNotificationDetails(

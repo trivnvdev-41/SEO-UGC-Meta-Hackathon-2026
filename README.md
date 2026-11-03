@@ -1,9 +1,10 @@
 # SABA
 
-**Ulasan produk jujur dari video kreator.** SABA turns TikTok /
-YouTube links and direct video uploads into SEO-ready web articles —
-with **JSON-LD schema** and the **official video embed**. Readers then
-discuss each review in a forum-style app.
+**Ulasan produk jujur dari video kreator.** SABA turns direct video
+uploads into SEO-ready web articles — with **JSON-LD schema** and the
+**official video embed**. A social-media link may be attached only as an
+extra reference for the article; videos are never pulled from social
+media. Readers then discuss each review in a forum-style app.
 
 > Nama produk: **SABA**. Slug teknis lama (`seo-ugc-*` di `package.json`,
 > `seougc` di DB/user, channel `dev.seougc/share`) masih dipakai di kode
@@ -105,7 +106,7 @@ expose it publicly.
 - [x] API Gateway (`node:http`) + BullMQ queue + consumer (queue → worker → persist) + Prisma/PostgreSQL (`Article` + `Job`)
 - [x] Python worker: upload → FFmpeg + `/tmp` purge (in `finally`)
 - [x] STT + multimodal article generation, two independent providers via env (`AI_STT_*`, `AI_LLM_*`)
-- [x] Next.js article pages + JSON-LD + oEmbed (TikTok, YouTube) + jelajah/forum pages
+- [x] Next.js article pages + JSON-LD + social embeds + jelajah/forum pages
 - [x] SEO: path-based i18n (`/article/<id>` ID, `/en/article/<id>` EN), canonical/hreflang, sitemap, robots, escaped JSON-LD
 - [x] Security: domain allowlist, internal service token, rate limit, video size/duration caps
 - [x] Playwright E2E (5 tests)

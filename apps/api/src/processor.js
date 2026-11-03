@@ -60,10 +60,12 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
 /// hapus sumber video (satu-satunya tempat hapus yang aman).
 export function makePublisher({ db, workerUrl, token, fetchImpl = fetch, mediaDir = '' }) {
   return async (jobId, pub = {}) => {
-    const row = await db.getJob(jobId);
-    if (!row) throw new Error('draft_missing');
-    const draft = parseDraft(row.draft);
+    // Draft hidup di job asal (pub.origId); job publish hanya pembawa tugas.
+    const draftRow = await db.getJob(pub.origId || jobId);
+    if (!draftRow) throw new Error('draft_missing');
+    const draft = parseDraft(draftRow.draft);
     if (!draft) throw new Error('draft_missing');
+    const row = await db.getJob(jobId);
     const url = row.url ?? '';
 
     const title = typeof pub.title === 'string' && pub.title.trim()

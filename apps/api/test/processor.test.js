@@ -120,7 +120,7 @@ test('normalizeConcurrency: valid 1..32, fallback untuk sampah', () => {
   assert.equal(normalizeConcurrency('999'), 2);
 });
 
-function fakeDraftDb(draft) {
+function fakeDraftDb(draft, { draftId = null } = {}) {
   const calls = [];
   return {
     calls,
@@ -130,11 +130,17 @@ function fakeDraftDb(draft) {
     saveArticle: async (a) => {
       calls.push(['article', a]);
     },
-    getJob: async (id) => ({
-      id, url: '', creator: null, status: 'draft_ready',
-      articleId: null, error: null,
-      draft: JSON.stringify(draft),
-    }),
+    // Draft hanya ada di job asal; job publish baru tak punya draft.
+    getJob: async (id) => {
+      if (draftId !== null && id !== draftId) {
+        return { id, url: '', creator: null, status: 'queued', articleId: null, error: null, draft: null };
+      }
+      return {
+        id, url: '', creator: null, status: 'draft_ready',
+        articleId: null, error: null,
+        draft: JSON.stringify(draft),
+      };
+    },
   };
 }
 
@@ -295,6 +301,20 @@ test('publish: media draft dihapus setelah artikel tersimpan', async () => {
   await publish('job_new', { edited: false, origId: 'job_orig' });
   assert.equal(existsSync(join(dir, 'job_orig')), false);
   assert.equal(db.calls.some((c) => c[0] === 'article'), true);
+});
+
+test('draft diambil dari job asal (origId), bukan job publish', async () => {
+  const db = fakeDraftDb(draftFixture, { draftId: 'job_orig' });
+  const publish = makePublisher({
+    db,
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    fetchImpl: async () => { throw new Error('must not call worker'); },
+  });
+  const out = await publish('job_new', { edited: false, origId: 'job_orig' });
+  assert.deepEqual(out, { id: 'job_new' });
+  const saved = db.calls.find((c) => c[0] === 'article')[1];
+  assert.equal(saved.creator, '@hebat');
 });
 
 test('publish tanpa draft -> draft_missing', async () => {

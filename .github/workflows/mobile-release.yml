@@ -7,6 +7,10 @@ on:
         description: 'API_BASE baked into the APK'
         required: true
         default: 'https://saba.ink'
+      web_base:
+        description: 'WEB_BASE baked into the APK (share links)'
+        required: true
+        default: 'https://saba.ink'
       release_name:
         description: 'Release tag (e.g. saba-manual, v1.0.1)'
         required: true
@@ -31,7 +35,7 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter build apk --release --dart-define=API_BASE=${{ inputs.api_base }}
+      - run: flutter build apk --release --dart-define=API_BASE=${{ inputs.api_base }} --dart-define=WEB_BASE=${{ inputs.web_base }}
       - run: mv build/app/outputs/flutter-apk/app-release.apk saba-${{ inputs.release_name }}.apk
       - uses: softprops/action-gh-release@v2
         with:

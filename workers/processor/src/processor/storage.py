@@ -42,25 +42,28 @@ def config() -> dict | None:
     return cfg
 
 
-def pick_frames(frames: list[str], indices: list[int]) -> list[str]:
-    """Ambil frame sesuai indeks pilihan LLM; fallback ke 2 frame pertama."""
+def pick_frames(frames: list[str], indices: list[int],
+                max_n: int = MAX_IMAGES) -> list[str]:
+    """Ambil frame sesuai indeks pilihan; fallback ke frame awal.
+    max_n mengikuti kebutuhan pemanggil (artikel: 3, draft: 6)."""
     picked = [frames[i] for i in indices if 0 <= i < len(frames)]
-    return (picked or frames[:2])[:MAX_IMAGES]
+    return (picked or frames[:2])[:max_n]
 
 
 def upload_images(job_id: str, frames: list[str], indices: list[int],
-                   client=None) -> list[str]:
+                   client=None, max_n: int = MAX_IMAGES) -> list[str]:
     cfg = config()
     if cfg and frames:
-        return _upload_s3(cfg, job_id, frames, indices, client)
+        return _upload_s3(cfg, job_id, frames, indices, client, max_n)
     local = _env("LOCAL_IMAGE_DIR")
     if local and frames:
-        return _save_local(local, job_id, frames, indices)
+        return _save_local(local, job_id, frames, indices, max_n)
     return []
 
 
 def _upload_s3(cfg: dict, job_id: str, frames: list[str],
-               indices: list[int], client=None) -> list[str]:
+               indices: list[int], client=None,
+               max_n: int = MAX_IMAGES) -> list[str]:
     import boto3
     from botocore.config import Config
     if client is None:
@@ -75,7 +78,7 @@ def _upload_s3(cfg: dict, job_id: str, frames: list[str],
             kwargs["aws_secret_access_key"] = cfg["secret"]
         client = boto3.client("s3", **kwargs)
     urls = []
-    for path in pick_frames(frames, indices):
+    for path in pick_frames(frames, indices, max_n):
         key = f"{job_id}/{Path(path).name}"
         client.upload_file(path, cfg["bucket"], key,
                        ExtraArgs={"ContentType": "image/jpeg"})
@@ -84,7 +87,7 @@ def _upload_s3(cfg: dict, job_id: str, frames: list[str],
 
 
 def _save_local(root: str, job_id: str, frames: list[str],
-                indices: list[int]) -> list[str]:
+                indices: list[int], max_n: int = MAX_IMAGES) -> list[str]:
     """Salin frame ke <root>/<job_id>/; URL dari LOCAL_PUBLIC_BASE_URL."""
     base = _env("LOCAL_PUBLIC_BASE_URL").rstrip("/")
     if not base:
@@ -92,7 +95,7 @@ def _save_local(root: str, job_id: str, frames: list[str],
     dest = Path(root) / job_id
     dest.mkdir(parents=True, exist_ok=True)
     urls = []
-    for path in pick_frames(frames, indices):
+    for path in pick_frames(frames, indices, max_n):
         target = dest / Path(path).name
         shutil.copyfile(path, target)
         urls.append(f"{base}/{job_id}/{target.name}")

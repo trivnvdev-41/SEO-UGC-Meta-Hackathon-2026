@@ -20,9 +20,10 @@ class AppTest(unittest.TestCase):
                 patch("processor.app.purge",
                       side_effect=lambda *a: order.append("purge")), \
                 patch("processor.app.upload_images",
-                      side_effect=lambda *a: order.append("upload") or ["https://cdn/x.jpg"]):
+                      side_effect=lambda *a, **k: order.append("upload") or ["https://cdn/x.jpg"]):
             out = process(JOB)
-        self.assertEqual(order, ["pipeline", "enrich", "upload", "purge"])
+        self.assertEqual(
+            order, ["pipeline", "enrich", "upload", "upload", "purge"])
         self.assertEqual(out["job_id"], "j1")
         self.assertIn("articles", out)
         self.assertEqual(out["creator"], "Kreator Hebat")
@@ -88,10 +89,24 @@ class AppTest(unittest.TestCase):
         self.assertTrue((tmp / "j9" / "video.mp4").is_file())
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
+    def test_process_kirim_frame_options_6_dan_confidence(self):
+        frames = ["f%d" % i for i in range(10)]
+        bundle = {"transcript": "halo", "language": "id", "confidence": 92.5,
+                  "articles": {"id": {}, "en": {}}, "json_ld": {},
+                  "selected_image_indices": [1, 4]}
+        with patch("processor.app.pipeline",
+                   return_value={"audio": "a", "frames": frames,
+                                 "creator": None}):
+            with patch("processor.app.enrich", return_value=bundle):
+                with patch("processor.app.upload_images",
+                            side_effect=lambda j, f, idx, **k:
+                            ["https://cdn/%s" % i for i in idx]) as up:
+                    with patch("processor.app.purge"):
+                        out = process(JOB)
+        self.assertEqual(out["confidence"], 92.5)
+        self.assertEqual(len(out["frame_options"]), 6)
+        # upload dipanggil 2x: gambar artikel + 6 opsi sampul
+        self.assertEqual(up.call_count, 2)
 
 if __name__ == "__main__":
     unittest.main()

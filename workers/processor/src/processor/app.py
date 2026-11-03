@@ -44,11 +44,15 @@ def process(job: ConvertJob):
     try:
         media = pipeline(job.job_id, creator=job.creator)
         bundle = enrich(media["audio"], media["frames"],
-                        creator=media.get("creator"))
+                        creator=media.get("creator"), verbose_stt=True)
         bundle["creator"] = media.get("creator")
         bundle["images"] = upload_images(
             job.job_id, media["frames"],
             bundle.get("selected_image_indices") or [])
+        # Opsi sampul Langkah 2: 6 frame pertama, pilihan AI ikut terkirim
+        # via selected_image_indices agar mobile tinggal praseleksi.
+        bundle["frame_options"] = upload_images(
+            job.job_id, media["frames"], list(range(6)), max_n=6)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     finally:

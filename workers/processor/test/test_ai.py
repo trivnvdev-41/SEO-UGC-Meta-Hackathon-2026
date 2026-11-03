@@ -212,5 +212,43 @@ class AiTest(unittest.TestCase):
         self.assertIn("pertanyaan", text)
         self.assertIn("SITASI", text)
 
+    def test_transcribe_verbose_hitung_confidence(self):
+        cap = {}
+        payload = json.dumps(
+            {"text": "halo", "language": "id",
+             "segments": [{"avg_logprob": 0.0}, {"avg_logprob": -0.6931}]}
+        ).encode()
+        with tempfile.TemporaryDirectory() as tmp, patch(
+                "urllib.request.urlopen",
+                _fake_urlopen_factory(cap, payload)):
+            out = ai.transcribe_audio(_mp3(tmp), "K", model="m",
+                                      base="https://t", verbose=True)
+        self.assertEqual(out["text"], "halo")
+        # (1.0 + 0.5) / 2 * 100 = 75.0
+        self.assertEqual(out["confidence"], 75.0)
+        self.assertIn(b"verbose_json", cap["body"])
+
+    def test_transcribe_verbose_tanpa_segmen_confidence_none(self):
+        cap = {}
+        payload = json.dumps({"text": "halo"}).encode()
+        with tempfile.TemporaryDirectory() as tmp, patch(
+                "urllib.request.urlopen",
+                _fake_urlopen_factory(cap, payload)):
+            out = ai.transcribe_audio(_mp3(tmp), "K", model="m",
+                                      base="https://t", verbose=True)
+        self.assertIsNone(out["confidence"])
+
+    def test_transcribe_tanpa_verbose_tanpa_confidence(self):
+        cap = {}
+        payload = json.dumps({"text": "review bagus"}).encode()
+        with tempfile.TemporaryDirectory() as tmp, patch(
+                "urllib.request.urlopen",
+                _fake_urlopen_factory(cap, payload)):
+            out = ai.transcribe_audio(_mp3(tmp), "K",
+                                      model="m-vox", base="https://fw.test")
+        self.assertEqual(out, {"text": "review bagus",
+                               "language": None})
+        self.assertNotIn(b"verbose_json", cap["body"])
 if __name__ == "__main__":
     unittest.main()
+

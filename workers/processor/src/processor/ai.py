@@ -65,15 +65,18 @@ def _post(url: str, api_key: str, body: bytes, content_type: str) -> dict:
         raise RuntimeError(f"ai_http_{e.code}:{detail}") from e
 
 
-def _multipart(model: str, audio: Path) -> tuple[bytes, str]:
-    boundary = "----saba" + secrets.token_hex(8)
+def _multipart(model: str, audio: Path,
+               verbose: bool = False) -> tuple[bytes, str]:
+    boundary = "----seougc" + secrets.token_hex(8)
     buf = io.BytesIO()
 
     def field(name: str, value: str) -> None:
         buf.write(f"--{boundary}\r\nContent-Disposition: form-data; "
-                  f'name="{name}"\r\n\r\n{value}\r\n'.encode())
+                f'name="{name}"\r\n\r\n{value}\r\n'.encode())
 
     field("model", model)
+    if verbose:
+        field("response_format", "verbose_json")
     buf.write(f'--{boundary}\r\nContent-Disposition: form-data; '
               f'name="file"; filename="{audio.name}"\r\n'
               f"Content-Type: audio/mpeg\r\n\r\n".encode())
@@ -82,15 +85,35 @@ def _multipart(model: str, audio: Path) -> tuple[bytes, str]:
     return buf.getvalue(), f"multipart/form-data; boundary={boundary}"
 
 
+def _confidence_verbose(data: dict) -> float | None:
+    """Rata-rata exp(avg_logprob) segmen -> persen. None bila tak ada segmen."""
+    try:
+        import math
+        segs = data.get("segments") or []
+        vals = [math.exp(s["avg_logprob"]) for s in segs
+                if isinstance(s.get("avg_logprob"), (int, float))]
+        if not vals:
+            return None
+        return round(sum(vals) / len(vals) * 100, 1)
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
 def transcribe_audio(audio_path: str | Path, api_key: str | None = None,
                      model: str | None = None,
-                     base: str | None = None) -> dict:
-    """audio.mp3 -> {'text', 'language'} via endpoint STT."""
+                     base: str | None = None,
+                     verbose: bool = False) -> dict:
+    """audio.mp3 -> {'text', 'language', 'confidence'} via endpoint STT.
+    verbose=True meminta verbose_json agar ada skor keyakinan (best-effort:
+    None bila provider tak mengembalikan segmen)."""
     audio = Path(audio_path)
     base, api_key, model = _resolve("stt", base, api_key, model)
-    body, ctype = _multipart(model, audio)
+    body, ctype = _multipart(model, audio, verbose=verbose)
     data = _post(f"{base}/audio/transcriptions", api_key, body, ctype)
-    return {"text": data["text"], "language": data.get("language")}
+    out = {"text": data["text"], "language": data.get("language")}
+    if verbose:
+        out["confidence"] = _confidence_verbose(data)
+    return out
 
 
 def _wav16k(audio: Path) -> Path:
@@ -209,14 +232,17 @@ def generate_article(transcript: str, images_b64: list[str],
 
 
 def enrich(audio_path: str | Path, frame_paths: list[str | Path],
-           creator: str | None = None) -> dict:
-    """Satu pintu worker: STT dulu, lalu artikel + seleksi foto."""
+           creator: str | None = None,
+           verbose_stt: bool = False) -> dict:
+    """Satu pintu worker: STT dulu, lalu artikel + seleksi foto.
+    verbose_stt=True meminta skor keyakinan transkrip (best-effort)."""
     if stt_mode() == "meta-asr":
         stt = transcribe_meta_asr(audio_path)
     else:
-        stt = transcribe_audio(audio_path)
+        stt = transcribe_audio(audio_path, verbose=verbose_stt)
     images = [base64.b64encode(Path(p).read_bytes()).decode()
               for p in frame_paths]
     bundle = generate_article(stt["text"], images,
                               creator=creator)
-    return {"transcript": stt["text"], "language": stt["language"], **bundle}
+    return {"transcript": stt["text"], "language": stt["language"],
+            "confidence": stt.get("confidence"), **bundle}

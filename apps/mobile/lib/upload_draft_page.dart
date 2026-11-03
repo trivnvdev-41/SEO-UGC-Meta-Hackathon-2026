@@ -33,6 +33,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
   String? _error;
   bool _publishing = false;
   bool _cancelled = false;
+  bool _allowBackground = false; // publish jalan terus walau halaman ditutup
   bool _savedFlash = false;
 
   late final TextEditingController _link = TextEditingController();
@@ -77,7 +78,11 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
       _title.text = d.title;
       _origTranscript = d.transcript;
       _origTitle = d.title;
-      _coverIndex = aiPick.isEmpty ? 0 : aiPick.first;
+      _coverIndex = d.frames.isEmpty
+          ? null
+          : aiPick.isEmpty
+              ? 0
+              : aiPick.first;
       _tapped = _coverIndex;
     });
   }
@@ -124,6 +129,11 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
   Future<void> _saveRefs() async {
     final d = _draft;
     if (d == null) return;
+    if (_refs.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Maksimal 3 link referensi.')));
+      return;
+    }
     final add = parseRefInput(_link.text)
         .where((u) => !_refs.contains(u))
         .take(3 - _refs.length)
@@ -176,7 +186,9 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     setState(() {
       _publishing = true;
       _error = null;
+      _allowBackground = true; // hasil publish tetap diantar walau pop
     });
+    bool alive() => !_cancelled || _allowBackground;
     final edited = _transcript.text.trim() != d.transcript.trim();
     final pubId = await publishDraft(widget.apiBase, widget.jobId,
         title: _title.text.trim().isEmpty ? null : _title.text.trim(),
@@ -184,24 +196,29 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
         transcript: _transcript.text,
         references: _refs,
         edited: edited);
-    if (!mounted || _cancelled) return;
+    if (!alive()) return;
     if (pubId == null) {
-      setState(() {
-        _publishing = false;
-        _error = 'Gagal mempublikasi. Coba lagi.';
-      });
+      if (mounted) {
+        setState(() {
+          _publishing = false;
+          _error = 'Gagal mempublikasi. Coba lagi.';
+        });
+      } else {
+        widget.onFail(widget.jobId, 'publish_gagal');
+      }
       return;
     }
-    final done = await pollArticleDone(widget.apiBase, pubId,
-        alive: () => mounted && !_cancelled);
-    if (!mounted || _cancelled) return;
+    final done = await pollArticleDone(widget.apiBase, pubId, alive: alive);
+    if (!alive()) return;
     if (done) {
       widget.onDone(pubId);
-    } else {
+    } else if (mounted) {
       setState(() {
         _publishing = false;
         _error = 'Artikel tak kunjung jadi. Coba lagi.';
       });
+      widget.onFail(widget.jobId, 'timeout');
+    } else {
       widget.onFail(widget.jobId, 'timeout');
     }
   }
@@ -411,6 +428,12 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
 
   Widget _framesCard() {
     final d = _draft!;
+    if (d.frames.isEmpty) {
+      return const SabaCard(
+        child: Text('Frame sampul tak tersedia.',
+            style: TextStyle(fontSize: 13, color: SabaColors.muted2)),
+      );
+    }
     final ai = d.selectedIndices.where((i) => i < d.frames.length).toSet();
     final cover = (_coverIndex != null &&
             _coverIndex! >= 0 &&

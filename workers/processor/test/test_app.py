@@ -93,7 +93,7 @@ class AppTest(unittest.TestCase):
         frames = ["f%d" % i for i in range(10)]
         bundle = {"transcript": "halo", "language": "id", "confidence": 92.5,
                   "articles": {"id": {}, "en": {}}, "json_ld": {},
-                  "selected_image_indices": [1, 4]}
+                  "selected_image_indices": [1, 8]}
         with patch("processor.app.pipeline",
                    return_value={"audio": "a", "frames": frames,
                                  "creator": None}):
@@ -105,6 +105,10 @@ class AppTest(unittest.TestCase):
                         out = process(JOB)
         self.assertEqual(out["confidence"], 92.5)
         self.assertEqual(len(out["frame_options"]), 6)
+        # indeks 8 di luar 6 pertama -> ikut terupload + diremap
+        takes = [c.args[2] for c in up.call_args_list]
+        self.assertIn([1, 8, 0, 2, 3, 4], takes)
+        self.assertEqual(out["selected_image_indices"], [0, 1])
         # upload dipanggil 2x: gambar artikel + 6 opsi sampul
         self.assertEqual(up.call_count, 2)
 

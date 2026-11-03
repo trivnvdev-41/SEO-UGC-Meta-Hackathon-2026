@@ -85,6 +85,8 @@ export function makePublisher({ db, workerUrl, token, fetchImpl = fetch, mediaDi
     let jsonLd = draft.json_ld ?? {};
     let idFaqs = draft.articles?.id?.faqs ?? [];
     let enFaqs = draft.articles?.en?.faqs ?? [];
+    // Indeks terpilih regen mengacu ke urutan `ordered` (cover dulu bila ada).
+    let selected = null;
     if (edited) {
       const ordered = coverIndex !== null && frames[coverIndex]
         ? [frames[coverIndex], ...frames.filter((_, i) => i !== coverIndex)]
@@ -109,16 +111,32 @@ export function makePublisher({ db, workerUrl, token, fetchImpl = fetch, mediaDi
       jsonLd = b.json_ld ?? {};
       idFaqs = b.articles.id?.faqs ?? [];
       enFaqs = b.articles.en?.faqs ?? [];
+      selected = Array.isArray(b.selected_image_indices)
+        ? b.selected_image_indices.filter((i) => Number.isInteger(i))
+        : [];
     }
 
     const coverUrl = coverIndex !== null ? frames[coverIndex] : null;
-    const baseImages = edited
-      ? (draft.images ?? [])
-      : (draft.images ?? []);
-    const images = [
-      ...(coverUrl ? [coverUrl] : []),
-      ...baseImages.filter((u) => u !== coverUrl),
-    ].slice(0, 3);
+    let images;
+    if (edited) {
+      const ordered = coverIndex !== null && frames[coverIndex]
+        ? [frames[coverIndex], ...frames.filter((_, i) => i !== coverIndex)]
+        : frames;
+      const picked = (selected ?? [])
+        .map((i) => ordered[i])
+        .filter((u) => typeof u === 'string' && u !== coverUrl);
+      images = [
+        ...(coverUrl ? [coverUrl] : []),
+        ...picked,
+        ...ordered.filter(
+          (u) => u !== coverUrl && !picked.includes(u)),
+      ].slice(0, 3);
+    } else {
+      images = [
+        ...(coverUrl ? [coverUrl] : []),
+        ...((draft.images ?? []).filter((u) => u !== coverUrl)),
+      ].slice(0, 3);
+    }
 
     await db.saveArticle({
       id: jobId,

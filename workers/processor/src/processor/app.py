@@ -49,10 +49,18 @@ def process(job: ConvertJob):
         bundle["images"] = upload_images(
             job.job_id, media["frames"],
             bundle.get("selected_image_indices") or [])
-        # Opsi sampul Langkah 2: 6 frame pertama, pilihan AI ikut terkirim
-        # via selected_image_indices agar mobile tinggal praseleksi.
+        # Opsi sampul Langkah 2: pilihan AI dulu, dilengkapi sampai 6.
+        # Indeks diremap ke posisi baru agar praseleksi mobile selalu valid
+        # (LLM memilih dari 10 frame ekstrak, bukan dari 6 yang diupload).
+        sel = [i for i in (bundle.get("selected_image_indices") or [])
+               if isinstance(i, int) and 0 <= i < len(media["frames"])]
+        take = (sel + [i for i in range(len(media["frames"]))
+                       if i not in sel])[:6]
         bundle["frame_options"] = upload_images(
-            job.job_id, media["frames"], list(range(6)), max_n=6)
+            job.job_id, media["frames"], take, max_n=6)
+        pos = {old: new for new, old in enumerate(take)}
+        bundle["selected_image_indices"] = [pos[i] for i in sel
+                                            if i in pos]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     finally:

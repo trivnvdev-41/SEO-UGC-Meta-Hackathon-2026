@@ -248,6 +248,35 @@ test('publish dengan transkrip editan: regen via /regenerate', async () => {
   assert.equal(saved.id_body.title, 'Regen');
 });
 
+test('publish regen: gambar ikut cover + pilihan regen', async () => {
+  const db = fakeDraftDb({
+    ...draftFixture,
+    frames: ['https://cdn.test/f0.jpg', 'https://cdn.test/f1.jpg', 'https://cdn.test/f2.jpg'],
+  });
+  const regenBundle = {
+    articles: {
+      id: { title: 'R', meta: 'M', body_md: 'B', faqs: [] },
+      en: { title: 'R', meta: 'M', body_md: 'B', faqs: [] },
+    },
+    json_ld: {},
+    selected_image_indices: [2, 0],
+  };
+  const publish = makePublisher({
+    db,
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => regenBundle }),
+  });
+  await publish('job_f', { transcript: 'baru', coverIndex: 1, edited: true });
+  const saved = db.calls.find((c) => c[0] === 'article')[1];
+  // ordered = [f1, f0, f2]; regen pilih [2,0] -> f2 lalu f1(cover, dedup)
+  assert.deepEqual(saved.images, [
+    'https://cdn.test/f1.jpg',
+    'https://cdn.test/f2.jpg',
+    'https://cdn.test/f0.jpg',
+  ]);
+});
+
 test('publish: media draft dihapus setelah artikel tersimpan', async () => {
   const { mkdtempSync, mkdirSync, writeFileSync, existsSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');

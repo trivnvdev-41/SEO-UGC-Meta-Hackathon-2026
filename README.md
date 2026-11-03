@@ -1,15 +1,20 @@
-# SEO UGC
+# SABA
 
-Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
-**JSON-LD schema** and an **official embed**.
+Ulasan produk jujur dari video kreator: turn UGC video links (TikTok /
+YouTube) and direct uploads into SEO-ready web articles with **JSON-LD
+schema** and an **official embed**, served in a forum-style app.
+
+> Nama produk: **SABA**. Slug teknis lama (`seo-ugc-*` di `package.json`,
+> `seougc` di DB/user, channel `dev.seougc/share`) masih dipakai di kode
+> dan belum di-rename agar tidak merusak instalasi yang jalan.
 
 ## Structure
 
 | Path | Contents |
 |---|---|
-| `apps/mobile` | Share Target Receiver (`ACTION_SEND`) |
-| `apps/web` | Next.js SSR/ISR public SEO site |
-| `apps/api` | Node.js gateway (`POST /v1/convert`) + BullMQ consumer |
+| `apps/mobile` | Flutter forum app (**SABA**): home, upload video galeri → `POST /v1/uploads`, vote, komentar, profil |
+| `apps/web` | Next.js SSR/ISR public SEO site (route groups `app/(id)/` + `app/(en)/`) |
+| `apps/api` | Node.js `node:http` gateway + BullMQ queue/consumer + Prisma/PostgreSQL (`Article` + `Job`) |
 | `workers/processor` | Python FastAPI media worker (ephemeral `/tmp`) |
 
 ## Run locally
@@ -33,7 +38,7 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
    docker run -d --name seougc-redis -p 6379:6379 redis:7-alpine
    UV_CACHE_DIR=/tmp/uv-cache uv pip install --python workers/processor/.venv/bin/python -e workers/processor
    ```
-5. `ffmpeg` and `yt-dlp` must be on `PATH` (no sudo: `uv pip install imageio-ffmpeg`,
+5. `ffmpeg` must be on `PATH` (no sudo: `uv pip install imageio-ffmpeg`,
    then symlink its binary as `ffmpeg`).
 6. Start the services (defaults: API `4301`, worker `4302`, web `4320`;
    API butuh `REDIS_URL`, mis. `redis://localhost:6379`):
@@ -44,18 +49,18 @@ Turn UGC video links (TikTok / YouTube) into SEO-ready web articles with
    npm run dev --prefix apps/web -- -p 4320
    ```
 7. Mobile (optional): `cd apps/mobile && flutter run --dart-define=API_BASE=http://10.0.2.2:4301`
-8. See each `apps/*` and `workers/*` README for details.
+8. See `apps/api/README.md` and each `apps/*` and `workers/*` README for details.
 
 ## Tests
 
 | Suite | Command | Count |
 |---|---|---|
-| API (node:test) | `npm test --prefix apps/api` | 33 |
+| API (node:test) | `npm test --prefix apps/api` | 28 |
 
 > Test API butuh Redis jalan (`REDIS_URL`, default `redis://localhost:6379`);
 > tanpa Redis, 2 test integrasi antrean otomatis skip.
-| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 51 |
-| Web unit (vitest) | `npm test --prefix apps/web` | 21 |
+| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 36 |
+| Web unit (vitest) | `npm test --prefix apps/web` | 25 |
 | Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 5 |
 | Mobile (flutter) | `cd apps/mobile && flutter test` | 20 |
 
@@ -95,19 +100,18 @@ expose it publicly.
 
 ## Built During Hackathon
 
-- [x] Mobile upload video (Flutter Android galeri → `POST /v1/uploads`)
-- [x] API Gateway + BullMQ queue + consumer (queue → worker → persist)
-- [x] Python worker: yt-dlp + FFmpeg + `/tmp` purge (in `finally`)
+- [x] Mobile forum app (Flutter Android): home, upload video galeri → `POST /v1/uploads`, vote, komentar, profil
+- [x] API Gateway (`node:http`) + BullMQ queue + consumer (queue → worker → persist) + Prisma/PostgreSQL (`Article` + `Job`)
+- [x] Python worker: upload → FFmpeg + `/tmp` purge (in `finally`)
 - [x] STT + multimodal article generation, two independent providers via env (`AI_STT_*`, `AI_LLM_*`)
-- [x] Next.js article pages + JSON-LD + oEmbed (TikTok, YouTube)
-- [x] SEO: path-based i18n (`/en/article/<id>`), canonical/hreflang, sitemap, robots, escaped JSON-LD
+- [x] Next.js article pages + JSON-LD + oEmbed (TikTok, YouTube) + jelajah/forum pages
+- [x] SEO: path-based i18n (`/article/<id>` ID, `/en/article/<id>` EN), canonical/hreflang, sitemap, robots, escaped JSON-LD
 - [x] Security: domain allowlist, internal service token, rate limit, video size/duration caps
-- [x] Prisma/PostgreSQL (`Article` + `Job`)
 - [x] Playwright E2E (5 tests)
 - [x] Image upload to S3/R2 (verified against local s3proxy: 2 files uploaded, public URLs return 200)
 
 ## Pre-existing Dependencies
 
 Next.js 15, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Prisma + PostgreSQL,
-Redis + BullMQ, FastAPI + Pydantic, yt-dlp, FFmpeg, boto3, Flutter 3.44, Playwright.
+Redis + BullMQ, FastAPI + Pydantic, FFmpeg, boto3, Flutter 3.44, Playwright.
 The HTTP gateway uses `node:http` (not Express/NestJS).

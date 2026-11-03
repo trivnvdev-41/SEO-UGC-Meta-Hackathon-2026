@@ -1,4 +1,4 @@
-name: seo_ugc
+name: saba
 description: "SABA: upload video dari galeri, artikel dimasak otomatis di server."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

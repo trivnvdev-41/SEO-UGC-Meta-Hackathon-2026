@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { isConvertibleUrl } from './validateUrl.js';
 import { handleVideoUpload, maxUploadMb } from './uploadIngress.js';
 
 // Identitas tanpa akun: cookie saba_v (uuid) + hash IP+UA sebagai pengikat.
@@ -52,8 +51,9 @@ function readJson(req) {
   });
 }
 
-// enqueue: async ({url}) => {id}. db: lihat src/db.js.
-// opts.rateLimiter: (key) => boolean.
+// enqueue: dicadangkan (alur link dicabut; upload pakai opts.upload.queue).
+// db: lihat src/db.js.
+// opts.rateLimiter: (key) => boolean (fallback untuk upload).
 // opts.upload: {queue, newJobId, mediaDir, maxMb} untuk POST /v1/uploads.
 // opts.voteLimiter: (key) => boolean untuk POST /v1/votes.
 export function makeApp(enqueue, db, { rateLimiter, upload, voteLimiter } = {}) {
@@ -152,30 +152,7 @@ export function makeApp(enqueue, db, { rateLimiter, upload, voteLimiter } = {}) 
       }
     }
 
-    if (req.method !== 'POST' || pathname !== '/v1/convert') {
-      return send(res, 404, { error: 'not_found' });
-    }
-
-    if (rateLimiter) {
-      const ip = req.socket?.remoteAddress ?? 'unknown';
-      if (!rateLimiter(ip)) return send(res, 429, { error: 'rate_limited' });
-    }
-
-    let body;
-    try {
-      body = await readJson(req);
-    } catch (e) {
-      return send(res, 400, { error: e.message });
-    }
-    const url = typeof body.url === 'string' ? body.url.trim() : '';
-    if (!isConvertibleUrl(url)) {
-      return send(res, 400, { error: 'invalid_url' });
-    }
-    try {
-      const job = await enqueue({ url });
-      return send(res, 202, { jobId: job.id });
-    } catch {
-      return send(res, 503, { error: 'queue_unavailable' });
-    }
+    // Alur link (/v1/convert) dicabut: pipeline upload-only via /v1/uploads.
+    return send(res, 404, { error: 'not_found' });
   };
 }

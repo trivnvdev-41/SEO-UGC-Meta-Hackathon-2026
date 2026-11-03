@@ -1,14 +1,15 @@
-# Web (Next.js SEO)
+# Web (Next.js SEO — SABA)
 
-Artikel SSR/ISR di `app/article/[id]` + **JSON-LD** + OG/Twitter tags + galeri
-maksimal 3 foto produk + tautan video asli + path bahasa `/article/<id>` (ID) dan `/en/article/<id>` (EN).
+Artikel SSR/ISR di `app/(id)/article/[id]` (ID) + `app/(en)/en/article/[id]`
+(EN) + halaman forum `jelajah` — **JSON-LD** + OG/Twitter tags + galeri
+maksimal 3 foto produk + tautan video asli.
 Styling: **Tailwind CSS 4** + **shadcn/ui** (`components/ui`).
 
 ## Setup
 
 ```bash
 npm install --prefix apps/web
-cp .env.example .env            # isi API_BASE_URL + NEXT_PUBLIC_SITE_URL
+cp .env.example .env            # dari root repo; isi API_BASE_URL + NEXT_PUBLIC_SITE_URL
 ```
 
 Butuh API hidup (`apps/api`) karena halaman dan `sitemap.xml` mengambil data
@@ -21,7 +22,10 @@ node --env-file=.env apps/api/src/server.js        # API :4301
 npm run dev --prefix apps/web -- -p 4320           # web  :4320
 ```
 
-Buka `http://localhost:4320/article/contoh-review`.
+Buka `http://localhost:4320/` (atau `/en` untuk English,
+`/jelajah` untuk forum). `NEXT_PUBLIC_SITE_URL` default
+`http://localhost:3000` bila env tidak di-set — samakan dengan port yang
+dipakai (`-p 4320`) agar canonical/sitemap benar.
 
 Note: `next build` also needs a running API (for `generateStaticParams`).
 
@@ -29,8 +33,11 @@ Note: `next build` also needs a running API (for `generateStaticParams`).
 
 | Path | Isi |
 |---|---|
-| `app/article/[id]/page.tsx` | SSR/ISR artikel, metadata, JSON-LD (di-escape), `renderMd` |
-| `app/sitemap.ts`, `app/robots.ts` | sitemap + robots |
+| `app/(id)/article/[id]/page.tsx` | SSR/ISR artikel (ID), metadata, JSON-LD (di-escape), `renderMd` |
+| `app/(en)/en/article/[id]/page.tsx` | varian English |
+| `app/(id)/jelajah/page.tsx`, `app/(en)/en/jelajah/page.tsx` | halaman forum + canonical/hreflang |
+| `app/sitemap.ts`, `app/robots.ts`, `app/llms.txt/` | sitemap + robots + llms.txt |
+| `components/` (`HomeView`, `JelajahView`, `ArticleView`, `Comments`, `FeedActions`) | tampilan forum + artikel |
 | `components/ui/` | komponen shadcn (`card`, `badge`) |
 | `lib/articles.ts` | fetch artikel dari API (ISR 1 jam) |
 | `lib/site.ts` | URL kanonik + helper per bahasa (`/en/article/...`) |

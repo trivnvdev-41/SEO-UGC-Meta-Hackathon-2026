@@ -4,33 +4,39 @@ from unittest.mock import patch
 
 from processor.media import (
     check_size,
-    cookies_file,
-    download_cmd,
-    is_convertible_url,
-    max_seconds_for,
+    extract_cmd,
     job_dir,
+    max_filesize_mb,
+    max_seconds,
     pipeline,
     probe_duration,
     purge,
-    uploader_of,
     video_inbox,
 )
 
 
+def _inbox(tmp, job_id="jobvUp"):
+    inbox = Path(tmp) / job_id
+    inbox.mkdir()
+    (inbox / "video.mp4").write_bytes(b"v" * 100)
+    return inbox
+
+
+def _ffmpeg_ok(job_id="jobvUp"):
+    def fake_run(cmd, **kw):
+        if cmd[0] == "ffprobe":
+            from types import SimpleNamespace
+            return SimpleNamespace(stdout="60.0\n")
+        if cmd[0] == "ffmpeg":
+            jd = Path("/tmp") / job_id
+            jd.mkdir(parents=True, exist_ok=True)
+            (jd / "audio.mp3").write_bytes(b"x")
+            (jd / "frame_001.jpg").write_bytes(b"x")
+        return None
+    return fake_run
+
+
 class MediaTest(unittest.TestCase):
-    def test_download_cmd_pin_output(self):
-        cmd = download_cmd("https://vt.tiktok.com/x/", Path("/tmp/j1/video.mp4"))
-        self.assertEqual(cmd[:3], ["yt-dlp", "-o", "/tmp/j1/video.mp4"])
-        self.assertIn("--max-filesize", cmd)
-        self.assertEqual(cmd[-1], "https://vt.tiktok.com/x/")
-
-    def test_download_cmd_batas_ukuran(self):
-        cmd = download_cmd("https://vt.tiktok.com/x/", Path("/tmp/v.mp4"),
-                           max_mb=12, max_sec=90)
-        self.assertEqual(cmd[cmd.index("--max-filesize") + 1], "12M")
-        self.assertEqual(cmd[cmd.index("--match-filter") + 1], "duration <= 90")
-        self.assertEqual(cmd[cmd.index("--socket-timeout") + 1], "30")
-
     def test_check_size_tolak_file_raksasa(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
@@ -41,62 +47,54 @@ class MediaTest(unittest.TestCase):
             self.assertEqual(str(cm.exception), "video_too_large")
             check_size(video, max_mb=2)  # lolos
 
-    def test_batas_durasi_per_platform(self):
-        self.assertEqual(max_seconds_for("https://www.tiktok.com/@a/video/1"), 180)
-        self.assertEqual(max_seconds_for("https://www.youtube.com/shorts/x"), 600)
-        cmd = download_cmd("https://youtu.be/aBcD1234", Path("/tmp/v.mp4"))
-        self.assertEqual(cmd[cmd.index("--match-filter") + 1], "duration <= 600")
-
-    def test_pipeline_pakai_timeout(self):
-        seen = []
-        pipeline("testjob4", "https://vt.tiktok.com/x/",
-                 run=lambda cmd, **kw: seen.append(kw.get("timeout")))
-        self.assertEqual(seen, [30, 120, 60])
-        purge("testjob4")
-
-    def test_pipeline_tolak_video_terlalu_besar(self):
-        import tempfile
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            def fake_run(cmd, **kw):
-                if cmd[0] == "yt-dlp":
-                    Path(cmd[2]).write_bytes(b"x" * (2 * 1024 * 1024))
-            with patch.dict("os.environ", {"MAX_VIDEO_MB": "1"}, clear=True), \
-                    patch("processor.media.TMP_ROOT", root), \
-                    self.assertRaises(ValueError) as cm:
-                pipeline("toolarge", "https://vt.tiktok.com/x/", run=fake_run)
-            self.assertEqual(str(cm.exception), "video_too_large")
-            purge("toolarge")
-
-    def test_download_cmd_pakai_cookies(self):
-        cmd = download_cmd("https://vt.tiktok.com/x/",
-                           Path("/tmp/j1/video.mp4"), "/tmp/ck.txt")
-        self.assertEqual(cmd[-1], "https://vt.tiktok.com/x/")
-        self.assertEqual(cmd[-3:], ["--cookies", "/tmp/ck.txt", cmd[-1]])
-
-    def test_cookies_file_env(self):
+    def test_batas_default(self):
         with patch.dict("os.environ", {}, clear=True):
-            self.assertIsNone(cookies_file())
-        with patch.dict("os.environ", {"YTDLP_COOKIES_FILE": ""}, clear=True):
-            self.assertIsNone(cookies_file())
+            self.assertEqual(max_filesize_mb(), 50)
+            self.assertEqual(max_seconds(), 180)
 
-    def test_cookies_file_hilang_gagal_cepat(self):
-        env = {"YTDLP_COOKIES_FILE": "/tmp/tidak-ada-cookies.txt"}
-        with patch.dict("os.environ", env, clear=True), \
-                self.assertRaises(RuntimeError) as cm:
-            cookies_file()
-        self.assertIn("YTDLP_COOKIES_FILE", str(cm.exception))
-        self.assertNotIn("/tmp/tidak-ada", str(cm.exception))
+    def test_pipeline_tanpa_upload_ditolak(self):
+        with patch.dict("os.environ", {}, clear=True), \
+                self.assertRaises(ValueError) as cm:
+            pipeline("novideo", run=lambda *a, **k: None)
+        self.assertEqual(str(cm.exception), "no_video")
 
-    def test_pipeline_runs_three_steps(self):
-        seen = []
-        out = pipeline("testjob1", "https://vt.tiktok.com/x/",
-                       run=lambda cmd, **kw: seen.append(cmd) or None)
-        self.assertEqual(len(seen), 3)  # uploader + unduh + ekstrak 1-pass
+    def test_pipeline_video_upload_tanpa_unduh(self):
+        import os
+        import tempfile
+        from processor import media
+
+        with tempfile.TemporaryDirectory() as tmp:
+            inbox = _inbox(tmp)
+            env = {"MEDIA_DIR": tmp}
+            try:
+                with patch.dict(os.environ, env, clear=True):
+                    self.assertEqual(
+                        video_inbox("jobvUp"), inbox / "video.mp4")
+                    out = media.pipeline("jobvUp", run=_ffmpeg_ok(),
+                                         creator="@kreator")
+            finally:
+                media.purge("jobvUp")
+        self.assertTrue(out["local"])
+        self.assertEqual(out["creator"], "@kreator")
         self.assertTrue(out["audio"].endswith("audio.mp3"))
-        self.assertIsInstance(out["frames"], list)
-        self.assertIn("creator", out)
-        purge("testjob1")
+        self.assertEqual(len(out["frames"]), 1)
+
+    def test_pipeline_video_upload_kepanjangan_ditolak(self):
+        import os
+        import tempfile
+        from types import SimpleNamespace
+        from processor import media
+
+        def fake_run(cmd, **kw):
+            return SimpleNamespace(stdout="9999.0\n")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            _inbox(tmp, "joblong")
+            env = {"MEDIA_DIR": tmp}
+            with patch.dict(os.environ, env, clear=True), \
+                    self.assertRaises(ValueError) as cm:
+                media.pipeline("joblong", run=fake_run)
+            self.assertEqual(str(cm.exception), "video_too_long")
 
     def test_pipeline_frames_list_dari_glob(self):
         import tempfile
@@ -123,47 +121,7 @@ class MediaTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             job_dir("../escape")
 
-    def test_uploader_of_ambil_baris_pertama(self):
-        from types import SimpleNamespace
-
-        def ok(cmd, **kw):
-            assert cmd[:3] == ["yt-dlp", "--skip-download", "--no-warnings"]
-            assert "--cookies" not in cmd
-            # Template harus pakai TAB asli (\t), bukan teks literal backslash-t.
-            assert "\t" in cmd[cmd.index("--print") + 1]
-            return SimpleNamespace(stdout="Kreator Hebat\n")
-        self.assertEqual(
-            uploader_of("https://vt.tiktok.com/x/", run=ok), "Kreator Hebat")
-
-    def test_uploader_of_lewat_NA_dan_kosong(self):
-        from types import SimpleNamespace
-        self.assertIsNone(
-            uploader_of("https://vt.tiktok.com/x/",
-                        run=lambda *a, **k: SimpleNamespace(stdout="NA\n")))
-        self.assertIsNone(
-            uploader_of("https://vt.tiktok.com/x/",
-                        run=lambda *a, **k: (_ for _ in ()).throw(
-                            RuntimeError("boom"))))
-
-    def test_uploader_of_youtube_dari_handle_url(self):
-        from types import SimpleNamespace
-        out = ("Pantene Indonesia\thttps://www.youtube.com/@panteneid\t"
-               "Pantene Indonesia\n")
-        self.assertEqual(
-            uploader_of("https://youtube.com/shorts/abc",
-                        run=lambda *a, **k: SimpleNamespace(stdout=out)),
-            "@panteneid")
-
-    def test_uploader_of_tiktok_dari_uploader_id(self):
-        from types import SimpleNamespace
-        out = "Wynne\t\twynnearmeline\n"
-        self.assertEqual(
-            uploader_of("https://vt.tiktok.com/x/",
-                        run=lambda *a, **k: SimpleNamespace(stdout=out)),
-            "@wynnearmeline")
-
     def test_extract_cmd_satu_pass_audio_dan_frame(self):
-        from processor.media import extract_cmd
         cmd = extract_cmd(Path("/tmp/j/v.mp4"), Path("/tmp/j/a.mp3"),
                           Path("/tmp/j/frame_%03d.jpg"))
         self.assertEqual(cmd.count("-i"), 1)
@@ -171,109 +129,11 @@ class MediaTest(unittest.TestCase):
         self.assertIn("fps=1/3", cmd)
         self.assertEqual(cmd[0], "ffmpeg")
 
-    def test_pipeline_video_upload_tanpa_unduh(self):
-        import os
-        import tempfile
-        from unittest.mock import patch
-        from processor import media
-
-        def fake_run(cmd, **kw):
-            if cmd[0] == "ffprobe":
-                from types import SimpleNamespace
-                return SimpleNamespace(stdout="60.0\n")
-            if cmd[0] == "ffmpeg":
-                # pipeline mengekstrak ke /tmp/<job_id> (job_dir), bukan inbox
-                jd = Path("/tmp/jobvUp")
-                jd.mkdir(parents=True, exist_ok=True)
-                (jd / "audio.mp3").write_bytes(b"x")
-                (jd / "frame_001.jpg").write_bytes(b"x")
-            return None
-
-        with tempfile.TemporaryDirectory() as tmp:
-            inbox = Path(tmp) / "jobvUp"
-            inbox.mkdir()
-            (inbox / "video.mp4").write_bytes(b"v" * 100)
-            env = {"MEDIA_DIR": tmp}
-            try:
-                with patch.dict(os.environ, env, clear=True):
-                    self.assertEqual(
-                        video_inbox("jobvUp"), inbox / "video.mp4")
-                    out = media.pipeline("jobvUp", "", run=fake_run,
-                                         creator="@kreator")
-            finally:
-                media.purge("jobvUp")
-        self.assertTrue(out["local"])
-        self.assertEqual(out["creator"], "@kreator")
-        self.assertTrue(out["audio"].endswith("audio.mp3"))
-        self.assertEqual(len(out["frames"]), 1)
-
-    def test_pipeline_video_upload_kepanjangan_ditolak(self):
-        import os
-        import tempfile
-        from unittest.mock import patch
-        from processor import media
-
-        def fake_run(cmd, **kw):
-            from types import SimpleNamespace
-            return SimpleNamespace(stdout="9999.0\n")
-
-        with tempfile.TemporaryDirectory() as tmp:
-            inbox = Path(tmp) / "joblong"
-            inbox.mkdir()
-            (inbox / "video.mp4").write_bytes(b"v")
-            env = {"MEDIA_DIR": tmp}
-            with patch.dict(os.environ, env, clear=True), \
-                    self.assertRaises(ValueError) as cm:
-                media.pipeline("joblong", "", run=fake_run)
-            self.assertEqual(str(cm.exception), "video_too_long")
-
     def test_probe_duration_tak_terbaca(self):
         from types import SimpleNamespace
         with self.assertRaises(ValueError):
             probe_duration(Path("/tmp/x.mp4"),
                            run=lambda *a, **k: SimpleNamespace(stdout=""))
-
-    def test_uploader_of_tolak_url_tak_izin(self):
-        from types import SimpleNamespace
-        with self.assertRaises(ValueError):
-            probe_duration(Path("/tmp/x.mp4"),
-                           run=lambda *a, **k: SimpleNamespace(stdout=""))
-        with self.assertRaises(ValueError):
-            uploader_of("https://evil.com/x",
-                        run=lambda *a, **k: None)
-
-    def test_url_allowlist(self):
-        self.assertTrue(is_convertible_url("https://vt.tiktok.com/x/"))
-        self.assertTrue(is_convertible_url("https://www.youtube.com/shorts/aBcD1234"))
-        self.assertTrue(is_convertible_url("https://youtu.be/aBcD1234"))
-        self.assertFalse(is_convertible_url("https://youtube.com.evil.com/x"))
-        self.assertFalse(is_convertible_url("https://www.instagram.com/reel/a/"))
-        self.assertFalse(is_convertible_url("http://169.254.169.254/x"))
-        self.assertFalse(is_convertible_url("https://evil.com/v/1"))
-        self.assertFalse(is_convertible_url("https://tiktok.com.evil.com/x"))
-        self.assertFalse(is_convertible_url("http://www.tiktok.com/@a/video/1"))
-
-    def test_pipeline_pakai_file_hasil_merge(self):
-        import tempfile
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            def fake_run(cmd, **kw):
-                if cmd[0] == "yt-dlp":
-                    # yt-dlp merge: video.mp4 -> video.mp4.webm
-                    (root / "mergejob" / "video.mp4.webm").write_bytes(b"x")
-            with patch.dict("os.environ", {}, clear=True), \
-                    patch("processor.media.TMP_ROOT", root):
-                out = pipeline("mergejob", "https://www.youtube.com/shorts/aBcD1234",
-                               run=fake_run)
-                self.assertTrue(out["video"].endswith("video.mp4.webm"))
-                purge("mergejob")
-
-    def test_pipeline_tolak_url_tidak_diizinkan(self):
-        seen = []
-        with self.assertRaises(ValueError):
-            pipeline("testjob3", "http://169.254.169.254/latest",
-                     run=lambda *a, **k: seen.append(a))
-        self.assertEqual(seen, [])
 
 
 if __name__ == "__main__":

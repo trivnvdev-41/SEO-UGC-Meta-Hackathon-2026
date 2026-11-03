@@ -4,7 +4,7 @@ from unittest.mock import patch
 from processor.app import ConvertJob, process, require_token
 
 
-JOB = ConvertJob(job_id="j1", url="https://vt.tiktok.com/x/")
+JOB = ConvertJob(job_id="j1", creator="@kreator")
 
 
 class AppTest(unittest.TestCase):
@@ -29,7 +29,7 @@ class AppTest(unittest.TestCase):
         self.assertEqual(out["images"], ["https://cdn/x.jpg"])
 
     def test_purge_tetap_jalan_walau_pipeline_gagal(self):
-        with patch("processor.app.pipeline", side_effect=RuntimeError("yt-dlp")), \
+        with patch("processor.app.pipeline", side_effect=RuntimeError("ffmpeg")), \
                 patch("processor.app.purge") as purge, \
                 self.assertRaises(RuntimeError):
             process(JOB)
@@ -60,9 +60,9 @@ class AppTest(unittest.TestCase):
             require_token("Bearer apa-saja")
         self.assertEqual(getattr(cm.exception, "status_code", None), 500)
 
-    def test_url_ditolak_jadi_400(self):
+    def test_tanpa_video_jadi_400(self):
         with patch("processor.app.pipeline",
-                   side_effect=ValueError("invalid_url")), \
+                   side_effect=ValueError("no_video")), \
                 patch("processor.app.purge") as purge, \
                 self.assertRaises(Exception) as cm:
             process(JOB)

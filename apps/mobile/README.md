@@ -1,6 +1,6 @@
-# Mobile (Flutter) — SABA Upload
+# Mobile (Flutter) — SABA
 
-Upload video dari galeri → `POST /v1/uploads` → artikel dimasak di server.
+Forum + upload video dari galeri → `POST /v1/uploads` → artikel dimasak di server.
 
 ## Structure
 
@@ -15,6 +15,8 @@ Upload video dari galeri → `POST /v1/uploads` → artikel dimasak di server.
 | `lib/vote.dart` | Chip Setuju + downvote lokal dengan pop, +1 float, ring |
 | `lib/md.dart` | Mini Markdown renderer mirroring the web one |
 | `lib/article_detail.dart` | Native article detail (photos, body, rating, video link) |
+| `lib/login_page.dart`, `lib/profile.dart`, `lib/edit_profile_page.dart` | Login + profil + edit profil (UI mock, backend auth menyusul) |
+| `lib/saba_screens.dart`, `lib/saba_widgets.dart`, `lib/saba_theme.dart` | Layar + widget + tema bersama SABA |
 
 ## Run
 

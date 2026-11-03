@@ -37,14 +37,13 @@ app = FastAPI(title="seo-ugc-processor", lifespan=lifespan)
 
 class ConvertJob(BaseModel):
     job_id: str
-    url: str
     creator: str | None = None
 
 
 @app.post("/process", dependencies=[Depends(require_token)])
 def process(job: ConvertJob):
     try:
-        media = pipeline(job.job_id, job.url, creator=job.creator)
+        media = pipeline(job.job_id, creator=job.creator)
         bundle = enrich(media["audio"], media["frames"],
                         creator=media.get("creator"))
         bundle["creator"] = media.get("creator")
@@ -54,9 +53,9 @@ def process(job: ConvertJob):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     finally:
-        # Satu titik keluar: /tmp/{job_id} tidak bocor walau download/enrich/upload gagal.
+        # Satu titik keluar: /tmp/{job_id} tidak bocor walau olah/enrich/upload gagal.
         purge(job.job_id)
         raw = video_inbox(job.job_id)
         if raw is not None:
             shutil.rmtree(raw.parent, ignore_errors=True)
-    return {"job_id": job.job_id, "url": job.url, **bundle}
+    return {"job_id": job.job_id, **bundle}

@@ -1,6 +1,7 @@
-# Processor (Python worker)
+# Processor (Python worker — SABA)
 
-Ephemeral media pipeline: `yt-dlp` → `ffmpeg` audio + frames → upload → `purge /tmp`.
+Ephemeral media pipeline untuk **SABA** (upload-only): video dari
+`MEDIA_DIR/<job_id>/video.mp4` → `ffmpeg` audio + frames → upload → `purge /tmp`.
 
 ## Setup
 
@@ -11,11 +12,7 @@ uv venv workers/processor/.venv
 uv pip install --python workers/processor/.venv/bin/python -e workers/processor
 ```
 
-Optional: `YTDLP_COOKIES_FILE` (absolute path to a Netscape cookie jar) when
-TikTok asks for login. Empty = normal behaviour; a missing path fails fast
-with `missing_file:YTDLP_COOKIES_FILE`. Cookie files are gitignored.
-
-`ffmpeg` must be on `PATH` at runtime. Without sudo:
+`ffmpeg` (+ `ffprobe` untuk cek durasi) must be on `PATH` at runtime. Without sudo:
 `uv pip install --python workers/processor/.venv/bin/python imageio-ffmpeg`, then
 symlink `$(python -c 'import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())')`
 as `ffmpeg` in a directory on `PATH`.
@@ -37,12 +34,12 @@ Module: `src/processor/ai.py` (`settings`, `transcribe_audio`, `generate_article
 
 | Env | Default | Effect |
 |---|---|---|
-| `MAX_VIDEO_MB` | 50 | `yt-dlp --max-filesize` + real on-disk size check after download (`video_too_large`) |
-| `MAX_VIDEO_SECONDS` | 180 | `yt-dlp --match-filter "duration <= N"` — TikTok |
-| `MAX_VIDEO_SECONDS_YOUTUBE` | 600 | YouTube-specific limit (Shorts and videos up to 10 minutes) |
+| `MAX_VIDEO_MB` | 50 | on-disk size check (`video_too_large`) |
+| `MAX_VIDEO_SECONDS` | 180 | `ffprobe` duration check (`video_too_long`) |
 
-Timeouts: yt-dlp 120s, ffmpeg 60s, `--socket-timeout 30` — a stalled process fails
-fast instead of holding the worker.
+Timeouts: ffmpeg 60s, `--socket-timeout 30` — a stalled process fails
+fast instead of holding the worker. Tanpa video upload, `/process`
+menolak dengan `no_video` (400).
 
 ## Object storage (optional)
 

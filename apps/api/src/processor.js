@@ -4,10 +4,10 @@ import { Worker } from 'bullmq';
 import { MAX_ATTEMPTS, QUEUE_NAME } from './queue.js';
 
 // Handler murni: worker HTTP -> artikel + status job. Diinject agar ter-test.
-// Bentuk job internal: { id, data: { url, creator? } }.
+// Bentuk job internal: { id, data: { url?, creator? } } (url '' = upload).
 export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
   return async (job) => {
-    const url = job.data.url;
+    const url = job.data.url ?? '';
     const creator = job.data.creator ?? null;
     await db.setJobStatus(job.id, 'processing', { url });
 
@@ -19,7 +19,6 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
       },
       body: JSON.stringify({
         job_id: job.id,
-        url,
         ...(creator ? { creator } : {}),
       }),
     });

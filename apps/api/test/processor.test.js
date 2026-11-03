@@ -27,7 +27,7 @@ function fakeDb() {
   };
 }
 
-const job = { id: 'job_1', data: { url: 'https://vt.tiktok.com/abc/' } };
+const job = { id: 'job_1', data: { url: '', creator: null } };
 
 test('consumer: worker 200 → artikel tersimpan + job done', async () => {
   const db = fakeDb();
@@ -48,7 +48,6 @@ test('consumer: worker 200 → artikel tersimpan + job done', async () => {
   assert.equal(seen[0].init.headers.authorization, 'Bearer T');
   assert.deepEqual(JSON.parse(seen[0].init.body), {
     job_id: 'job_1',
-    url: 'https://vt.tiktok.com/abc/',
   });
 
   const statuses = db.calls.filter((c) => c[0] === 'job').map((c) => c[2]);
@@ -73,7 +72,7 @@ test('consumer: creator job diteruskan ke worker', async () => {
       return { ok: true, status: 200, json: async () => bundle };
     },
   });
-  await processor({ id: 'job_9', data: { url: 'https://x/v', creator: '@hebat' } });
+  await processor({ id: 'job_9', data: { url: '', creator: '@hebat' } });
   assert.equal(sent.creator, '@hebat');
   assert.equal(sent.job_id, 'job_9');
 });

@@ -61,7 +61,7 @@ class ArticleDetailPage extends StatefulWidget {  const ArticleDetailPage(
 }
 
 class _ArticleDetailPageState extends State<ArticleDetailPage> {
-  static const _channel = MethodChannel('dev.seougc/share');
+  static const _channel = MethodChannel('saba/share');
   FeedArticle? _article;
   String? _error;
   int _tab = 0; // tab diskusi lokal (visual, isi ikut backend #12).

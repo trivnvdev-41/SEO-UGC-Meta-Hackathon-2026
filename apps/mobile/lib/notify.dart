@@ -27,7 +27,7 @@ Future<void> initNotif() async {
 Future<void> notifyJob(String title, String body, {String? payload}) async {
   if (!_ready || body.isEmpty) return;
   const details = AndroidNotificationDetails(
-    'seougc_jobs',
+    'saba_jobs',
     'SABA jobs',
     importance: Importance.max,
     priority: Priority.high,

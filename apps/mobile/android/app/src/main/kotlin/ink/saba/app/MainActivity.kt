@@ -1,4 +1,4 @@
-package dev.seougc.seo_ugc
+package ink.saba.app
 
 import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
@@ -28,6 +28,6 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
-        private const val CHANNEL = "dev.seougc/share"
+        private const val CHANNEL = "saba/share"
     }
 }

@@ -1,7 +1,7 @@
 // Token SABA = handoff: warna primer, bg warm/cool, radius, spacing.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:seo_ugc/saba_theme.dart';
+import 'package:saba/saba_theme.dart';
 
 void main() {
   test('primer + bg warm/cool sesuai handoff', () {

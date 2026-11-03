@@ -66,7 +66,7 @@ def _post(url: str, api_key: str, body: bytes, content_type: str) -> dict:
 
 
 def _multipart(model: str, audio: Path) -> tuple[bytes, str]:
-    boundary = "----seougc" + secrets.token_hex(8)
+    boundary = "----saba" + secrets.token_hex(8)
     buf = io.BytesIO()
 
     def field(name: str, value: str) -> None:
@@ -104,7 +104,7 @@ def _wav16k(audio: Path) -> Path:
 
 
 def _meta_asr_parts(model: str, wav: Path) -> tuple[bytes, str]:
-    boundary = "----seougc" + secrets.token_hex(8)
+    boundary = "----saba" + secrets.token_hex(8)
     buf = io.BytesIO()
     buf.write(f'--{boundary}\r\nContent-Disposition: form-data; name="request"\r\n'
               f'Content-Type: application/json\r\n\r\n'

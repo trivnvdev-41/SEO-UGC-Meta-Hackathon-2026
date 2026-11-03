@@ -28,7 +28,7 @@ npm run db:seed --prefix apps/api
 node --env-file=.env apps/api/src/server.js   # :4301, dari root repo
 ```
 
-Butuh Postgres (`seougc-pg`, port `55432`) + Redis (`REDIS_URL`,
+Butuh Postgres (`saba-pg`, port `55432`) + Redis (`REDIS_URL`,
 default `redis://localhost:6379`). Consumer BullMQ jalan di proses yang
 sama (`src/queue.js` → worker `http://localhost:4302`).
 

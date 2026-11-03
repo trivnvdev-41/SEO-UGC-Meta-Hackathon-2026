@@ -32,11 +32,11 @@ const webBase = String.fromEnvironment(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initNotif();
-  runApp(const SeoUgcApp());
+  runApp(const SabaApp());
 }
 
-class SeoUgcApp extends StatelessWidget {
-  const SeoUgcApp({super.key});
+class SabaApp extends StatelessWidget {
+  const SabaApp({super.key});
 
   @override
   Widget build(BuildContext context) {

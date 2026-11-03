@@ -32,7 +32,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="seo-ugc-processor", lifespan=lifespan)
+app = FastAPI(title="saba-processor", lifespan=lifespan)
 
 
 class ConvertJob(BaseModel):

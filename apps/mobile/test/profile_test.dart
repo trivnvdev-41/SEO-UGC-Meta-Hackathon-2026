@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:seo_ugc/profile.dart';
+import 'package:saba/profile.dart';
 
 void main() {
   test('ProfileStore simpan dan reset', () {

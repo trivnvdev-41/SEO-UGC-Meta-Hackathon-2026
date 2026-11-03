@@ -6,9 +6,8 @@ uploads into SEO-ready web articles — with **JSON-LD schema** and the
 extra reference for the article; videos are never pulled from social
 media. Readers then discuss each review in a forum-style app.
 
-> Nama produk: **SABA**. Slug teknis lama (`seo-ugc-*` di `package.json`,
-> `seougc` di DB/user, channel `dev.seougc/share`) masih dipakai di kode
-> dan belum di-rename agar tidak merusak instalasi yang jalan.
+> Nama produk: **SABA**. Slug teknis semuanya `saba` (DB/user `saba`,
+> channel `saba/share`, applicationId `ink.saba.app`).
 
 ## Structure
 
@@ -26,8 +25,8 @@ media. Readers then discuss each review in a forum-style app.
    the two roles may use different providers/keys (never commit `.env`).
 3. Database (Postgres 16 via Docker, port `55432`):
    ```bash
-   docker run -d --name seougc-pg -p 55432:5432 \
-     -e POSTGRES_USER=seougc -e POSTGRES_PASSWORD=seougc -e POSTGRES_DB=seougc \
+    docker run -d --name saba-pg -p 55432:5432 \
+      -e POSTGRES_USER=saba -e POSTGRES_PASSWORD=saba -e POSTGRES_DB=saba \
      postgres:16-alpine
    set -a; source .env; set +a           # Prisma CLI needs DATABASE_URL
    npm run db:migrate --prefix apps/api
@@ -37,7 +36,7 @@ media. Readers then discuss each review in a forum-style app.
    ```bash
    npm install --prefix apps/api
    npm install --prefix apps/web
-   docker run -d --name seougc-redis -p 6379:6379 redis:7-alpine
+    docker run -d --name saba-redis -p 6379:6379 redis:7-alpine
    UV_CACHE_DIR=/tmp/uv-cache uv pip install --python workers/processor/.venv/bin/python -e workers/processor
    ```
 5. `ffmpeg` must be on `PATH` (no sudo: `uv pip install imageio-ffmpeg`,
@@ -80,21 +79,21 @@ MinIO images are no longer publicly pullable (Docker Hub repo removed, Quay requ
 login, dl.min.io returns 410), so the repo uses **s3proxy** with a filesystem backend:
 
 ```bash
-mkdir -p /tmp/seougc-s3
-docker run -d --name seougc-s3 -p 9000:80 \
+    mkdir -p /tmp/saba-s3
+    docker run -d --name saba-s3 -p 9000:80 \
   -e S3PROXY_AUTHORIZATION=none \
   -e JCLOUDS_PROVIDER=filesystem \
   -e JCLOUDS_FILESYSTEM_BASEDIR=/data \
-  -v /tmp/seougc-s3:/data andrewgaul/s3proxy
+  -v /tmp/saba-s3:/data andrewgaul/s3proxy
 ```
 
 Then create the bucket once (any S3 client) and point `.env` at it:
 
 ```env
-S3_BUCKET_NAME=seo-ugc-images
+S3_BUCKET_NAME=saba-images
 S3_ENDPOINT=http://127.0.0.1:9000
 S3_REGION=us-east-1
-S3_PUBLIC_BASE_URL=http://127.0.0.1:9000/seo-ugc-images
+S3_PUBLIC_BASE_URL=http://127.0.0.1:9000/saba-images
 ```
 
 `S3PROXY_AUTHORIZATION=none` means anonymous read/write — local demo only, never

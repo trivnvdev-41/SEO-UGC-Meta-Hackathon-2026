@@ -49,6 +49,6 @@ npm run test:e2e --prefix apps/web
 ```
 
 Menjalankan API (`:4301`) + `next dev` (`:4320`) sendiri, lalu uji: H1/galeri foto/JSON-LD,
-switch bahasa, dan 404. Butuh Postgres (`seougc-pg`) + data seed.
+switch bahasa, dan 404. Butuh Postgres (`saba-pg`) + data seed.
 Screenshots land in `e2e/__screenshots__/` (gitignored); copies used for issues
 live in `docs/e2e/`.

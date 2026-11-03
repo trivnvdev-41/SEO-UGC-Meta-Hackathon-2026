@@ -6,7 +6,7 @@ Forum + upload video dari galeri → `POST /v1/uploads` → artikel dimasak di s
 
 | Path | Contents |
 |---|---|
-| `android/.../MainActivity.kt` | MethodChannel `dev.seougc/share`: `openUrl` (buka link artikel di browser) |
+| `android/.../MainActivity.kt` | MethodChannel `saba/share`: `openUrl` (buka link artikel di browser) |
 | `android/.../AndroidManifest.xml` | `launchMode="singleTask"` + izin INTERNET |
 | `lib/main.dart` | Forum home (header, tabs, trending, kartu) + sheet upload → `POST /v1/uploads` → poll → detail |
 | `lib/upload.dart` | Picker galeri + upload multipart + progress (tanpa dependency tambahan) |

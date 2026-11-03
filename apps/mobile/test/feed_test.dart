@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:seo_ugc/feed.dart';
+import 'package:saba/feed.dart';
 
 Map<String, dynamic> fixture({
   String id = '18',

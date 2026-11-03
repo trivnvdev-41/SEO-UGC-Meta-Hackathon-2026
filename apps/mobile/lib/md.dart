@@ -30,6 +30,12 @@ class MdQuote extends MdBlock {
   final String text;
 }
 
+class MdTableBlock extends MdBlock {
+  const MdTableBlock(this.head, this.rows);
+  final List<String> head;
+  final List<List<String>> rows;
+}
+
 class MdPara extends MdBlock {
   const MdPara(this.text);
   final String text;
@@ -44,48 +50,136 @@ class MdSpan {
 
 final _inlineRe = RegExp(r'\*\*(.+?)\*\*|\[([^\]]+)\]\((https?://[^)\s]+)\)');
 final _orderedRe = RegExp(r'^\d+\. ');
+final _headingRe = RegExp(r'^(#{1,4})\s+(.*)$|^(#{2,})([^#\s].*)$');
+final _hrRe = RegExp(r'^\s*([-*_=])(\s*\1){1,}\s*$');
+
+/// Em dash tulisan tangan (` -- `) jadi — yang benar. URL tak tersentuh.
+String emDash(String s) => s.replaceAllMapped(
+    RegExp(r'(\s)--(\s)'), (m) => '${m[1]}—${m[2]}');
 
 List<MdSpan> parseInline(String text) {
   final out = <MdSpan>[];
   var last = 0;
   for (final m in _inlineRe.allMatches(text)) {
-    if (m.start > last) out.add(MdSpan(text.substring(last, m.start)));
+    if (m.start > last) out.add(MdSpan(emDash(text.substring(last, m.start))));
     if (m[1] != null) {
-      out.add(MdSpan(m[1]!, bold: true));
+      out.add(MdSpan(emDash(m[1]!), bold: true));
     } else {
       out.add(MdSpan(m[2]!, link: m[3]));
     }
     last = m.end;
   }
-  if (last < text.length) out.add(MdSpan(text.substring(last)));
+  if (last < text.length) out.add(MdSpan(emDash(text.substring(last))));
   return out;
 }
 
+List<String> _cells(String l) => l
+    .trim()
+    .replaceAll(RegExp(r'^\||\|$'), '')
+    .split('|')
+    .map((c) => c.trim())
+    .toList();
+
+bool _isDelim(String l) {
+  final t = l.trim();
+  return t.contains('|') && t.contains('-') && RegExp(r'^[\s:|\-]+$').hasMatch(t);
+}
+
+/// Parser tahan banting: heading tanpa baris kosong tetap heading,
+/// garis pemisah (--, ---) dibuang, tabel tanpa pipe tepi tetap tabel.
 List<MdBlock> parseMd(String md) {
+  final lines = md.split('\n');
   final blocks = <MdBlock>[];
-  for (final block in md.split('\n\n')) {
-    final lines = block.split('\n');
-    final heading = RegExp(r'^(#{1,3}) (.*)$').firstMatch(block);
-    if (heading != null) {
-      blocks.add(MdHeading(
-          heading[1]!.length >= 3 ? 3 : 2, heading[2]!));
+  var i = 0;
+  bool bullet(String l) => l.startsWith('- ') || l.startsWith('* ');
+
+  while (i < lines.length) {
+    final line = lines[i];
+    // Lewati baris kosong dan garis pemisah (---, --, ***, ===).
+    if (line.trim().isEmpty || _hrRe.hasMatch(line)) {
+      i++;
       continue;
     }
-    if (lines.every((l) => l.startsWith('- ') || l.startsWith('* '))) {
-      blocks.add(MdBullets([for (final l in lines) l.substring(2)]));
+    final hm = _headingRe.firstMatch(line);
+    if (hm != null) {
+      final hashes = hm[1] ?? hm[3]!;
+      final text = (hm[2] ?? hm[4] ?? '').trim();
+      blocks.add(MdHeading(hashes.length >= 3 ? 3 : 2, text));
+      i++;
       continue;
     }
-    if (lines.every(_orderedRe.hasMatch)) {
-      blocks.add(MdOrdered(
-          [for (final l in lines) l.replaceFirst(_orderedRe, '')]));
+    // Tabel: baris berisi | + baris delimiter dalam 2 baris berikut.
+    if (line.contains('|')) {
+      var di = -1;
+      for (var k = 1; k <= 2 && i + k < lines.length; k++) {
+        if (_isDelim(lines[i + k])) {
+          di = k;
+          break;
+        }
+      }
+      if (di >= 0 && _cells(line).length > 1) {
+        final head = _cells(line);
+        final rows = <List<String>>[];
+        var j = i + di + 1;
+        while (j < lines.length &&
+            lines[j].contains('|') &&
+            !_isDelim(lines[j])) {
+          rows.add(_cells(lines[j]));
+          j++;
+        }
+        blocks.add(MdTableBlock(head, rows));
+        i = j;
+        continue;
+      }
+    }
+    if (bullet(line)) {
+      final items = <String>[];
+      while (i < lines.length && bullet(lines[i])) {
+        items.add(lines[i].substring(2));
+        i++;
+      }
+      blocks.add(MdBullets(items));
       continue;
     }
-    if (lines.every((l) => l.startsWith('> '))) {
-      blocks.add(MdQuote(
-          [for (final l in lines) l.substring(2)].join('\n')));
+    if (_orderedRe.hasMatch(line)) {
+      final items = <String>[];
+      while (i < lines.length && _orderedRe.hasMatch(lines[i])) {
+        items.add(lines[i].replaceFirst(_orderedRe, ''));
+        i++;
+      }
+      blocks.add(MdOrdered(items));
       continue;
     }
-    blocks.add(MdPara(block));
+    if (line.startsWith('> ')) {
+      final quotes = <String>[];
+      while (i < lines.length && lines[i].startsWith('> ')) {
+        quotes.add(lines[i].substring(2));
+        i++;
+      }
+      blocks.add(MdQuote(quotes.join('\n')));
+      continue;
+    }
+    // Paragraf: gabung baris biasa berurutan.
+    final para = <String>[];
+    while (i < lines.length &&
+        lines[i].trim().isNotEmpty &&
+        !_hrRe.hasMatch(lines[i]) &&
+        _headingRe.firstMatch(lines[i]) == null &&
+        !lines[i].contains('|') &&
+        !bullet(lines[i]) &&
+        !_orderedRe.hasMatch(lines[i]) &&
+        !lines[i].startsWith('> ')) {
+      para.add(lines[i]);
+      i++;
+    }
+    if (para.isNotEmpty) {
+      blocks.add(MdPara(para.join('\n')));
+      continue;
+    }
+    // Pengaman: baris pipa yatim dirender sebagai teks tanpa karakter |.
+    blocks.add(MdPara(
+        lines[i].replaceAll('|', ' ').replaceAll(RegExp(r'\s+'), ' ').trim()));
+    i++;
   }
   return blocks;
 }
@@ -151,18 +245,71 @@ List<Widget> mdBlocks(BuildContext context, String md,
                   ),
               ],
             ),
+          // Quote tanpa garis vertikal: kartu lembut, bukan border kiri.
           MdQuote(text: final t) => Container(
               decoration: BoxDecoration(
-                border: Border(
-                    left: BorderSide(
-                        color: theme.colorScheme.primary, width: 4)),
+                color: SabaColors.greyFill,
+                borderRadius:
+                    BorderRadius.circular(SabaRadius.card),
               ),
-              padding: const EdgeInsets.only(left: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 10),
               child: Text.rich(
                 rich(t),
                 style: const TextStyle(fontStyle: FontStyle.italic),
               ),
             ),
+          MdTableBlock(head: final head, rows: final rows) =>
+              Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: SabaColors.borderSoft),
+              borderRadius:
+                  BorderRadius.circular(SabaRadius.card),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  color: SabaColors.greyFill,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 8),
+                  child: Row(
+                    children: [
+                      for (var j = 0; j < head.length; j++)
+                        Expanded(
+                          child: Text.rich(
+                            rich(head[j]),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                for (var r = 0; r < rows.length; r++)
+                  Container(
+                    decoration: const BoxDecoration(
+                      border: Border(
+                          top: BorderSide(
+                              color: SabaColors.borderSoft)),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
+                    child: Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        for (var j = 0; j < rows[r].length; j++)
+                          Expanded(
+                            child: Text.rich(rich(rows[r][j])),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
           MdPara(text: final t) => Text.rich(
               rich(t), style: SabaTextStyles.articleBody),
         },

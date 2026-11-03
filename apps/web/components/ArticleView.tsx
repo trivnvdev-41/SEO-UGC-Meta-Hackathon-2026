@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { FollowButton, ShareButton } from "@/components/ArticleExtras";
 import { Comments } from "@/components/Comments";
 import { FeedActions } from "@/components/FeedActions";
+import { Zoomable } from "@/components/Lightbox";
 import { Reveal } from "@/components/ui/reveal";
 import { avatarTone } from "@/components/HomeView";
 import { ButtonKembali as IconBack } from "@/components/icons";
@@ -22,7 +23,7 @@ import { escapeJsonLd } from "@/lib/jsonld";
 import { renderMd } from "@/lib/markdown";
 import { articlePath, articleUrl, kreatorPath } from "@/lib/site";
 import { faqPage, videoObject } from "@/lib/structured";
-import { parseSocialUrl } from "@/lib/video";
+import { parseSocialUrl, sourceLabel } from "@/lib/video";
 
 export async function articleMetadata(id: string, lang: Lang): Promise<Metadata> {
   const a = await getArticle(id);
@@ -87,6 +88,8 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
   const ago = timeAgo(a.createdAt, lang);
   const votes = a.votes ?? { up: 0, down: 0, score: 0, myVote: 0 as const };
   const creatorSlug = (a.creator ?? "").replace(/^@+/, "").trim();
+  // Konteks caption foto: merek dulu, lalu platform video (NN/g: caption dibaca).
+  const photoCtx = brand.replace(/\s+/g, "") || sourceLabel(a.videoUrl) || "";
 
   return (
     <main className="min-h-screen bg-canvas font-sans" id="top">
@@ -216,28 +219,38 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
             <Reveal>
               <section aria-label={lang === "en" ? "Product photos" : "Foto produk"} className="my-4">
                 <div className="grid grid-cols-2 gap-2.5">
-                  {photos.map((src, i) => (
-                    <figure
-                      key={src}
-                      className={i === 0 ? "col-span-2" : undefined}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={src}
-                        alt={`${body.title} — ${lang === "en" ? "photo" : "foto"} ${i + 1}`}
-                        loading={i === 0 ? undefined : "lazy"}
-                        className={
-                          i === 0
-                            ? "aspect-video w-full rounded-t-xl object-cover"
-                            : "aspect-square w-full rounded-t-xl object-cover"
-                        }
-                      />
-                      <figcaption className="rounded-b-xl bg-canvas px-2.5 py-1.5 text-[13px] font-bold text-[#424656]">
-                        {lang === "en" ? "Photo" : "Foto"} {i + 1}
-                        {photos.length > 1 ? ` / ${photos.length}` : null}
-                      </figcaption>
-                    </figure>
-                  ))}
+                  {photos.map((src, i) => {
+                    const alt = `${body.title} — ${lang === "en" ? "photo" : "foto"} ${i + 1}`;
+                    return (
+                      <figure
+                        key={src}
+                        className={i === 0 ? "col-span-2" : undefined}
+                      >
+                        <Zoomable
+                          src={src}
+                          alt={alt}
+                          label={lang === "en" ? "Enlarge photo" : "Perbesar foto"}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={src}
+                            alt={alt}
+                            loading={i === 0 ? undefined : "lazy"}
+                            className={
+                              i === 0
+                                ? "aspect-video w-full rounded-t-xl object-cover"
+                                : "aspect-square w-full rounded-t-xl object-cover"
+                            }
+                          />
+                        </Zoomable>
+                        <figcaption className="rounded-b-xl bg-canvas px-2.5 py-1.5 text-[13px] font-bold text-[#424656]">
+                          {lang === "en" ? "Photo" : "Foto"} {i + 1}
+                          {photos.length > 1 ? ` / ${photos.length}` : null}
+                          {photoCtx ? ` • ${photoCtx}` : ""}
+                        </figcaption>
+                      </figure>
+                    );
+                  })}
                 </div>
               </section>
             </Reveal>
@@ -257,7 +270,9 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
                   />
                 </div>
                 <figcaption className="rounded-b-xl bg-canvas px-2.5 py-1.5 text-[13px] font-bold text-[#424656]">
-                  {lang === "en" ? "Official video embed" : "Video resmi tersemat"}
+                  {lang === "en"
+                    ? `Official video embed${photoCtx ? ` • ${photoCtx}` : ""}`
+                    : `Video resmi tersemat${photoCtx ? ` • ${photoCtx}` : ""}`}
                 </figcaption>
               </figure>
             </Reveal>

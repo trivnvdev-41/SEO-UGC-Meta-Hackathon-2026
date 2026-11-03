@@ -62,8 +62,50 @@ describe("renderMd", () => {
     expect(out.match(/<td/g)?.length).toBe(4);
   });
 
-  it("baris pipa tanpa delimiter bukan tabel", () => {
+  it("baris pipa tanpa delimiter bukan tabel, pipa dibuang", () => {
     const out = html("| A | B |\n| 1 | 2 |");
     expect(out).not.toContain("<table");
+    expect(out).not.toContain("|");
+  });
+
+  it("heading tanpa baris kosong tetap jadi heading, bukan literal ###", () => {
+    const out = html("### Kelebihan Produk\nIsi langsung tanpa jeda.");
+    expect(out).toContain("<h3>");
+    expect(out).toContain("Kelebihan Produk");
+    expect(out).not.toContain("###");
+    expect(out).toContain("<p ");
+  });
+
+  it("#### dan ## tanpa spasi tetap jadi heading; #hashtag bukan", () => {
+    expect(html("#### Dalam")).toContain("<h3>");
+    expect(html("##Sub")).toContain("<h2>");
+    expect(html("##Sub")).not.toContain("##Sub");
+    const tag = html("#hashtag populer");
+    expect(tag).not.toContain("<h2>");
+    expect(tag).toContain("#hashtag");
+  });
+
+  it("garis pemisah (--, ---, ***) tidak dirender", () => {
+    expect(html("atas\n\n---\n\nbawah")).not.toContain("---");
+    expect(html("atas\n\n--\n\nbawah")).not.toContain("--");
+    expect(html("atas\n\n***\n\nbawah")).not.toContain("***");
+  });
+
+  it("tabel tanpa pipe tepi tetap jadi tabel", () => {
+    const out = html("A | B\n--- | ---\n1 | 2");
+    expect(out).toContain("<table");
+    expect(out).not.toContain("---");
+  });
+
+  it("-- diapit spasi jadi em dash, URL tak tersentuh", () => {
+    const out = html("murah -- tapi bagus [x](https://contoh.test/a--b)");
+    expect(out).toContain("murah — tapi bagus");
+    expect(out).toContain('href="https://contoh.test/a--b"');
+  });
+
+  it("quote tanpa garis vertikal (kartu, bukan border kiri)", () => {
+    const out = html("> Catatan penting");
+    expect(out).toContain("<blockquote");
+    expect(out).not.toContain("border-l");
   });
 });

@@ -211,6 +211,8 @@ class AiTest(unittest.TestCase):
         self.assertIn("faqs", text)
         self.assertIn("pertanyaan", text)
         self.assertIn("SITASI", text)
+        self.assertIn("FORMAT BERSIH", text)
+        self.assertIn("baris kosong", text)
 
     def test_transcribe_verbose_hitung_confidence(self):
         cap = {}

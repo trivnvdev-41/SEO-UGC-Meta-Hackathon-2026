@@ -25,4 +25,33 @@ void main() {
     expect(blocks.single, isA<MdPara>());
     expect(parseInline('a*b').single.bold, isFalse);
   });
+
+  test('heading tanpa baris kosong + tanpa spasi', () {
+    final blocks = parseMd('### Kelebihan\nIsi langsung.');
+    expect(blocks[0], isA<MdHeading>());
+    expect(blocks[1], isA<MdPara>());
+    expect(parseMd('##Sub')[0], isA<MdHeading>());
+    expect(parseMd('#tagar')[0], isA<MdPara>());
+  });
+
+  test('garis pemisah dibuang', () {
+    expect(parseMd('a\n\n---\n\nb').whereType<MdPara>().length, 2);
+    expect(parseMd('a\n\n--\n\nb').length, 2);
+  });
+
+  test('tabel tanpa pipe tepi tetap tabel', () {
+    final blocks = parseMd('A | B\n--- | ---\n1 | 2');
+    expect(blocks.single, isA<MdTableBlock>());
+    final t = blocks.single as MdTableBlock;
+    expect(t.head, ['A', 'B']);
+    expect(t.rows, [
+      ['1', '2']
+    ]);
+  });
+
+  test('em dash tulisan tangan jadi —', () {
+    expect(parseInline('murah -- tapi').map((s) => s.text).join(), 'murah — tapi');
+    expect(parseInline('[x](https://t.test/a--b)')[0].link, 'https://t.test/a--b');
+  });
 }
+

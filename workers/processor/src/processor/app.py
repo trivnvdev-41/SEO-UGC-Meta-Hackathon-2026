@@ -56,10 +56,70 @@ def process(job: ConvertJob):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     finally:
-        # /tmp/{job_id} ephemeraL: selalu dibersihkan, sukses maupun gagal.
+        # /tmp/{job_id} ephemeral: selalu dibersihkan, sukses maupun gagal.
         # Video sumber di MEDIA_DIR/<job_id>/ JANGAN dihapus di sini:
         # kepemilikannya di gateway, yang menghapus hanya SETELAH artikel
         # tersimpan (lihat saveArticle di API). Menghapus di sini membuat
         # retry BullMQ selalu gagal media_not_ready + video user hilang.
         purge(job.job_id)
     return {"job_id": job.job_id, **bundle}
+
+
+class RegenJob(BaseModel):
+    job_id: str
+    transcript: str
+    frame_urls: list[str] = []
+    creator: str | None = None
+
+
+def _allowed_frame_url(url: str) -> bool:
+    """Batasi unduhan frame ke host storage sendiri (anti-SSRF)."""
+    from urllib.parse import urlparse
+    allowed: set[str] = set()
+    for env in ("S3_PUBLIC_BASE_URL", "S3_ENDPOINT", "LOCAL_PUBLIC_BASE_URL"):
+        v = os.environ.get(env, "").strip()
+        if v:
+            try:
+                h = urlparse(v).hostname
+                if h:
+                    allowed.add(h)
+            except ValueError:
+                pass
+    try:
+        return bool(urlparse(url).hostname in allowed)
+    except ValueError:
+        return False
+
+
+def _fetch_frame_bytes(urls: list[str]) -> list[str]:
+    """Unduh maks 6 frame -> base64. Hanya host storage sendiri."""
+    import base64
+    import urllib.request
+    out = []
+    for u in urls[:6]:
+        if not _allowed_frame_url(u):
+            raise ValueError("frame_url_forbidden")
+        with urllib.request.urlopen(u, timeout=30) as res:
+            raw = res.read()
+        if not raw or len(raw) > 5 * 1024 * 1024:
+            raise ValueError("frame_bad_bytes")
+        out.append(base64.b64encode(raw).decode())
+    if not out:
+        raise ValueError("frame_empty")
+    return out
+
+
+@app.post("/regenerate", dependencies=[Depends(require_token)])
+def regenerate(job: RegenJob):
+    """Artikel ulang dari transkrip editan + frame pilihan (Langkah 2).
+    Dipakai saat user mengubah transkrip/judul di draft; tanpa STT ulang."""
+    from processor.ai import generate_article
+    transcript = (job.transcript or "").strip()[:20000]
+    if not transcript:
+        raise HTTPException(status_code=400, detail="empty_transcript")
+    try:
+        images = _fetch_frame_bytes(job.frame_urls)
+        bundle = generate_article(transcript, images, creator=job.creator)
+        return {"job_id": job.job_id, **bundle}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e

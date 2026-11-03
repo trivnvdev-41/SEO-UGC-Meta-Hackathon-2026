@@ -108,5 +108,31 @@ class AppTest(unittest.TestCase):
         # upload dipanggil 2x: gambar artikel + 6 opsi sampul
         self.assertEqual(up.call_count, 2)
 
+    def test_regenerate_tolak_host_luar(self):
+        from processor.app import RegenJob, regenerate as regen
+        with self.assertRaises(Exception) as cm:
+            regen(RegenJob(job_id="j9", transcript="halo dunia",
+                           frame_urls=["https://evil.test/x.jpg"]))
+        self.assertIn("frame_url_forbidden", str(cm.exception))
+
+    def test_regenerate_sukses_dari_frame_sendiri(self):
+        import os
+        from processor import app as appmod
+        with patch.dict(os.environ,
+                        {"S3_PUBLIC_BASE_URL": "https://cdn.test/bkt"}):
+            with patch.object(appmod, "_fetch_frame_bytes",
+                              return_value=["aGVsbG8="]) as fb:
+                with patch("processor.ai.generate_article",
+                            return_value={"articles": {"id": {}, "en": {}},
+                                          "json_ld": {}}) as ga:
+                    out = appmod.regenerate(appmod.RegenJob(
+                        job_id="j9", transcript="halo dunia",
+                        frame_urls=["https://cdn.test/j9/frame_001.jpg"],
+                        creator="@kreator"))
+        fb.assert_called_once()
+        self.assertEqual(ga.call_args[0][0], "halo dunia")
+        self.assertIn("articles", out)
+
+
 if __name__ == "__main__":
     unittest.main()

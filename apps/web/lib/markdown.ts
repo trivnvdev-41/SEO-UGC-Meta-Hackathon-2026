@@ -35,8 +35,6 @@ export function inline(text: string, keyPrefix: string): ReactNode[] {
 }
 
 export function renderMd(md: string): ReactNode[] {
-  // shortcut: renderer md minimal (heading + list + quote + bold/link),
-  // ganti markdown lib saat butuh tabel/gfm.
   return md.split("\n\n").map((block, i) => {
     const lines = block.split("\n");
     const heading = block.match(/^(#{1,3}) (.*)$/);
@@ -47,6 +45,67 @@ export function renderMd(md: string): ReactNode[] {
         heading[1].length >= 3 ? "h3" : "h2",
         { key: i },
         ...inline(text, `h${i}`),
+      );
+    }
+    // Tabel GFM: baris `| a | b |`, baris ke-2 delimiter `|---|---|`.
+    // Tanpa baris delimiter -> bukan tabel (jatuh ke paragraf agar aman).
+    const cells = (l: string) =>
+      l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+    const isDelim = (l: string) =>
+      /^\|?[\s:|-]+\|[\s:|-]+\|?$/.test(l.trim()) && l.includes("-");
+    if (
+      lines.length >= 2 &&
+      lines.every((l) => l.trim().startsWith("|")) &&
+      isDelim(lines[1])
+    ) {
+      const head = cells(lines[0]);
+      const rows = lines.slice(2).map(cells);
+      return createElement(
+        "div",
+        { key: i, className: "my-3 overflow-x-auto" },
+        createElement(
+          "table",
+          { className: "w-full border-collapse text-sm" },
+          createElement(
+            "thead",
+            null,
+            createElement(
+              "tr",
+              null,
+              ...head.map((h, j) =>
+                createElement(
+                  "th",
+                  {
+                    key: j,
+                    className:
+                      "border border-line bg-canvas px-2.5 py-1.5 text-left font-bold",
+                  },
+                  ...inline(h, `t${i}-h${j}`),
+                ),
+              ),
+            ),
+          ),
+          createElement(
+            "tbody",
+            null,
+            ...rows.map((r, k) =>
+              createElement(
+                "tr",
+                { key: k },
+                ...r.map((c, j) =>
+                  createElement(
+                    "td",
+                    {
+                      key: j,
+                      className: "border border-line px-2.5 py-1.5 align-top",
+                    },
+                    ...inline(c, `t${i}-${k}-${j}`),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
     const bullet = (l: string) => l.startsWith("- ") || l.startsWith("* ");

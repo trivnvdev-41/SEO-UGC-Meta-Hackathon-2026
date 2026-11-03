@@ -20,6 +20,8 @@ model Article {
   enBody    String
   jsonLd    String   @default("{}")
   references String  @default("[]")
+  idFaqs     String  @default("[]")
+  enFaqs     String  @default("[]")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   job       Job?

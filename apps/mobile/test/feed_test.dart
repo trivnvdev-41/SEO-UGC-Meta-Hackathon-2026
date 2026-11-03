@@ -41,6 +41,21 @@ void main() {
     expect(noBody.images, isEmpty);
   });
 
+  test('brand/review berbentuk list tidak membunuh parse', () {
+    // Regresi: job_f8a3de71cd3b punya json_ld.brand berupa list;
+    // 1 artikel begini membuat seluruh feed kosong di release.
+    final raw = fixture();
+    raw['json_ld'] = {
+      'brand': [
+        {'name': 'A'},
+        {'name': 'B'}
+      ]
+    };
+    final a = FeedArticle.fromJson(raw);
+    expect(a.brand, isEmpty);
+    expect(a.title, 'Judul');
+  });
+
   test('feedBrands unik dan lewati yang kosong', () {
     final list = [
       FeedArticle.fromJson(fixture(id: '1', brand: 'A')),
@@ -54,12 +69,36 @@ void main() {
     expect(feedBrands([]), isEmpty);
   });
 
-  test('articleSource melabeli TikTok/YouTube', () {
+  test('articleSource melabeli 5 platform', () {
     expect(articleSource('https://www.tiktok.com/@a/video/1'), 'TikTok');
     expect(articleSource('https://youtube.com/shorts/abc'), 'YouTube');
     expect(articleSource('https://youtu.be/abc'), 'YouTube');
+    expect(articleSource('https://www.instagram.com/p/AbC123/'), 'Instagram');
+    expect(
+        articleSource('https://www.facebook.com/reel/123456789012345'),
+        'Facebook');
+    expect(articleSource('https://x.com/u/status/123'), 'X');
+    expect(articleSource('https://twitter.com/u/status/123'), 'X');
     expect(articleSource('https://example.com/x'), isEmpty);
     expect(articleSource('bukan-url'), isEmpty);
+  });
+
+  test('references diparse, non-https dibuang, maks 4', () {
+    final raw = fixture();
+    raw['references'] = [
+      'https://instagram.com/p/abc/',
+      'http://tanpa-s.test/x',
+      'https://x.com/u/status/1',
+      'https://facebook.com/reel/123456',
+      'https://tiktok.com/@a/video/1',
+    ];
+    final a = FeedArticle.fromJson(raw);
+    expect(a.references, [
+      'https://instagram.com/p/abc/',
+      'https://x.com/u/status/1',
+      'https://facebook.com/reel/123456',
+      'https://tiktok.com/@a/video/1',
+    ]);
   });
 
   test('timeAgo label Indonesia', () {

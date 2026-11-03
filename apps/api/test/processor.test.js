@@ -127,3 +127,24 @@ test('consumer: references job diteruskan ke saveArticle', async () => {
   const saved = db.calls.find((c) => c[0] === 'article')[1];
   assert.deepEqual(saved.references, refs);
 });
+
+test('consumer: faqs llm diteruskan ke saveArticle', async () => {
+  const db = fakeDb();
+  const withFaq = {
+    ...bundle,
+    articles: {
+      id: { ...bundle.articles.id, faqs: [{ q: 'Apa?', a: 'Ini.' }] },
+      en: { ...bundle.articles.en, faqs: [{ q: 'What?', a: 'This.' }] },
+    },
+  };
+  const processor = makeProcessor({
+    db,
+    workerUrl: 'http://worker.test',
+    token: 'T',
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => withFaq }),
+  });
+  await processor({ id: 'job_f', data: { url: '', creator: null } });
+  const saved = db.calls.find((c) => c[0] === 'article')[1];
+  assert.deepEqual(saved.id_faqs, [{ q: 'Apa?', a: 'Ini.' }]);
+  assert.deepEqual(saved.en_faqs, [{ q: 'What?', a: 'This.' }]);
+});

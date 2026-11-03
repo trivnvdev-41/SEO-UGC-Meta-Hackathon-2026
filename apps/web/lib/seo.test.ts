@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import robots from "../app/robots";
 import { escapeJsonLd } from "./jsonld";
-import { videoObject } from "./structured";
-import { sourceLabel, youtubeId } from "./video";
+import { faqPage, videoObject } from "./structured";
+import { parseSocialUrl, sourceLabel, youtubeId } from "./video";
 import { brandOf, compactViews, formatDate, sortFeed, timeAgo, trendingOf, viewsOf } from "./articles";
 import { articlePath, articleUrl } from "./site";
 import type { Article } from "./articles";
@@ -35,12 +35,64 @@ describe("youtubeId", () => {
 });
 
 describe("sourceLabel", () => {
-  it("melabeli TikTok/YouTube, kosong bila tak dikenal", () => {
+  it("melabeli 5 platform, kosong bila tak dikenal", () => {
     expect(sourceLabel("https://www.tiktok.com/@a/video/1")).toBe("TikTok");
     expect(sourceLabel("https://www.youtube.com/shorts/aBcD1234xyz")).toBe("YouTube");
     expect(sourceLabel("https://youtu.be/aBcD1234xyz")).toBe("YouTube");
+    expect(sourceLabel("https://www.instagram.com/p/AbC123/")).toBe("Instagram");
+    expect(sourceLabel("https://www.instagram.com/reel/AbC123/")).toBe("Instagram");
+    expect(sourceLabel("https://www.facebook.com/reel/123456789012345")).toBe("Facebook");
+    expect(sourceLabel("https://x.com/user/status/1234567890123456789")).toBe("X");
+    expect(sourceLabel("https://twitter.com/user/status/1234567890123456789")).toBe("X");
     expect(sourceLabel("https://example.com/x")).toBe("");
     expect(sourceLabel("bukan-url")).toBe("");
+  });
+});
+
+describe("parseSocialUrl", () => {
+  it("platform + id terekstrak, null bila tak dikenal", () => {
+    expect(parseSocialUrl("https://www.tiktok.com/@a/video/7123456789012345678")).toEqual({
+      platform: "tiktok",
+      label: "TikTok",
+      id: "7123456789012345678",
+    });
+    expect(parseSocialUrl("https://www.instagram.com/p/AbC123/")).toMatchObject({
+      platform: "instagram",
+      label: "Instagram",
+      id: "AbC123",
+    });
+    expect(parseSocialUrl("https://x.com/u/status/123")).toMatchObject({
+      platform: "x",
+      label: "X",
+      id: "123",
+    });
+    expect(parseSocialUrl("https://www.youtube.com/watch?v=aBcD1234xyz")).toMatchObject({
+      platform: "youtube",
+      id: "aBcD1234xyz",
+    });
+    expect(parseSocialUrl("https://example.com/x")).toBeNull();
+    expect(parseSocialUrl("bukan-url")).toBeNull();
+  });
+});
+
+describe("faqPage", () => {
+  it("FAQPage valid, buang kosong, maks 3", () => {
+    const out = faqPage([
+      { q: "Apa ini?", a: "Itu." },
+      { q: "  ", a: "kosong" },
+      { q: "Q2", a: "A2" },
+      { q: "Q3", a: "A3" },
+      { q: "Q4", a: "A4" },
+    ]);
+    expect(out?.["@type"]).toBe("FAQPage");
+    expect(out?.mainEntity).toHaveLength(3);
+    expect(out?.mainEntity[0].acceptedAnswer["@type"]).toBe("Answer");
+  });
+
+  it("null bila tak ada faq valid", () => {
+    expect(faqPage([])).toBeNull();
+    expect(faqPage(undefined)).toBeNull();
+    expect(faqPage([{ q: "", a: "" }])).toBeNull();
   });
 });
 
@@ -70,6 +122,9 @@ describe("videoObject", () => {
     videoUrl: "https://www.youtube.com/shorts/aBcD1234xyz",
     id_body: { title: "T", meta: "M", body_md: "B" },
     en_body: { title: "T", meta: "M", body_md: "B" },
+    references: [],
+    id_faqs: [],
+    en_faqs: [],
     json_ld: {},
     createdAt: "2026-10-30T00:00:00.000Z",
   } as Article;
@@ -101,7 +156,7 @@ describe("articleUrl", () => {
 });
 
 describe("robots", () => {
-  it("mengizinkan 7 bot AI eksplisit + sitemap", () => {
+  it("mengizinkan 8 bot AI eksplisit + sitemap", () => {
     const r = robots();
     const agents = (Array.isArray(r.rules) ? r.rules : []).map(
       (x) => (x as { userAgent?: string }).userAgent,
@@ -109,6 +164,7 @@ describe("robots", () => {
     for (const bot of [
       "GPTBot",
       "ChatGPT-User",
+      "OAI-SearchBot",
       "ClaudeBot",
       "Claude-Web",
       "Google-Extended",
@@ -128,6 +184,9 @@ describe("brandOf/scoreOf/sortFeed/trendingOf/timeAgo", () => {
     videoUrl: "https://x/v",
     id_body: { title: "T", meta: "M", body_md: "B" },
     en_body: { title: "T", meta: "M", body_md: "B" },
+    references: [],
+    id_faqs: [],
+    en_faqs: [],
     json_ld: { brand: { name: `Merek ${id}` } },
     createdAt,
     ...(score === undefined ? {} : { votes: { up: score, down: 0, score, myVote: 0 as const } }),

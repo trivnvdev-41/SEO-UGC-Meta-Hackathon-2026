@@ -11,6 +11,8 @@ const toArticle = (row) => ({
   en_body: { title: row.enTitle, meta: row.enMeta, body_md: row.enBody },
   json_ld: JSON.parse(row.jsonLd || '{}'),
   references: JSON.parse(row.references || '[]'),
+  id_faqs: JSON.parse(row.idFaqs || '[]'),
+  en_faqs: JSON.parse(row.enFaqs || '[]'),
   createdAt: row.createdAt?.toISOString?.() ?? row.createdAt,
 });
 
@@ -82,6 +84,8 @@ export function createDb(client = prisma) {
           enBody: a.en_body.body_md,
           jsonLd,
           references: JSON.stringify(a.references ?? []),
+          idFaqs: JSON.stringify(a.id_faqs ?? []),
+          enFaqs: JSON.stringify(a.en_faqs ?? []),
         },
         update: {
           videoUrl: a.videoUrl,
@@ -95,6 +99,8 @@ export function createDb(client = prisma) {
           enBody: a.en_body.body_md,
           jsonLd,
           references: JSON.stringify(a.references ?? []),
+          idFaqs: JSON.stringify(a.id_faqs ?? []),
+          enFaqs: JSON.stringify(a.en_faqs ?? []),
         },
       });
     },

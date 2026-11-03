@@ -54,4 +54,16 @@ describe("renderMd", () => {
     expect(out).not.toContain("<img");
     expect(out).toContain("&lt;img");
   });
+
+  it("tabel GFM jadi <table> dengan thead/tbody", () => {
+    const out = html("| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |");
+    expect(out).toContain("<table");
+    expect(out).toContain("<th");
+    expect(out.match(/<td/g)?.length).toBe(4);
+  });
+
+  it("baris pipa tanpa delimiter bukan tabel", () => {
+    const out = html("| A | B |\n| 1 | 2 |");
+    expect(out).not.toContain("<table");
+  });
 });

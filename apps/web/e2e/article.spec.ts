@@ -32,7 +32,9 @@ test("artikel: H1, foto/tautan sumber, JSON-LD valid, tanpa console error", asyn
 
   const source = page.locator("a[href*='tiktok.com/@contoh/video/123']");
   await expect(source.first()).toBeVisible();
-  await expect(source.first()).toContainText("Tonton video asli");
+  // Kartu referensi: label platform + URL, bukan lagi link "Tonton video asli".
+  await expect(source.first()).toContainText("TikTok");
+  await expect(source.first()).toContainText("tiktok.com/@contoh/video/123");
 
   const ld = await page.locator('script[type="application/ld+json"]').textContent();
   const parsed = JSON.parse(ld ?? "null");

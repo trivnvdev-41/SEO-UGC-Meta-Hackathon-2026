@@ -12,6 +12,7 @@ import {
   compactViews,
   getArticle,
   pickBody,
+  pickFaqs,
   ratingOf,
   timeAgo,
   viewsOf,
@@ -20,7 +21,8 @@ import {
 import { escapeJsonLd } from "@/lib/jsonld";
 import { renderMd } from "@/lib/markdown";
 import { articlePath, articleUrl } from "@/lib/site";
-import { videoObject } from "@/lib/structured";
+import { faqPage, videoObject } from "@/lib/structured";
+import { parseSocialUrl } from "@/lib/video";
 
 export async function articleMetadata(id: string, lang: Lang): Promise<Metadata> {
   const a = await getArticle(id);
@@ -62,8 +64,15 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
 
   const body = pickBody(a, lang);
   const video = videoObject(a, body);
+  const faqs = pickFaqs(a, lang);
+  const faq = faqPage(faqs);
   const rating = ratingOf(a.json_ld);
   const photos = a.images.slice(0, 3);
+  // Kartu referensi: video asli kreator + link sosmed tambahan (maks 3).
+  const refUrls = [
+    ...(a.videoUrl ? [a.videoUrl] : []),
+    ...((a.references ?? []) as string[]),
+  ].slice(0, 4);
   const homeHref = lang === "en" ? "/en" : "/";
   let brand = "";
   try {
@@ -238,26 +247,83 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
                     allowFullScreen
                   />
                 </div>
-                {a.videoUrl ? (
-                  <figcaption className="rounded-b-xl bg-canvas px-2.5 py-1.5 text-[13px] font-bold text-[#424656]">
-                    <a href={a.videoUrl} target="_blank" rel="noreferrer">
-                      {lang === "en" ? "Watch the original video" : "Tonton video asli"}
-                    </a>
-                  </figcaption>
-                ) : null}
+                <figcaption className="rounded-b-xl bg-canvas px-2.5 py-1.5 text-[13px] font-bold text-[#424656]">
+                  {lang === "en" ? "Official video embed" : "Video resmi tersemat"}
+                </figcaption>
               </figure>
             </Reveal>
-          ) : a.videoUrl ? (
-            <p className="my-4 text-sm">
-              <a href={a.videoUrl} target="_blank" rel="noreferrer">
-                {lang === "en" ? "Watch the original video" : "Tonton video asli"}
-              </a>
-            </p>
+          ) : null}
+
+          {refUrls.length > 0 ? (
+            <section
+              aria-label={lang === "en" ? "References" : "Referensi"}
+              className="my-4"
+            >
+              <h2 className="mb-2 text-[15px] font-bold">
+                {lang === "en" ? "References" : "Referensi"}
+              </h2>
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                {refUrls.map((u) => {
+                  const s = parseSocialUrl(u);
+                  const label = s?.label ?? (lang === "en" ? "Link" : "Tautan");
+                  return (
+                    <a
+                      key={u}
+                      href={u}
+                      target="_blank"
+                      rel="noreferrer nofollow"
+                      className="flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-canvas px-3 py-2.5 no-underline"
+                    >
+                      <span
+                        aria-hidden
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-saba-soft text-sm font-extrabold text-saba"
+                      >
+                        {label.charAt(0)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-bold">
+                          {label}
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          {u}
+                        </span>
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
           ) : null}
 
           <div className="text-[16px] leading-[26px] text-[#424656]">
             {renderMd(body.body_md)}
           </div>
+
+          {faq ? (
+            <section
+              aria-label={lang === "en" ? "FAQ" : "Pertanyaan umum"}
+              className="my-4"
+            >
+              <h2 className="mb-2 text-[15px] font-bold">
+                {lang === "en" ? "Frequently asked questions" : "Pertanyaan umum"}
+              </h2>
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                {faqs.slice(0, 3).map((f, i) => (
+                  <details
+                    key={i}
+                    className="rounded-xl border border-line bg-white px-3 py-2.5"
+                  >
+                    <summary className="cursor-pointer text-[14px] font-bold">
+                      {f.q}
+                    </summary>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-[#424656]">
+                      {f.a}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <FeedActions
             id={a.id}
@@ -305,6 +371,12 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: escapeJsonLd(video) }}
+        />
+      ) : null}
+      {faq ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: escapeJsonLd(faq) }}
         />
       ) : null}
     </main>

@@ -37,6 +37,8 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
       en_body: b.articles.en,
       json_ld: b.json_ld ?? {},
       references,
+      id_faqs: b.articles.id?.faqs ?? [],
+      en_faqs: b.articles.en?.faqs ?? [],
     });
     await db.setJobStatus(job.id, 'done', { url, articleId: job.id });
   };

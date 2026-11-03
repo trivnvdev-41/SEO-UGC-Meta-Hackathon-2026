@@ -6,6 +6,11 @@ export interface ArticleBody {
   body_md: string;
 }
 
+export interface FaqItem {
+  q: string;
+  a: string;
+}
+
 export interface Votes {
   up: number;
   down: number;
@@ -20,6 +25,9 @@ export interface Article {
   creator?: string | null;
   id_body: ArticleBody;
   en_body: ArticleBody;
+  references: string[];
+  id_faqs: FaqItem[];
+  en_faqs: FaqItem[];
   json_ld: Record<string, unknown>;
   createdAt?: string;
   votes?: Votes;
@@ -47,6 +55,11 @@ export async function listArticleIds(): Promise<string[]> {
 
 export function pickBody(a: Article, lang: Lang): ArticleBody {
   return lang === "en" ? a.en_body : a.id_body;
+}
+
+export function pickFaqs(a: Article, lang: Lang): FaqItem[] {
+  const list = lang === "en" ? a.en_faqs : a.id_faqs;
+  return Array.isArray(list) ? list : [];
 }
 
 export function ratingOf(json_ld: Record<string, unknown>): {

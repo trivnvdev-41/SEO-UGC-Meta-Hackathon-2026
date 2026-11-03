@@ -50,6 +50,80 @@ class _FollowButtonState extends State<_FollowButton> {
   }
 }
 
+/// Kartu referensi: label platform + URL, ketuk untuk buka.
+/// Tanpa script embed pihak ketiga (ringan).
+class _RefCard extends StatelessWidget {
+  const _RefCard(
+      {required this.url, required this.isVideo, required this.onOpen});
+
+  final String url;
+  final bool isVideo;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final source = articleSource(url);
+    final label = isVideo && source.isEmpty
+        ? 'Video asli'
+        : isVideo
+            ? 'Video asli • $source'
+            : source.isEmpty
+                ? 'Tautan'
+                : source;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GestureDetector(
+        onTap: onOpen,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(SabaRadius.card),
+              border: Border.all(color: SabaColors.borderSoft)),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    color: SabaColors.chipBlueBg,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Text(
+                    label.characters.first,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: SabaColors.primary)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text(url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11, color: SabaColors.muted2)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.open_in_new,
+                  size: 16, color: SabaColors.muted2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ArticleDetailPage extends StatefulWidget {  const ArticleDetailPage(
       {super.key, required this.jobId, required this.apiBase});
 
@@ -301,7 +375,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                         ),
                       ),
                     ),
-                  if (a.videoUrl.isNotEmpty) ...[
+                  if (a.videoUrl.isNotEmpty || a.references.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
@@ -314,27 +388,20 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
                         children: [
-                          Text(
-                              'REKAMAN VIDEO • ${articleSource(a.videoUrl).isEmpty ? 'VIDEO ASLI' : articleSource(a.videoUrl).toUpperCase()}',
-                              style: const TextStyle(
+                          const Text('REFERENSI',
+                              style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: SabaColors.muted2)),
-                          const SizedBox(height: 4),
-                          const Text('Tonton video asli kreator',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600)),
                           const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: () =>
-                                  _openVideo(a.videoUrl),
-                              icon: const Icon(Icons.play_circle_outline),
-                              label: const Text('Tonton video'),
-                            ),
-                          ),
+                          for (final u in [
+                            if (a.videoUrl.isNotEmpty) a.videoUrl,
+                            ...a.references,
+                          ].take(4))
+                            _RefCard(
+                                url: u,
+                                isVideo: u == a.videoUrl,
+                                onOpen: () => _openVideo(u)),
                         ],
                       ),
                     ),
@@ -520,8 +587,8 @@ Future<List<String>> fetchFeedIds(String apiBase) async {
     final res = await req.close().timeout(const Duration(seconds: 20));
     final body = await res.transform(utf8.decoder).join();
     if (res.statusCode != 200) return [];
-    final ids = (jsonDecode(body) as Map<String, dynamic>)['ids'];
-    return [for (final id in (ids as List?) ?? const []) '$id']
+    final idsRaw = (jsonDecode(body) as Map<String, dynamic>)['ids'];
+    return [for (final id in (idsRaw is List ? idsRaw : const [])) '$id']
         .take(20)
         .toList();
   } finally {

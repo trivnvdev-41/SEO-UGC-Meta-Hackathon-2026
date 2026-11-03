@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Article" ADD COLUMN "idFaqs" TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE "Article" ADD COLUMN "enFaqs" TEXT NOT NULL DEFAULT '[]';

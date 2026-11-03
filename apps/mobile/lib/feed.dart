@@ -13,6 +13,7 @@ class FeedArticle {
     required this.brand,
     required this.creator,
     required this.createdAt,
+    required this.references,
   });
 
   final String id;
@@ -25,13 +26,17 @@ class FeedArticle {
   final String brand;
   final String creator;
   final String createdAt;
+  final List<String> references;
 
   factory FeedArticle.fromJson(Map<String, dynamic> json) {
-    final body = (json['id_body'] as Map?) ?? const {};
-    final ld = (json['json_ld'] as Map?) ?? const {};
-    final review = (ld['review'] as Map?) ?? const {};
-    final rating = (review['reviewRating'] as Map?) ?? const {};
-    final brand = (ld['brand'] as Map?) ?? const {};
+    // API kadang mengembalikan object sebagai list (mis. brand: [...]);
+    // cast langsung (as Map?) akan throw dan membunuh seluruh feed.
+    Map m(dynamic v) => v is Map ? v : const {};
+    final body = m(json['id_body']);
+    final ld = m(json['json_ld']);
+    final review = m(ld['review']);
+    final rating = m(review['reviewRating']);
+    final brand = m(ld['brand']);
     return FeedArticle(
       id: '${json['id'] ?? ''}',
       title: '${body['title'] ?? ''}',
@@ -47,6 +52,7 @@ class FeedArticle {
       brand: '${brand['name'] ?? ''}',
       creator: '${json['creator'] ?? ''}',
       createdAt: '${json['createdAt'] ?? ''}',
+      references: _httpsRefs(json['references']),
     );
   }
 }
@@ -78,12 +84,29 @@ List<FeedArticle> filterFeed(List<FeedArticle> articles, String? brand) {
   return articles.where((a) => a.brand == brand).toList();
 }
 
+/// Referensi https valid, maks 4 (kartu referensi detail artikel).
+List<String> _httpsRefs(dynamic raw) {
+  final out = <String>[];
+  for (final u in (raw as List?) ?? const []) {
+    final s = '$u';
+    if (s.startsWith('https://')) out.add(s);
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
 /// Label sumber video untuk kartu feed; '' bila tak dikenali.
+/// 5 platform: TikTok / YouTube / Instagram / Facebook / X.
 String articleSource(String videoUrl) {
   final host = Uri.tryParse(videoUrl)?.host.toLowerCase() ?? '';
   if (host.contains('tiktok.com')) return 'TikTok';
   if (host.contains('youtube.com') || host.contains('youtu.be')) {
     return 'YouTube';
   }
+  if (host.contains('instagram.com')) return 'Instagram';
+  if (host.contains('facebook.com') || host.contains('fb.watch')) {
+    return 'Facebook';
+  }
+  if (host.contains('x.com') || host.contains('twitter.com')) return 'X';
   return '';
 }

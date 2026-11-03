@@ -97,3 +97,58 @@ class SabaIcons {
         height: size,
       );
 }
+
+/// Stepper 3 langkah upload ala mockup: 1 Sumber • 2 Frame • 3 Sukses.
+class SabaStepper extends StatelessWidget {
+  const SabaStepper({super.key, required this.current});
+
+  final int current; // 1..3
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['Sumber', 'Frame', 'Sukses'];
+    return Row(
+      children: [
+        for (var i = 1; i <= 3; i++) ...[
+          _dot(i, labels[i - 1]),
+          if (i < 3)
+            const Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6),
+                child: Divider(color: SabaColors.borderSoft),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _dot(int i, String label) {
+    final done = i < current;
+    final active = i == current;
+    final bg = done || active ? SabaColors.primary : SabaColors.greyFill;
+    final fg = done || active ? Colors.white : SabaColors.muted2;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+          child: done
+              ? const Icon(Icons.check, size: 14, color: Colors.white)
+              : Text('$i',
+                  style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.bold, color: fg)),
+        ),
+        const SizedBox(width: 6),
+        Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                color: active ? SabaColors.primary : SabaColors.muted2)),
+      ],
+    );
+  }
+}

@@ -72,11 +72,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   String? _error;
   List<FeedArticle> _feed = [];
   bool _feedLoading = true;
-  String? _brandFilter;
-  int _tab = 0; // 0=Untuk Anda, 1=Populer, 2=Terbaru
-  String _query = '';
   int _navIndex = 0;
-  final _search = TextEditingController();
 
   int _pollSeq = 0; // token poll aktif; poll lama berhenti saat tersalip/cancel.
   bool _foreground = true; // false = notifikasi info saat job selesai.
@@ -114,24 +110,8 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     }
   }
 
-  /// Feed tampil: filter merek + search lokal + sort tab.
-  List<FeedArticle> _visibleFeed() {
-    var list = filterFeed(_feed, _brandFilter);
-    if (_query.isNotEmpty) {
-      final q = _query.toLowerCase();
-      list = list
-          .where((a) =>
-              '${a.title} ${a.excerpt} ${a.brand} ${a.creator}'
-                  .toLowerCase()
-                  .contains(q))
-          .toList();
-    }
-    if (_tab == 1) {
-      list = [...list]
-        ..sort((a, b) => baseVotes(b.id).compareTo(baseVotes(a.id)));
-    }
-    return list;
-  }
+  /// Feed tampil apa adanya (urutan server); filter/search pindah ke Jelajah.
+  List<FeedArticle> _visibleFeed() => _feed;
 
   /// 3 teratas by votes untuk seksi trending.
   List<FeedArticle> _trending() {
@@ -172,7 +152,6 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     onNotifTap = null;
-    _search.dispose();
     super.dispose();
   }
 
@@ -195,11 +174,13 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     });
     final seq = ++_pollSeq;
     var lastPct = -1;
+    JobRecord? record;
     try {
       final jobId = await uploadVideo(
         apiBase: apiBase,
         creator: ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
         onProgress: (p) {
+          if (record != null) JobHistory.progress(record.id, p);
           final pct = (p * 100).floor();
           if (pct >= lastPct + 5 && mounted && seq == _pollSeq) {
             lastPct = pct;
@@ -212,6 +193,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         _set('Upload dibatalkan.');
         return;
       }
+      record = JobHistory.add(jobId, 'Video dari galeri');
       await _trackJob(jobId, seq, label: 'Video dari galeri');
     } catch (e) {
       if (!mounted || seq != _pollSeq) return;
@@ -225,6 +207,11 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     setState(() => _status = 'Job dibuat: $jobId — menunggu artikel...');
     await _pollArticle(entry, seq);
     if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
+    if (entry.status == 'done') {
+      JobHistory.done(jobId);
+    } else {
+      JobHistory.fail(jobId, entry.error ?? 'gagal');
+    }
     setState(() {
       if (entry.status == 'done') {
         _doneJobId = jobId;
@@ -243,7 +230,27 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         await notifyJob('Job $jobId gagal', entry.error ?? 'unknown');
       }
     }
-    if (entry.status == 'done') _loadFeed();
+    if (entry.status == 'done') {
+      _loadFeed();
+      _openSuccess(jobId);
+    }
+  }
+
+  /// Langkah 3/3 ala mockup: halaman sukses penuh.
+  void _openSuccess(String jobId) {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UploadSuccessPage(
+          jobId: jobId,
+          onOpen: () {
+            Navigator.of(context).pop();
+            _openArticle(jobId);
+          },
+          onShare: () => _copyArticle(jobId),
+        ),
+      ),
+    );
   }
 
   /// Poll `GET /v1/articles/<jobId>` sampai 200 (maks ~10 menit).
@@ -303,25 +310,6 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
 
   Color get _bg => SabaColors.bgCool;
 
-  Widget _pill(String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? sabaBlue : SabaColors.greyFill,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                color: selected ? Colors.white : const Color(0xFF444444),
-                fontWeight:
-                    selected ? FontWeight.bold : FontWeight.w500)),
-      ),
-    );
-  }
-
   Widget _trendingCard() {
     final top = _trending();
     if (top.isEmpty) return const SizedBox();
@@ -343,19 +331,23 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   decoration: const BoxDecoration(
                       color: Color(0xFFFF5A00), shape: BoxShape.circle)),
               const SizedBox(width: 6),
-              const Text('TOPIK PALING RAMAI',
+              const Text('TOPIK PALING RAMAI SAAT INI',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5)),
               const Spacer(),
               GestureDetector(
-                onTap: () => setState(() {
-                  _tab = 1;
-                  _brandFilter = null;
-                }),
-                child: const Text('Lihat Semua',
-                    style: TextStyle(fontSize: 11, color: sabaBlue)),
+                onTap: () => _onNav(1),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Lihat Semua',
+                        style: TextStyle(fontSize: 11, color: sabaBlue)),
+                    Icon(Icons.chevron_right,
+                        size: 14, color: sabaBlue),
+                  ],
+                ),
               ),
             ],
           ),
@@ -406,10 +398,12 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Kartu post ala mockup: author, judul, kutipan serif, foto + caption,
+  /// chip tag, bar aksi gabungan.
   Widget _forumCard(FeedArticle a) {
-    final comments = baseVotes(a.id) ~/ 6;
+    final handle = a.brand.isNotEmpty ? '@${a.brand}' : '@ulasan';
     return Container(
-      padding: const EdgeInsets.all(SabaSpacing.cardPad),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(SabaRadius.card),
@@ -419,20 +413,15 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         children: [
           Row(
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: SabaColors.okBg,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: sabaBlue.withValues(alpha: 0.3))),
-                child: const Text('c/',
-                    style: TextStyle(
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: SabaColors.greyFill,
+                child: Text(
+                    (a.brand.isNotEmpty ? a.brand : 'S')[0].toUpperCase(),
+                    style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: sabaBlue)),
+                        color: SabaColors.muted2)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -440,16 +429,24 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                        'c/${a.brand.isNotEmpty ? a.brand : 'ulasan'}${a.creator.isNotEmpty ? ' • ${a.creator}' : ''}',
+                        a.creator.isNotEmpty
+                            ? '$handle  •  diterbitkan oleh ${a.creator}'
+                            : handle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.bold)),
-                    const Text('Ulasan produk • dari video kreator',
-                        style: TextStyle(
+                    Text(
+                        'Ulasan produk • ${timeAgo(a.createdAt).isEmpty ? 'baru saja' : timeAgo(a.createdAt)}',
+                        style: const TextStyle(
                             fontSize: 10, color: SabaColors.muted2)),
                   ],
                 ),
+              ),
+              GestureDetector(
+                onTap: () => _copyArticle(a.id),
+                child: const Icon(Icons.more_horiz,
+                    size: 18, color: SabaColors.muted2),
               ),
             ],
           ),
@@ -458,101 +455,98 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
             onTap: () => _openArticle(a.id),
             child: Text(a.title,
                 style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold, height: 1.3)),
+                    fontSize: 16, fontWeight: FontWeight.bold, height: 1.35)),
           ),
-          const SizedBox(height: 4),
-          Text(a.excerpt,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF444444), height: 1.5)),
-          Builder(builder: (_) {
-            final source = articleSource(a.videoUrl);
-            if (a.rating == null && source.isEmpty) {
-              return const SizedBox();
-            }
-            return Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
-                children: [
-                  if (a.rating != null) ...[
-                    const Icon(Icons.star,
-                        size: 13, color: Colors.amber),
-                    const SizedBox(width: 3),
-                    Text(a.rating!,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF444444))),
-                  ],
-                  if (a.rating != null && source.isNotEmpty)
-                    const Text('  •  ',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: SabaColors.muted2)),
-                  if (source.isNotEmpty)
-                    Text(source,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: SabaColors.muted2,
-                            fontWeight: FontWeight.w500)),
-                ],
-              ),
-            );
-          }),
+          if (a.excerpt.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(a.excerpt,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: SabaTextStyles.excerpt
+                    .copyWith(fontSize: 13, height: 1.6)),
+          ],
           if (a.images.isNotEmpty) ...[
             const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(a.images.first,
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const SizedBox()),
+            GestureDetector(
+              onTap: () => _openArticle(a.id),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(SabaRadius.img),
+                    child: Image.network(a.images.first,
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox()),
+                  ),
+                  if (a.images.length > 1)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius:
+                                BorderRadius.circular(SabaRadius.pill)),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.photo_library,
+                                size: 12, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text('Galeri',
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 8,
+                    right: 8,
+                    bottom: 8,
+                    child: Text(
+                        a.brand.isNotEmpty ? a.brand : 'SABA Original',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(blurRadius: 6, color: Colors.black87),
+                            ])),
+                  ),
+                ],
+              ),
             ),
           ],
-          const SizedBox(height: 8),
-          const Divider(height: 1, color: SabaColors.greyFill),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              VotePill(articleId: a.id, compact: true),
-              const SizedBox(width: 6),
-              VoteDown(articleId: a.id),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => _openArticle(a.id),
-                child: Container(
+          if (a.brand.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              children: [
+                Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                      color: SabaColors.greyFill,
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius:
+                          BorderRadius.circular(SabaRadius.pill),
                       border:
                           Border.all(color: SabaColors.borderSoft)),
-                  child: Text('$comments Komentar',
+                  child: Text('#${a.brand}',
                       style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF444444),
-                          fontWeight: FontWeight.w600)),
+                          fontSize: 11, color: SabaColors.body)),
                 ),
-              ),
-              const Spacer(),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.share_outlined, size: 18),
-                color: SabaColors.muted2,
-                onPressed: () => _copyArticle(a.id),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.bookmark_border, size: 18),
-                color: SabaColors.muted2,
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Disimpan (demo lokal)'))),
-              ),
-            ],
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          VoteBar(
+            articleId: a.id,
+            onOpen: () => _openArticle(a.id),
+            onShare: () => _copyArticle(a.id),
           ),
         ],
       ),
@@ -575,7 +569,11 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     }
     if (_navIndex == 2) {
       return Scaffold(
-        body: const InboxPage(),
+        body: InboxPage(
+          jobs: JobHistory.records,
+          onOpen: _openArticle,
+          onRetry: _uploadFromGallery,
+        ),
         floatingActionButton: FloatingActionButton(
           onPressed: _openConvertSheet,
           backgroundColor: sabaBlue,
@@ -598,6 +596,7 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                     builder: (_) => const LoginPage()),
               ),
               onUpload: _uploadFromGallery,
+              onOpenArticle: _openArticle,
             )
           : SafeArea(
               child: Column(
@@ -606,113 +605,27 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
               color: Colors.white,
               padding:
                   const EdgeInsets.fromLTRB(14, 10, 14, 10),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                            color: SabaColors.primary,
-                            shape: BoxShape.circle),
-                        child: const Text('S',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('SABA',
+                  const Expanded(
+                    child: Center(
+                      child: Text('SABA',
                           style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 17,
                               fontWeight: FontWeight.w800)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10),
-                          decoration: BoxDecoration(
-                              color: SabaColors.greyFill,
-                              borderRadius:
-                                  BorderRadius.circular(999),
-                              border: Border.all(
-                                  color:
-                                      SabaColors.borderSoft)),
-                          child: TextField(
-                            controller: _search,
-                            onChanged: (v) =>
-                                setState(() => _query = v),
-                            decoration: const InputDecoration(
-                              hintText: 'Cari ulasan…',
-                              border: InputBorder.none,
-                              isDense: true,
-                              icon: Icon(Icons.search,
-                                  size: 16,
-                                  color: SabaColors.muted2),
-                            ),
-                            style:
-                                const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(
-                            Icons.notifications_outlined,
-                            size: 20),
-                        color: const Color(0xFF444444),
-                        onPressed: () =>
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(const SnackBar(
-                                    content: Text(
-                                        'Belum ada notifikasi baru'))),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 34,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _pill(
-                            'Untuk Anda',
-                            _tab == 0 &&
-                                _brandFilter == null, () =>
-                                setState(() {
-                                  _tab = 0;
-                                  _brandFilter = null;
-                                })),
-                        const SizedBox(width: 8),
-                        _pill(
-                            'Populer',
-                            _tab == 1 &&
-                                _brandFilter == null, () =>
-                                setState(() {
-                                  _tab = 1;
-                                  _brandFilter = null;
-                                })),
-                        const SizedBox(width: 8),
-                        _pill(
-                            'Terbaru',
-                            _tab == 2 &&
-                                _brandFilter == null, () =>
-                                setState(() {
-                                  _tab = 2;
-                                  _brandFilter = null;
-                                })),
-                        for (final b
-                            in feedBrands(_feed)) ...[
-                          const SizedBox(width: 8),
-                          _pill(
-                              b,
-                              _brandFilter == b,
-                              () => setState(
-                                  () => _brandFilter = b)),
-                        ],
-                      ],
+                  GestureDetector(
+                    onTap: () => _onNav(1),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                          color: SabaColors.greyFill,
+                          shape: BoxShape.circle),
+                      child: const Icon(Icons.search,
+                          size: 18, color: SabaColors.ink),
                     ),
                   ),
                 ],
@@ -883,26 +796,33 @@ class _ConvertStatus extends StatelessWidget {
                   ? SabaColors.fail
                   : SabaColors.borderSoft)),
       child: busy
-          ? Row(
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3.5,
-                    strokeCap: StrokeCap.round,
-                    color: sabaBlue,
-                    backgroundColor: SabaColors.greyFill,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(child: _StepCycler()),
-                IconButton(
-                  tooltip: 'Batal',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.close, size: 18),
-                  color: SabaColors.muted2,
-                  onPressed: onCancel,
+                const SabaStepper(current: 2),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3.5,
+                        strokeCap: StrokeCap.round,
+                        color: sabaBlue,
+                        backgroundColor: SabaColors.greyFill,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(child: _StepCycler()),
+                    IconButton(
+                      tooltip: 'Batal',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.close, size: 18),
+                      color: SabaColors.muted2,
+                      onPressed: onCancel,
+                    ),
+                  ],
                 ),
               ],
             )

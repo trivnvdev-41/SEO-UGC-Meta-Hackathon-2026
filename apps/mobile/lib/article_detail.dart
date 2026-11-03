@@ -116,15 +116,19 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
       );
     }
     final ago = timeAgo(a.createdAt);
-    final tag =
-        a.brand.replaceAll(RegExp(r'\s+'), '');
+    final handle = '@${a.brand.isNotEmpty ? a.brand : 'ulasan'}';
+    final tags = [
+      if (a.brand.isNotEmpty) '#$handle',
+      '#Ulasan',
+      if (articleSource(a.videoUrl).isNotEmpty)
+        '#${articleSource(a.videoUrl)}',
+    ];
     return Scaffold(
-      backgroundColor: SabaColors.greyFill,
+      backgroundColor: SabaColors.bgCool,
       appBar: AppBar(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
-          title: Text(
-              'c/${a.brand.isNotEmpty ? a.brand : 'ulasan'}',
+          title: Text('$handle • Komunitas',
               style: const TextStyle(
                   fontSize: 15, fontWeight: FontWeight.bold)),
           actions: [
@@ -135,402 +139,354 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
               color: SabaColors.muted2,
               onPressed: () => _copyLink(a.id),
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: CircleAvatar(
-                radius: 14,
-                backgroundColor: SabaColors.chipBlueBg,
-                child: Text(
-                    a.creator.isNotEmpty
-                        ? a.creator.trim().replaceAll('@', '')[0].toUpperCase()
-                        : 'S',
-                    style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: sabaBlue)),
-              ),
+            IconButton(
+              tooltip: 'Lainnya',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.more_horiz, size: 20),
+              color: SabaColors.muted2,
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Laporkan & blokir segera hadir'))),
             ),
           ]),
       body: ListView(
-                   padding: const EdgeInsets.all(12),
-                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: SabaColors.borderSoft)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                    color: SabaColors.okBg,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                        color: sabaBlue.withValues(
-                                            alpha: 0.3))),
-                                child: const Text('c/',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: sabaBlue)),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                        'c/${a.brand.isNotEmpty ? a.brand : 'ulasan'}${a.creator.isNotEmpty ? ' • ${a.creator}' : ''}',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight:
-                                                FontWeight.bold)),
-                                    Text(
-                                        '${ago.isEmpty ? '' : '$ago • '}Ulasan produk • dari video kreator',
-                                        style: const TextStyle(
-                                            fontSize: 10,
-                                            color:
-                                                SabaColors.muted2)),
-                                  ],
-                                ),
-                              ),
-                              if (a.creator.isNotEmpty) ...[
-                                _FollowButton(
-                                    creator: a.creator),
-                                const SizedBox(width: 8),
-                              ],
-                              if (a.rating != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                      color: const Color(0xFFFFF7E6),
-                                      borderRadius:
-                                          BorderRadius.circular(999),
-                                      border: Border.all(
-                                          color:
-                                              const Color(0xFFF5C542))),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.star,
-                                          size: 14,
-                                          color: Colors.amber),
-                                      const SizedBox(width: 4),
-                                      Text(a.rating!,
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight:
-                                                  FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(a.title,
-                              style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  height: 1.3)),
-                          if (tag.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 6,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                      color: SabaColors.chipBlueBg,
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                              999)),
-                                  child: Text('#$tag',
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight:
-                                              FontWeight.w600,
-                                          color: sabaBlue)),
-                                ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 6),
-                          Text(a.excerpt,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF444444),
-                                  height: 1.5)),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              VotePill(
-                                  articleId: a.id),
-                              const SizedBox(width: 8),
-                              VoteDown(articleId: a.id),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6),
-                                decoration: BoxDecoration(
-                                    color:
-                                        SabaColors.greyFill,
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                            999),
-                                    border: Border.all(
-                                        color: const Color(
-                                            0xFFE5E8EC))),
-                                child: Text(
-                                    '${baseVotes(a.id) ~/ 6} Komentar',
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF444444),
-                                        fontWeight:
-                                            FontWeight.w600)),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                visualDensity:
-                                    VisualDensity.compact,
-                                icon: const Icon(Icons.share_outlined,
-                                    size: 18),
-                                color:
-                                    SabaColors.muted2,
-                                onPressed: () => _copyLink(a.id),
-                              ),
-                              IconButton(
-                                visualDensity:
-                                    VisualDensity.compact,
-                                icon: const Icon(
-                                    Icons.bookmark_border,
-                                    size: 18),
-                                color:
-                                    SabaColors.muted2,
-                                onPressed: () =>
-                                    ScaffoldMessenger.of(
-                                            context)
-                                        .showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Disimpan (demo lokal)'))),
-                              ),
-                            ],
-                          ),
-                        ],
+          padding: const EdgeInsets.all(12),
+          children: [
+            // Kartu penulis + judul + tag.
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(SabaRadius.card),
+                  border:
+                      Border.all(color: SabaColors.borderCard)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: SabaColors.greyFill,
+                        child: Text(
+                            a.creator.isNotEmpty
+                                ? a.creator
+                                    .trim()
+                                    .replaceAll('@', '')[0]
+                                    .toUpperCase()
+                                : 'S',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: SabaColors.muted2)),
                       ),
-                    ),
-                    if (a.images.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: SabaColors.borderSoft)),
+                      const SizedBox(width: 8),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            ClipRRect(
-                              borderRadius:
-                                  BorderRadius.circular(12),
-                              child: Image.network(a.images.first,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      const SizedBox()),
-                            ),
-                            if (a.images.length > 1)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 8),
-                                child: SizedBox(
-                                  height: 96,
-                                  child: ListView.separated(
-                                    scrollDirection:
-                                        Axis.horizontal,
-                                    itemCount:
-                                        a.images.length - 1,
-                                    separatorBuilder: (_, _) =>
-                                        const SizedBox(
-                                            width: 8),
-                                    itemBuilder: (_, i) =>
-                                        ClipRRect(
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                              12),
-                                      child: Image.network(
-                                          a.images[i + 1],
-                                          width: 96,
-                                          height: 96,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, _,
-                                                  _) =>
-                                              const SizedBox()),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                            Text(
+                                a.creator.isNotEmpty
+                                    ? '$handle • ${a.creator}'
+                                    : handle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold)),
+                            Text(
+                                'Kreator SABA • ${ago.isEmpty ? 'baru saja' : ago}',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: SabaColors.muted2)),
                           ],
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: SabaColors.borderSoft)),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          ...mdBlocks(context, a.body,
-                              onLink: (url) =>
-                                  _openVideo(url)),
-                          if (a.videoUrl.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                onPressed: () =>
-                                    _openVideo(a.videoUrl),
-                                icon: const Icon(Icons
-                                    .play_circle_outline),
-                                label: const Text(
-                                    'Tonton video asli'),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: SabaColors.borderSoft)),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          const Text('Tanggapan & Jawaban',
-                              style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          Row(
+                      if (a.creator.isNotEmpty) ...[
+                        _FollowButton(creator: a.creator),
+                        const SizedBox(width: 8),
+                      ],
+                      if (a.rating != null)
+                        Container(
+                          padding:
+                              const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: const Color(0xFFFFF7E6),
+                              borderRadius:
+                                  BorderRadius.circular(999),
+                              border: Border.all(
+                                  color: const Color(0xFFF5C542))),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              for (var i = 0;
-                                  i < 3;
-                                  i++)
-                                GestureDetector(
-                                  onTap: () => setState(
-                                      () => _tab = i),
-                                  child: Container(
-                                    margin:
-                                        const EdgeInsets.only(
-                                            right: 16),
-                                    padding:
-                                        const EdgeInsets.only(
-                                            bottom: 4),
-                                    decoration: BoxDecoration(
-                                        border: Border(
-                                            bottom: BorderSide(
-                                                color: _tab ==
-                                                        i
-                                                    ? sabaBlue
-                                                    : Colors
-                                                        .transparent,
-                                                width: 2))),
-                                    child: Text(
-                                        [
-                                          'Semua',
-                                          'Jawaban Teratas',
-                                          'Terbaru'
-                                        ][i],
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: _tab ==
-                                                    i
-                                                ? FontWeight
-                                                    .bold
-                                                : FontWeight
-                                                    .w500,
-                                            color: _tab ==
-                                                    i
-                                                ? sabaBlue
-                                                : SabaColors.muted2)),
-                                  ),
-                                ),
+                              const Icon(Icons.star,
+                                  size: 14, color: Colors.amber),
+                              const SizedBox(width: 4),
+                              Text(a.rating!,
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          const SizedBox(height: 6),
-                          const Text(
-                              'Belum ada tanggapan. Jadilah yang pertama menanggapi ulasan ini.',
-                              style: TextStyle(
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(a.title,
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          height: 1.3)),
+                  if (tags.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 10,
+                      children: [
+                        for (final t in tags)
+                          Text(t,
+                              style: const TextStyle(
                                   fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: SabaColors.primary)),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Isi artikel (serif).
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(SabaRadius.card),
+                  border:
+                      Border.all(color: SabaColors.borderCard)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (a.excerpt.isNotEmpty) ...[
+                    Text(a.excerpt,
+                        style: SabaTextStyles.articleBody.copyWith(
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 12),
+                  ],
+                  ...mdBlocks(context, a.body,
+                      onLink: (url) => _openVideo(url)),
+                  if (a.images.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: SizedBox(
+                        height: 96,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: a.images.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(width: 8),
+                          itemBuilder: (_, i) => ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                                SabaRadius.img),
+                            child: Image.network(a.images[i],
+                                width: 96,
+                                height: 96,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) =>
+                                    const SizedBox()),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (a.videoUrl.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: SabaColors.bgCool,
+                          borderRadius: BorderRadius.circular(
+                              SabaRadius.card)),
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              'REKAMAN VIDEO • ${articleSource(a.videoUrl).isEmpty ? 'VIDEO ASLI' : articleSource(a.videoUrl).toUpperCase()}',
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
                                   color: SabaColors.muted2)),
-                          const SizedBox(height: 10),
-                          GestureDetector(
-                            onTap: () => ScaffoldMessenger.of(
-                                    context)
-                                .showSnackBar(const SnackBar(
-                                    content: Text(
-                                        'Diskusi segera hadir'))),
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10),
-                              decoration: BoxDecoration(
-                                  color:
-                                      SabaColors.greyFill,
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                          999)),
-                              child: const Row(
-                                children: [
-                                  Icon(Icons.chat_bubble_outline,
-                                      size: 16,
-                                      color: SabaColors.muted2),
-                                  SizedBox(width: 8),
-                                  Text(
-                                      'Tulis tanggapan…',
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: SabaColors.muted2)),
-                                ],
-                              ),
+                          const SizedBox(height: 4),
+                          const Text('Tonton video asli kreator',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () =>
+                                  _openVideo(a.videoUrl),
+                              icon: const Icon(Icons.play_circle_outline),
+                              label: const Text('Tonton video'),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                ),
+                ],
+              ),
+            ),
+            // Bar aksi.
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(SabaRadius.card),
+                  border:
+                      Border.all(color: SabaColors.borderCard)),
+              child: VoteBar(
+                articleId: a.id,
+                onShare: () => _copyLink(a.id),
+              ),
+            ),
+            // Komentar.
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(SabaRadius.card),
+                  border:
+                      Border.all(color: SabaColors.borderCard)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('Tanggapan & Jawaban Komunitas',
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: SabaColors.greyFill,
+                            borderRadius: BorderRadius.circular(
+                                SabaRadius.pill)),
+                        child: Text('${baseVotes(a.id) ~/ 6}',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: SabaColors.muted2)),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => ScaffoldMessenger.of(context)
+                            .showSnackBar(const SnackBar(
+                                content: Text('Filter segera hadir'))),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                  SabaRadius.pill),
+                              border: Border.all(
+                                  color: SabaColors.borderSoft)),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.filter_list,
+                                  size: 12,
+                                  color: SabaColors.muted2),
+                              SizedBox(width: 4),
+                              Text('Filter',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: SabaColors.muted2)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      for (var i = 0; i < 3; i++)
+                        GestureDetector(
+                          onTap: () => setState(() => _tab = i),
+                          child: Container(
+                            margin:
+                                const EdgeInsets.only(right: 16),
+                            padding: const EdgeInsets.only(bottom: 4),
+                            decoration: BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: _tab == i
+                                            ? SabaColors.primary
+                                            : Colors.transparent,
+                                        width: 2))),
+                            child: Text(
+                                ['Semua', 'Terkurasi', 'Praktisi'][i],
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: _tab == i
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: _tab == i
+                                        ? SabaColors.primary
+                                        : SabaColors.muted2)),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                      'Belum ada tanggapan. Jadilah yang pertama menanggapi ulasan ini.',
+                      style: TextStyle(
+                          fontSize: 12, color: SabaColors.muted2)),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(
+                            content:
+                                Text('Diskusi segera hadir'))),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                          color: SabaColors.greyFill,
+                          borderRadius: BorderRadius.circular(
+                              SabaRadius.pill)),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.chat_bubble_outline,
+                              size: 16, color: SabaColors.muted2),
+                          SizedBox(width: 8),
+                          Text('Tulis tanggapan…',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: SabaColors.muted2)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
     );
   }
 }

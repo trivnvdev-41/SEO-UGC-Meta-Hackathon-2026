@@ -5,6 +5,57 @@ import 'dart:io';
 
 import 'package:image_picker/image_picker.dart';
 
+/// Status job untuk Inbox ala mockup (selesai / progres / gagal).
+class JobRecord {
+  JobRecord({required this.id, required this.label}) : at = DateTime.now();
+
+  final String id;
+  final String label;
+  String status = 'converting'; // converting | done | failed
+  double pct = 0;
+  String? error;
+  DateTime at;
+}
+
+/// Riwayat upload sesi ini (in-memory, pola VoteStore).
+class JobHistory {
+  static final List<JobRecord> records = [];
+
+  static JobRecord add(String id, String label) {
+    final r = JobRecord(id: id, label: label);
+    records.insert(0, r);
+    return r;
+  }
+
+  static void progress(String id, double pct) {
+    for (final r in records) {
+      if (r.id == id) r.pct = pct;
+    }
+  }
+
+  static void done(String id) {
+    for (final r in records) {
+      if (r.id == id) {
+        r
+          ..status = 'done'
+          ..pct = 1
+          ..at = DateTime.now();
+      }
+    }
+  }
+
+  static void fail(String id, String error) {
+    for (final r in records) {
+      if (r.id == id) {
+        r
+          ..status = 'failed'
+          ..error = error
+          ..at = DateTime.now();
+      }
+    }
+  }
+}
+
 /// Pilih video dari galeri lalu streaming ke `POST /v1/uploads`.
 /// onProgress: 0..1 selama kirim. Lempar bila gagal; null bila batal.
 Future<String?> uploadVideo({

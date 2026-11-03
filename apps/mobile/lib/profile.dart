@@ -1,11 +1,12 @@
-// Profil ala mock Stitch: bio Tentang, statistik lokal, dan kotak upload.
-// Murni lokal tanpa backend; gaya ikut kartu feed (putih, radius 16).
+// Profil ala mockup 10: header Insight, avatar verifikasi, aksi, statistik,
+// daftar Artikel saya. Murni lokal tanpa backend.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'feed.dart';
 import 'saba_screens.dart';
 import 'saba_theme.dart';
+import 'saba_widgets.dart';
 import 'vote.dart';
 
 /// Profil lokal sesi ini (in-memory, pola VoteStore).
@@ -39,12 +40,14 @@ class ProfilePage extends StatefulWidget {
       required this.feed,
       required this.onEdit,
       required this.onLogin,
-      required this.onUpload});
+      required this.onUpload,
+      required this.onOpenArticle});
 
   final List<FeedArticle> feed;
   final Future<void> Function() onEdit;
   final void Function() onLogin;
   final Future<void> Function() onUpload;
+  final void Function(String id) onOpenArticle;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -57,6 +60,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+          builder: (_) => SettingsPage(onLogout: widget.onLogin)),
+    );
+  }
+
   void _openMenu() {
     showProfileMenu(
       context,
@@ -65,69 +75,74 @@ class _ProfilePageState extends State<ProfilePage> {
         if (context.mounted) setState(() {});
       },
       onInsights: _openInsights,
+      onShare: _shareProfile,
     );
   }
 
-  Widget _card(Widget child) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: SabaColors.borderSoft)),
-      child: child,
-    );
+  Future<void> _shareProfile() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(const ClipboardData(
+        text: 'SABA — ulasan produk dari video kreator'));
+    messenger.showSnackBar(const SnackBar(content: Text('Profil disalin')));
   }
+
+  void _openArticle(String id) => widget.onOpenArticle(id);
 
   @override
   Widget build(BuildContext context) {
     final name =
-        ProfileStore.name.isEmpty ? 'Pengguna SABA' : ProfileStore.name;
+        ProfileStore.name.isEmpty ? 'Dimas Pratama' : ProfileStore.name;
     final headline = ProfileStore.headline.isEmpty
-        ? 'Kreator & pembaca komunitas SABA'
+        ? 'Principal Designer & Software Architect • Spesialis Design System & AI-UI'
         : ProfileStore.headline;
-    final about = ProfileStore.about.isEmpty
-        ? 'Suka coba skincare lokal dan review jujur tiap minggu. Fokus: hair care & body care.'
-        : ProfileStore.about;
-    final initial = ProfileStore.name.trim().isEmpty
-        ? 'S'
-        : ProfileStore.name.trim()[0].toUpperCase();
+    final initial = name.trim().isEmpty
+        ? 'D'
+        : name.trim()[0].toUpperCase();
     return Scaffold(
       backgroundColor: SabaColors.bgWarm,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(12),
           children: [
+            // Header: Insight pill + gear + menu.
             Row(
               children: [
-                const Text('SABA',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: sabaBlue)),
-                const SizedBox(width: 8),
-                const Text('Detail Akun',
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w600)),
+                GestureDetector(
+                  onTap: _openInsights,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                        color: SabaColors.primary,
+                        borderRadius:
+                            BorderRadius.circular(SabaRadius.pill)),
+                    child: const Text('Insight',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white)),
+                  ),
+                ),
                 const Spacer(),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.settings_outlined, size: 20),
-                  color: SabaColors.muted2,
-                  onPressed: widget.onLogin,
+                  icon:
+                      const Icon(Icons.settings_outlined, size: 22),
+                  color: SabaColors.ink,
+                  onPressed: _openSettings,
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Menu',
-                  icon: const Icon(Icons.more_vert, size: 20),
-                  color: SabaColors.muted2,
+                  icon: const Icon(Icons.more_vert, size: 22),
+                  color: SabaColors.ink,
                   onPressed: _openMenu,
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            _card(
-              Column(
+            // Kartu identitas.
+            SabaCard(
+              child: Column(
                 children: [
                   Stack(
                     clipBehavior: Clip.none,
@@ -141,30 +156,53 @@ class _ProfilePageState extends State<ProfilePage> {
                           decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: sabaBlue, width: 3)),
+                                  color: SabaColors.primary,
+                                  width: 3)),
                           child: Text(initial,
                               style: const TextStyle(
                                   fontSize: 32,
                                   fontWeight: FontWeight.w800,
-                                  color: sabaBlue)),
+                                  color: SabaColors.primary)),
                         ),
                       ),
+                      if (ProfileStore.showBadge)
+                        const Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: CircleAvatar(
+                            radius: 11,
+                            backgroundColor: SabaColors.primary,
+                            child: Icon(Icons.check,
+                                size: 13, color: Colors.white),
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(name,
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(headline,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: SabaColors.muted2)),
                   const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: SabaColors.greyFill,
+                            borderRadius:
+                                BorderRadius.circular(999)),
+                        child: Text(
+                            ProfileStore.name.isEmpty
+                                ? '@ Belum klaim'
+                                : '@${ProfileStore.name.replaceAll(' ', '').toLowerCase()}',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: SabaColors.muted2)),
+                      ),
+                      const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
@@ -174,37 +212,24 @@ class _ProfilePageState extends State<ProfilePage> {
                                 BorderRadius.circular(999)),
                         child: const Text('PRO',
                             style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w800,
-                                color: sabaBlue)),
+                                color: SabaColors.primary)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _card(
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Tentang',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
-                  Text(about,
+                  Text(headline,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.5,
-                          color: Color(0xFF050505))),
+                          fontSize: 12, color: SabaColors.muted2)),
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            _card(
-              Column(
+            // Aksi Profil.
+            SabaCard(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -213,12 +238,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                             color: SabaColors.chipBlueBg,
-                            borderRadius:
-                                BorderRadius.circular(8)),
-                        child: const Icon(
-                            Icons.person_outline,
-                            size: 16,
-                            color: sabaBlue),
+                            borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.people_outline,
+                            size: 16, color: SabaColors.primary),
                       ),
                       const SizedBox(width: 8),
                       const Text('Aksi Profil',
@@ -237,7 +259,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: sabaBlue)),
+                                color: SabaColors.primary)),
                       ),
                     ],
                   ),
@@ -258,10 +280,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       Expanded(
                         child: FilledButton(
                             style: FilledButton.styleFrom(
-                              backgroundColor:
-                                  SabaColors.borderSoft,
-                              foregroundColor:
-                                  const Color(0xFF050505),
+                              backgroundColor: SabaColors.greyFill,
+                              foregroundColor: SabaColors.ink,
                             ),
                             onPressed: _openInsights,
                             child:
@@ -272,32 +292,21 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        await Clipboard.setData(const ClipboardData(
-                            text:
-                                'SABA — ulasan produk dari video kreator'));
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(
-                                content: Text(
-                                    'Profil disalin')));
-                      },
-                      icon: const Icon(Icons.share_outlined,
-                          size: 16),
-                      label:
-                          const Text('Bagikan Profil'),
+                    child: OutlinedButton(
+                      onPressed: _shareProfile,
+                      child: const Text('Bagikan Profil'),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
+            // Statistik.
             Row(
               children: [
                 Expanded(
                     child: _stat(Icons.article_outlined,
-                        '${widget.feed.length}', 'Artikel')),
+                        '${widget.feed.length}', 'Artikel saya')),
                 const SizedBox(width: 12),
                 Expanded(
                     child: _stat(
@@ -307,96 +316,107 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             const SizedBox(height: 12),
-            _card(
-              Column(
+            // Artikel saya.
+            SabaCard(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.video_library_outlined,
-                          size: 18, color: sabaBlue),
-                      SizedBox(width: 6),
-                      Text('Konten Multimedia',
+                      const Icon(Icons.menu_book_outlined,
+                          size: 18, color: SabaColors.primary),
+                      const SizedBox(width: 6),
+                      const Text('Artikel saya',
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold)),
-                      Spacer(),
-                      Text('Beta',
-                          style: TextStyle(
+                      const Spacer(),
+                      Text('${widget.feed.length} Konten',
+                          style: const TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.bold,
                               color: SabaColors.muted2)),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => widget.onUpload(),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(12),
-                          border: Border.all(
-                              color:
-                                  SabaColors.borderSoft)),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                                color:
-                                    SabaColors.greyFill,
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        8)),
-                            child: const Icon(
-                                Icons.videocam_off_outlined,
-                                size: 20,
-                                color: SabaColors.muted2),
-                          ),
-                          const SizedBox(width: 10),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text('Upload video',
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight:
-                                            FontWeight.w600)),
-                                Text(
-                                    'Format MP4, MOV maks 50MB',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: SabaColors
-                                            .muted2)),
-                              ],
+                  if (widget.feed.isEmpty)
+                    const Text('Belum ada artikel.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: SabaColors.muted2)),
+                  for (final a in widget.feed)
+                    GestureDetector(
+                      onTap: () => _openArticle(a.id),
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(a.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      if (a.rating != null) ...[
+                                        const Icon(Icons.star,
+                                            size: 12,
+                                            color: SabaColors.star),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                            a.rating!.split('/').first,
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight:
+                                                    FontWeight.bold)),
+                                        const SizedBox(width: 6),
+                                      ],
+                                      Container(
+                                        padding: const EdgeInsets
+                                            .symmetric(
+                                            horizontal: 6,
+                                            vertical: 2),
+                                        decoration: BoxDecoration(
+                                            color:
+                                                SabaColors.greyFill,
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                    4)),
+                                        child: Text(
+                                            '@${a.brand.isNotEmpty ? a.brand : 'ulasan'}',
+                                            style:
+                                                const TextStyle(
+                                                    fontSize: 10,
+                                                    color: SabaColors
+                                                        .muted2)),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                          timeAgo(a.createdAt).isEmpty
+                                              ? 'baru saja'
+                                              : timeAgo(a.createdAt),
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              color:
+                                                  SabaColors.muted2)),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Container(
-                            padding:
-                                const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6),
-                            decoration: BoxDecoration(
-                                color:
-                                    SabaColors.greyFill,
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        999)),
-                            child: const Text('Segera Hadir',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight:
-                                        FontWeight.w600,
-                                    color:
-                                        SabaColors.muted2)),
-                          ),
-                        ],
+                            const Icon(Icons.chevron_right,
+                                size: 18, color: SabaColors.muted2),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -412,8 +432,8 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: SabaColors.borderSoft)),
+          borderRadius: BorderRadius.circular(SabaRadius.card),
+          border: Border.all(color: SabaColors.borderCard)),
       child: Row(
         children: [
           Container(
@@ -421,7 +441,7 @@ class _ProfilePageState extends State<ProfilePage> {
             decoration: BoxDecoration(
                 color: SabaColors.chipBlueBg,
                 borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 20, color: sabaBlue),
+            child: Icon(icon, size: 20, color: SabaColors.primary),
           ),
           const SizedBox(width: 10),
           Column(
@@ -429,12 +449,10 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(value,
                   style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
+                      fontSize: 18, fontWeight: FontWeight.w800)),
               Text(label,
                   style: const TextStyle(
-                      fontSize: 11,
-                      color: SabaColors.muted2)),
+                      fontSize: 11, color: SabaColors.muted2)),
             ],
           ),
         ],

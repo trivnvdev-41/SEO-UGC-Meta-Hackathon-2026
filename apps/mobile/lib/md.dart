@@ -3,6 +3,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import 'saba_theme.dart';
+
 sealed class MdBlock {
   const MdBlock();
 }
@@ -162,7 +164,7 @@ List<Widget> mdBlocks(BuildContext context, String md,
               ),
             ),
           MdPara(text: final t) => Text.rich(
-              rich(t), style: const TextStyle(height: 1.5)),
+              rich(t), style: SabaTextStyles.articleBody),
         },
       ),
   ];

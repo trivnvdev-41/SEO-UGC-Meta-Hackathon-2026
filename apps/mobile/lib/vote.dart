@@ -235,6 +235,112 @@ class _VotePillState extends State<VotePill>
   }
 }
 
+/// Bookmark lokal per sesi (pola VoteStore).
+class SavedStore {
+  static final Set<String> saved = {};
+
+  static void toggle(String id) {
+    if (!saved.remove(id)) saved.add(id);
+  }
+}
+
+/// Bar aksi ala mockup: pill gabungan [↑ count ↓] + komentar + simpan + bagikan.
+/// Angka komentar/simpan turunan stabil dari baseVotes (demo lokal).
+class VoteBar extends StatelessWidget {
+  const VoteBar({
+    super.key,
+    required this.articleId,
+    this.onOpen,
+    this.onShare,
+    this.onSaved,
+  });
+
+  final String articleId;
+  final VoidCallback? onOpen;
+  final VoidCallback? onShare;
+  final VoidCallback? onSaved;
+
+  @override
+  Widget build(BuildContext context) {
+    final comments = baseVotes(articleId) ~/ 6;
+    final saves = baseVotes(articleId) ~/ 8;
+    return Row(
+      children: [
+        VotePill(articleId: articleId, compact: true),
+        const SizedBox(width: 6),
+        VoteDown(articleId: articleId),
+        const Spacer(),
+        _count(Icons.chat_bubble_outline, '$comments', onOpen),
+        const SizedBox(width: 14),
+        _save(saves),
+        const SizedBox(width: 14),
+        GestureDetector(
+          onTap: onShare,
+          child: const Icon(Icons.share_outlined,
+              size: 20, color: SabaColors.muted2),
+        ),
+      ],
+    );
+  }
+
+  Widget _count(IconData icon, String label, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20, color: SabaColors.muted2),
+          const SizedBox(width: 4),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12, color: SabaColors.muted2)),
+        ],
+      ),
+    );
+  }
+
+  Widget _save(int n) {
+    return _SaveButton(articleId: articleId, label: '$n', onSaved: onSaved);
+  }
+}
+
+class _SaveButton extends StatefulWidget {
+  const _SaveButton(
+      {required this.articleId, required this.label, this.onSaved});
+
+  final String articleId;
+  final String label;
+  final VoidCallback? onSaved;
+
+  @override
+  State<_SaveButton> createState() => _SaveButtonState();
+}
+
+class _SaveButtonState extends State<_SaveButton> {
+  @override
+  Widget build(BuildContext context) {
+    final on = SavedStore.saved.contains(widget.articleId);
+    return GestureDetector(
+      onTap: () {
+        setState(() => SavedStore.toggle(widget.articleId));
+        widget.onSaved?.call();
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(on ? Icons.bookmark : Icons.bookmark_border,
+              size: 20,
+              color: on ? SabaColors.primary : SabaColors.muted2),
+          const SizedBox(width: 4),
+          Text(widget.label,
+              style: const TextStyle(
+                  fontSize: 12, color: SabaColors.muted2)),
+        ],
+      ),
+    );
+  }
+}
+
 class VoteDown extends StatefulWidget {
   const VoteDown({super.key, required this.articleId});
 

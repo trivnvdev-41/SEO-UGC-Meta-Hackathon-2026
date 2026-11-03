@@ -94,6 +94,50 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  /// Baris contoh kredensial ala mockup (demo lokal, tanpa backend).
+  Widget _credRow(IconData icon, String title, String sub) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+                color: SabaColors.greyFill,
+                borderRadius: BorderRadius.circular(8)),
+            child:
+                Icon(icon, size: 18, color: SabaColors.muted2),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
+                Text(sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 11,
+                        color: SabaColors.muted2)),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _soon('Ubah kredensial'),
+            child: const Icon(Icons.edit_outlined,
+                size: 16, color: SabaColors.muted2),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _label(String s, {String? counter}) {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -119,6 +163,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       int? maxLength,
       IconData? icon,
       TextInputType? keyboard}) {
+    OutlineInputBorder border(Color color, [double w = 1]) =>
+        OutlineInputBorder(
+            borderRadius:
+                const BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: color, width: w));
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: TextField(
@@ -129,15 +178,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
           hintText: hint,
+          hintStyle: const TextStyle(
+              fontSize: 13, color: SabaColors.muted2),
           prefixIcon: icon == null
               ? null
               : Icon(icon, size: 18, color: SabaColors.muted2),
-          border: const OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.all(Radius.circular(12))),
+          border: border(SabaColors.borderSoft.withValues(alpha: 0)),
+          enabledBorder:
+              border(SabaColors.borderSoft.withValues(alpha: 0)),
+          focusedBorder: border(SabaColors.primary, 1.5),
           isDense: true,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: SabaColors.greyFill,
           counterText: '',
         ),
       ),
@@ -161,6 +213,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 36),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20),
+                  ),
                   onPressed: _save,
                   child: const Text('Simpan')),
             ),
@@ -307,6 +364,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     style: TextStyle(
                         fontSize: 12,
                         color: SabaColors.muted2)),
+                _credRow(Icons.business_outlined, 'Nexus Labs',
+                    'Principal Designer • 2020 — Sekarang'),
                 Row(
                   children: [
                     const Text('Pendidikan',
@@ -326,6 +385,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     style: TextStyle(
                         fontSize: 12,
                         color: SabaColors.muted2)),
+                _credRow(Icons.school_outlined,
+                    'Institut Teknologi Bandung',
+                    'M.Sc. Computer Science • 2018'),
                 const SizedBox(height: 8),
                 Row(
                   children: [

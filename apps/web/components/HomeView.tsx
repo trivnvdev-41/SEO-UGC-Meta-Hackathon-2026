@@ -248,7 +248,7 @@ export async function HomeView({
           {shown.length === 0 ? (
             <p className="text-sm text-muted">{t.empty}</p>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
               {shown.map((a) => (
                 <FeedCard key={a.id} a={a} lang={lang} read={t.read} copied={t.copied} />
               ))}

@@ -119,7 +119,7 @@ export function Comments({
       {items.length === 0 ? (
         <p className="mt-3 text-sm text-muted">{t.empty}</p>
       ) : (
-        <ul className="mt-3 grid list-none gap-2.5 p-0">
+        <ul className="mt-3 grid list-none grid-cols-[minmax(0,1fr)] gap-2.5 p-0">
           {items.map((c, i) => (
             <li
               key={`${c.at}-${i}`}

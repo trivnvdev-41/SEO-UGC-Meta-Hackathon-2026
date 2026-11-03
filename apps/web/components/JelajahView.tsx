@@ -209,7 +209,7 @@ export async function JelajahView({ lang }: { lang: Lang }) {
                 {t.seeAll} ›
               </Link>
             </p>
-            <ol className="mt-2.5 grid list-none gap-2 p-0">
+            <ol className="mt-2.5 grid list-none grid-cols-[minmax(0,1fr)] gap-2 p-0">
               {hot.map((a, i) => {
                 const b = pickBody(a, lang);
                 const v =

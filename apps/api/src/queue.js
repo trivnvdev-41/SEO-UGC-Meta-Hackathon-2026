@@ -14,10 +14,11 @@ export function createQueue(redisUrl, name = QUEUE_NAME) {
   const queue = new Queue(name, { connection: { url: redisUrl } });
   return {
     // Tambah job. id opsional (dibuatkan bila kosong). Cegah duplikat id.
-    enqueue: async ({ id = newJobId(), url, creator = null, references = [] }) => {
+    // kind: 'convert' (upload->draft) | 'publish' (draft->artikel).
+    enqueue: async ({ id = newJobId(), url, creator = null, references = [], kind = 'convert', publish = null }) => {
       await queue.add(
         'convert',
-        { url: url ?? '', creator, references },
+        { url: url ?? '', creator, references, kind, ...(publish ? { publish } : {}) },
         {
           jobId: id,
           attempts: MAX_ATTEMPTS,

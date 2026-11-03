@@ -1007,34 +1007,10 @@ class _SparkPainter extends CustomPainter {
 /// 07 - Langkah 1 Sumber (dipakai di bottom sheet).
 /// 08 - Langkah 2 Frame Transkrip = status converting di kartu home/Inbox
 /// (server mentranskrip otomatis; tanpa edit manual).
-class UploadSourceSheet extends StatefulWidget {
+class UploadSourceSheet extends StatelessWidget {
   const UploadSourceSheet({super.key, required this.onGallery});
 
-  final void Function(List<String> refs)? onGallery;
-
-  @override
-  State<UploadSourceSheet> createState() => _UploadSourceSheetState();
-}
-
-class _UploadSourceSheetState extends State<UploadSourceSheet> {
-  final _refs = TextEditingController();
-
-  @override
-  void dispose() {
-    _refs.dispose();
-    super.dispose();
-  }
-
-  /// Pecah koma/baris baru/spasi, saring https, maks 3.
-  List<String> _parseRefs() {
-    final out = <String>[];
-    for (final part in _refs.text.split(RegExp(r'[\s,]+'))) {
-      final u = part.trim();
-      if (u.startsWith('https://') && !out.contains(u)) out.add(u);
-      if (out.length >= 3) break;
-    }
-    return out;
-  }
+  final VoidCallback? onGallery;
 
   @override
   Widget build(BuildContext context) {
@@ -1073,29 +1049,7 @@ class _UploadSourceSheetState extends State<UploadSourceSheet> {
             ),
             const SizedBox(height: 12),
             SabaPrimaryButton(
-                label: 'Pilih video',
-                onPressed: widget.onGallery == null
-                    ? null
-                    : () => widget.onGallery!(_parseRefs())),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _refs,
-              keyboardType: TextInputType.url,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                hintText:
-                    'Link referensi (opsional, maks 3, pisahkan koma)',
-                hintStyle:
-                    TextStyle(fontSize: 12, color: SabaColors.muted2),
-                border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(12))),
-                isDense: true,
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              style: const TextStyle(fontSize: 12),
-            ),
+                label: 'Pilih video', onPressed: onGallery),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -1155,7 +1109,8 @@ class UploadSuccessPage extends StatelessWidget {
                       fontSize: 20,
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
-              const Text('3/3 Sukses • Lihat artikel • Bagikan',
+              const Text(
+                  '✓ 3/3 Sukses • Lihat artikel • Bagikan • datePublished tercatat',
                   textAlign: TextAlign.center,
                   style:
                       TextStyle(fontSize: 13, color: SabaColors.muted2)),

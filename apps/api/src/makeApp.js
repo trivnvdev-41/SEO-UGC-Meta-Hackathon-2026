@@ -1,5 +1,52 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { handleVideoUpload, maxUploadMb } from './uploadIngress.js';
+import { newJobId } from './queue.js';
+import { handleVideoUpload, maxUploadMb, parseReferences } from './uploadIngress.js';
+import { parseDraft } from './db.js';
+
+/// Validasi field draft dari body PATCH/POST. Kembalikan {ok, patch|error}.
+function validateDraftPatch(body, draft) {
+  const patch = {};
+  if (body.title !== undefined) {
+    if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 200) {
+      return { ok: false, error: 'bad_title' };
+    }
+    patch.title = body.title.trim();
+  }
+  if (body.coverIndex !== undefined) {
+    const frames = Array.isArray(draft?.frames) ? draft.frames : [];
+    if (!Number.isInteger(body.coverIndex) || body.coverIndex < 0 || body.coverIndex >= frames.length) {
+      return { ok: false, error: 'bad_cover' };
+    }
+    patch.coverIndex = body.coverIndex;
+  }
+  if (body.transcript !== undefined) {
+    if (typeof body.transcript !== 'string' || !body.transcript.trim() || body.transcript.trim().length > 20000) {
+      return { ok: false, error: 'bad_transcript' };
+    }
+    patch.transcript = body.transcript.trim();
+  }
+  if (body.references !== undefined) {
+    try {
+      patch.references = parseReferences(JSON.stringify(body.references));
+    } catch {
+      return { ok: false, error: 'bad_references' };
+    }
+  }
+  return { ok: true, patch };
+}
+
+/// Bentuk draft untuk mobile Langkah 2 (tanpa bundle internal LLM).
+function publicDraft(draft) {
+  return {
+    transcript: draft.transcript ?? '',
+    confidence: draft.confidence ?? null,
+    frames: Array.isArray(draft.frames) ? draft.frames : [],
+    selectedIndices: Array.isArray(draft.selectedIndices) ? draft.selectedIndices : [],
+    title: draft.title ?? '',
+    creator: draft.creator ?? null,
+    references: Array.isArray(draft.references) ? draft.references : [],
+  };
+}
 
 // Identitas tanpa akun: cookie saba_v (uuid) + hash IP+UA sebagai pengikat.
 // Tanpa cookie + tanpa IP yang stabil -> voter anonim (tetap boleh vote,
@@ -55,6 +102,7 @@ function readJson(req) {
 // db: lihat src/db.js.
 // opts.rateLimiter: (key) => boolean (fallback untuk upload).
 // opts.upload: {queue, newJobId, mediaDir, maxMb} untuk POST /v1/uploads.
+//   queue yang sama dipakai POST /v1/drafts/:id/publish (kind 'publish').
 // opts.voteLimiter: (key) => boolean untuk POST /v1/votes.
 export function makeApp(enqueue, db, { rateLimiter, upload, voteLimiter } = {}) {
   return async (req, res) => {
@@ -147,6 +195,83 @@ export function makeApp(enqueue, db, { rateLimiter, upload, voteLimiter } = {}) 
         if (!article) return send(res, 404, { error: 'not_found' });
         const votes = await articleVotes(db, id, voterKeyOf(req));
         return send(res, 200, { ...article, votes });
+      } catch {
+        return send(res, 503, { error: 'db_unavailable' });
+      }
+    }
+
+    // Draft Langkah 2: baca hasil olah (transkrip + frame + pilihan AI).
+    if (req.method === 'GET' && pathname.startsWith('/v1/drafts/')) {
+      const id = decodeURIComponent(pathname.slice('/v1/drafts/'.length));
+      if (!id || id.includes('/')) return send(res, 400, { error: 'invalid_id' });
+      try {
+        const job = await db.getJob(id);
+        if (!job) return send(res, 404, { error: 'not_found' });
+        const draft = parseDraft(job.draft);
+        if (!draft) return send(res, 404, { error: 'draft_missing' });
+        return send(res, 200, { jobId: id, status: job.status, draft: publicDraft(draft) });
+      } catch {
+        return send(res, 503, { error: 'db_unavailable' });
+      }
+    }
+
+    // Draft Langkah 2: ubah judul/cover/transkrip/referensi sebelum publish.
+    if (req.method === 'PATCH' && pathname.startsWith('/v1/drafts/')) {
+      const id = decodeURIComponent(pathname.slice('/v1/drafts/'.length));
+      if (!id || id.includes('/')) return send(res, 400, { error: 'invalid_id' });
+      let body;
+      try {
+        body = await readJson(req);
+      } catch (e) {
+        return send(res, 400, { error: e.message });
+      }
+      try {
+        const job = await db.getJob(id);
+        if (!job) return send(res, 404, { error: 'not_found' });
+        const draft = parseDraft(job.draft);
+        if (!draft) return send(res, 404, { error: 'draft_missing' });
+        const v = validateDraftPatch(body, draft);
+        if (!v.ok) return send(res, 400, { error: v.error });
+        const next = { ...draft, ...v.patch };
+        await db.setJobStatus(id, job.status, {
+          url: job.url ?? '',
+          error: job.error ?? null,
+          articleId: job.articleId ?? null,
+          creator: job.creator ?? null,
+          draft: JSON.stringify(next),
+        });
+        return send(res, 200, { jobId: id, status: job.status, draft: publicDraft(next) });
+      } catch {
+        return send(res, 503, { error: 'db_unavailable' });
+      }
+    }
+
+    // Draft Langkah 2 -> artikel: antre job publish (mobile poll artikel).
+    if (req.method === 'POST' && pathname.endsWith('/publish') && pathname.startsWith('/v1/drafts/')) {
+      const id = decodeURIComponent(pathname.slice('/v1/drafts/'.length, -'/publish'.length));
+      if (!id || id.includes('/')) return send(res, 400, { error: 'invalid_id' });
+      let body;
+      try {
+        body = await readJson(req);
+      } catch (e) {
+        return send(res, 400, { error: e.message });
+      }
+      if (!upload?.queue) return send(res, 503, { error: 'queue_unavailable' });
+      try {
+        const job = await db.getJob(id);
+        if (!job) return send(res, 404, { error: 'not_found' });
+        const draft = parseDraft(job.draft);
+        if (!draft) return send(res, 404, { error: 'draft_missing' });
+        const v = validateDraftPatch(body, draft);
+        if (!v.ok) return send(res, 400, { error: v.error });
+        const edited = body.edited === true || (v.patch.transcript !== undefined && v.patch.transcript !== draft.transcript);
+        const pub = { ...v.patch, edited, origId: id };
+        const { id: publishId } = await upload.queue.enqueue({
+          id: newJobId(), url: job.url ?? '', creator: job.creator ?? null,
+          kind: 'publish', publish: pub,
+        });
+        await db.setJobStatus(publishId, 'queued', { url: job.url ?? '' });
+        return send(res, 202, { jobId: publishId });
       } catch {
         return send(res, 503, { error: 'db_unavailable' });
       }

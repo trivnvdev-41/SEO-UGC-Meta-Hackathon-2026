@@ -2,10 +2,29 @@ import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { Worker } from 'bullmq';
 import { MAX_ATTEMPTS, QUEUE_NAME } from './queue.js';
+import { parseDraft } from './db.js';
 
-// Handler murni: worker HTTP -> artikel + status job. Diinject agar ter-test.
-// Bentuk job internal: { id, data: { url?, creator? } } (url '' = upload).
-export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch, mediaDir = '' }) {
+/// Bentuk draft tersimpan (kolom Job.draft, JSON): semua yang dibutuhkan
+/// Langkah 2 mobile tanpa memanggil worker lagi, kecuali user edit transkrip.
+export function buildDraft(jobId, { url = '', creator = null, references = [] }, b) {
+  return {
+    transcript: b.transcript ?? '',
+    confidence: b.confidence ?? null,
+    frames: b.frame_options ?? [],
+    selectedIndices: b.selected_image_indices ?? [],
+    title: b.articles?.id?.title ?? '',
+    creator: b.creator ?? creator,
+    references,
+    articles: b.articles ?? null,
+    json_ld: b.json_ld ?? {},
+    images: b.images ?? [],
+  };
+}
+
+// Handler murni: worker HTTP -> DRAFT (bukan artikel) + status draft_ready.
+// Artikel baru lahir saat publish (lihat publishDraft). Diinject agar ter-test.
+// Bentuk job internal: { id, data: { url?, creator?, references? } }.
+export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch }) {
   return async (job) => {
     const url = job.data.url ?? '';
     const creator = job.data.creator ?? null;
@@ -28,28 +47,105 @@ export function makeProcessor({ db, workerUrl, token, fetchImpl = fetch, mediaDi
     const b = await res.json();
     if (!b?.articles?.id || !b?.articles?.en) throw new Error('worker_bad_payload');
 
-    await db.saveArticle({
-      id: job.id,
-      videoUrl: url,
-      creator: b.creator ?? null,
-      images: b.images ?? [],
-      id_body: b.articles.id,
-      en_body: b.articles.en,
-      json_ld: b.json_ld ?? {},
-      references,
-      id_faqs: b.articles.id?.faqs ?? [],
-      en_faqs: b.articles.en?.faqs ?? [],
+    await db.setJobStatus(job.id, 'draft_ready', {
+      url,
+      creator,
+      draft: JSON.stringify(buildDraft(job.id, { url, creator, references }, b)),
     });
-    await db.setJobStatus(job.id, 'done', { url, articleId: job.id });
-    // Sumber video dihapus HANYA setelah artikel tersimpan + status done.
-    // Retry selalu butuh input utuh; hapus lebih awal = media_not_ready permanen.
+  };
+}
+
+/// Publish draft -> artikel. edited=true (transkrip diubah) memicu /regenerate;
+/// tanpa edit = finalisasi langsung tanpa biaya LLM. Terakhir: status done +
+/// hapus sumber video (satu-satunya tempat hapus yang aman).
+export function makePublisher({ db, workerUrl, token, fetchImpl = fetch, mediaDir = '' }) {
+  return async (jobId, pub = {}) => {
+    const row = await db.getJob(jobId);
+    if (!row) throw new Error('draft_missing');
+    const draft = parseDraft(row.draft);
+    if (!draft) throw new Error('draft_missing');
+    const url = row.url ?? '';
+
+    const title = typeof pub.title === 'string' && pub.title.trim()
+      ? pub.title.trim().slice(0, 200)
+      : null;
+    let coverIndex = Number.isInteger(pub.coverIndex) && pub.coverIndex >= 0
+      ? pub.coverIndex
+      : null;
+    const transcript = typeof pub.transcript === 'string' && pub.transcript.trim()
+      ? pub.transcript.trim().slice(0, 20000)
+      : draft.transcript;
+    const references = Array.isArray(pub.references) ? pub.references : draft.references ?? [];
+    const edited = pub.edited === true || transcript !== draft.transcript;
+
+    const frames = Array.isArray(draft.frames) ? draft.frames : [];
+    if (coverIndex === null || coverIndex >= frames.length) coverIndex = null;
+
+    let articles = draft.articles;
+    let jsonLd = draft.json_ld ?? {};
+    let idFaqs = draft.articles?.id?.faqs ?? [];
+    let enFaqs = draft.articles?.en?.faqs ?? [];
+    if (edited) {
+      const ordered = coverIndex !== null && frames[coverIndex]
+        ? [frames[coverIndex], ...frames.filter((_, i) => i !== coverIndex)]
+        : frames;
+      const res = await fetchImpl(`${workerUrl}/regenerate`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          job_id: jobId,
+          transcript,
+          frame_urls: ordered.slice(0, 6),
+          ...(draft.creator ? { creator: draft.creator } : {}),
+        }),
+      });
+      if (!res.ok) throw new Error(`worker_${res.status}`);
+      const b = await res.json();
+      if (!b?.articles?.id || !b?.articles?.en) throw new Error('worker_bad_payload');
+      articles = b.articles;
+      jsonLd = b.json_ld ?? {};
+      idFaqs = b.articles.id?.faqs ?? [];
+      enFaqs = b.articles.en?.faqs ?? [];
+    }
+
+    const coverUrl = coverIndex !== null ? frames[coverIndex] : null;
+    const baseImages = edited
+      ? (draft.images ?? [])
+      : (draft.images ?? []);
+    const images = [
+      ...(coverUrl ? [coverUrl] : []),
+      ...baseImages.filter((u) => u !== coverUrl),
+    ].slice(0, 3);
+
+    await db.saveArticle({
+      id: jobId,
+      videoUrl: url,
+      creator: draft.creator ?? null,
+      images,
+      id_body: title
+        ? { ...articles.id, title }
+        : articles.id,
+      en_body: articles.en,
+      json_ld: jsonLd,
+      references,
+      id_faqs: idFaqs,
+      en_faqs: enFaqs,
+    });
+    await db.setJobStatus(jobId, 'done', { url, articleId: jobId });
+    // Satu-satunya hapus sumber yang aman: artikel SUDAH tersimpan.
+    // Media milik job draft asal (pub.origId); job publish tak punya media.
+    const mediaOwner = pub.origId || jobId;
     if (mediaDir) {
       try {
-        rmSync(join(mediaDir, job.id), { recursive: true, force: true });
+        rmSync(join(mediaDir, mediaOwner), { recursive: true, force: true });
       } catch {
         /* sisa media: aman, bukan fatal */
       }
     }
+    return { id: jobId };
   };
 }
 
@@ -69,9 +165,14 @@ function mediaPresent(mediaDir, jobId) {
 // Handler BullMQ: cek kesiapan media, lalu proses. Diekspor agar ter-test
 // tanpa Redis; startWorker hanya memasang wiring BullMQ di atasnya.
 export function createJobHandler({ db, workerUrl, token, fetchImpl, mediaDir = '' }) {
-  const process = makeProcessor({ db, workerUrl, token, fetchImpl, mediaDir });
+  const process = makeProcessor({ db, workerUrl, token, fetchImpl });
+  const publish = makePublisher({ db, workerUrl, token, fetchImpl, mediaDir });
   return async (bullJob) => {
     const job = { id: bullJob.id, data: bullJob.data ?? {} };
+    if (job.data.kind === 'publish') {
+      await publish(job.id, job.data.publish ?? {});
+      return;
+    }
     if (!job.data.url && !mediaPresent(mediaDir, job.id)) {
       throw new Error('media_not_ready');
     }

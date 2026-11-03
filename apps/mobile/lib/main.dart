@@ -1,7 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import 'article_detail.dart';
@@ -12,8 +8,8 @@ import 'notify.dart';
 import 'profile.dart';
 import 'saba_screens.dart';
 import 'saba_theme.dart';
-import 'saba_widgets.dart';
 import 'share.dart';
+import 'upload_draft_page.dart';
 import 'upload.dart';
 import 'vote.dart';
 
@@ -48,16 +44,6 @@ class SabaApp extends StatelessWidget {
   }
 }
 
-/// Satu job convert aktif (polling). Riwayat kini diganti feed artikel.
-class JobEntry {
-  JobEntry({required this.jobId, required this.url});
-
-  final String jobId;
-  final String url;
-  String status = 'processing'; // processing | done | failed
-  String? error;
-}
-
 class SharePage extends StatefulWidget {
   const SharePage({super.key});
 
@@ -66,15 +52,11 @@ class SharePage extends StatefulWidget {
 }
 
 class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
-  String _status = 'Pilih video dari galeri untuk mulai.';
-  String? _doneJobId;
   bool _busy = false;
-  String? _error;
   List<FeedArticle> _feed = [];
   bool _feedLoading = true;
   int _navIndex = 0;
 
-  int _pollSeq = 0; // token poll aktif; poll lama berhenti saat tersalip/cancel.
   bool _foreground = true; // false = notifikasi info saat job selesai.
 
   @override
@@ -140,9 +122,9 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       builder: (ctx) => UploadSourceSheet(
         onGallery: _busy
             ? null
-            : (refs) {
+            : () {
                 Navigator.of(ctx).pop();
-                _uploadFromGallery(refs);
+                _uploadFromGallery();
               },
       ),
     );
@@ -161,80 +143,67 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     _foreground = state == AppLifecycleState.resumed;
   }
 
-  /// Upload video dari galeri lalu lacak sampai artikel jadi.
-  /// Dipakai FAB + halaman Profil. refs: link referensi opsional (maks 3).
-  Future<void> _uploadFromGallery([List<String> refs = const []]) async {
+  /// Upload video dari galeri lalu buka Langkah 2 (draft).
+  /// Dipakai FAB + halaman Profil + Inbox (coba lagi).
+  Future<void> _uploadFromGallery() async {
     if (_busy) return;
     setState(() {
       _navIndex = 0;
       _busy = true;
-      _error = null;
-      _doneJobId = null;
-      _status = 'Memilih video…';
     });
-    final seq = ++_pollSeq;
-    var lastPct = -1;
     JobRecord? record;
     try {
       final jobId = await uploadVideo(
         apiBase: apiBase,
         creator: ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
-        references: refs,
         onProgress: (p) {
           if (record != null) JobHistory.progress(record.id, p);
-          final pct = (p * 100).floor();
-          if (pct >= lastPct + 5 && mounted && seq == _pollSeq) {
-            lastPct = pct;
-            setState(() => _status = 'Mengunggah video… $pct%');
-          }
         },
       );
+      if (!mounted) return;
+      setState(() => _busy = false);
       if (jobId == null) {
-        if (!mounted || seq != _pollSeq) return;
-        _set('Upload dibatalkan.');
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Upload dibatalkan.')));
         return;
       }
       record = JobHistory.add(jobId, 'Video dari galeri');
-      await _trackJob(jobId, seq, label: 'Video dari galeri');
+      _openDraft(jobId);
     } catch (e) {
-      if (!mounted || seq != _pollSeq) return;
-      _set('Gagal: $e', isError: true);
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e')));
     }
   }
 
-  /// Poll jobId sampai artikel jadi.
-  Future<void> _trackJob(String jobId, int seq, {required String label}) async {
-    final entry = JobEntry(jobId: jobId, url: label);
-    setState(() => _status = 'Job dibuat: $jobId — menunggu artikel...');
-    await _pollArticle(entry, seq);
-    if (!mounted || seq != _pollSeq) return; // tersalip job baru/cancel.
-    if (entry.status == 'done') {
-      JobHistory.done(jobId);
-    } else {
-      JobHistory.fail(jobId, entry.error ?? 'gagal');
-    }
-    setState(() {
-      if (entry.status == 'done') {
-        _doneJobId = jobId;
-        _status = 'Artikel jadi: $jobId';
-      } else {
-        _error = entry.error;
-        _status = 'Job $jobId gagal: ${entry.error}';
-      }
-      _busy = false;
-    });
-    // Info di background saja; di foreground user sudah melihat status card.
-    if (!_foreground) {
-      if (entry.status == 'done') {
-        await notifyJob('Artikel jadi', jobId, payload: jobId);
-      } else {
-        await notifyJob('Job $jobId gagal', entry.error ?? 'unknown');
-      }
-    }
-    if (entry.status == 'done') {
-      _loadFeed();
-      _openSuccess(jobId);
-    }
+  /// Langkah 2/3 ala mockup: halaman draft penuh (link, sampul, transkrip).
+  void _openDraft(String jobId) {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UploadDraftPage(
+          jobId: jobId,
+          apiBase: apiBase,
+          onDone: (publishJobId) {
+            JobHistory.done(jobId);
+            if (!_foreground) {
+              notifyJob('Artikel jadi', publishJobId,
+                  payload: publishJobId);
+            }
+            _loadFeed();
+            _openSuccess(publishJobId);
+          },
+          onFail: (failedId, error) {
+            JobHistory.fail(failedId, error);
+            if (!_foreground) {
+              notifyJob('Job $failedId gagal', error);
+            }
+          },
+          onCancel: () => JobHistory.fail(jobId, 'dibatalkan'),
+        ),
+      ),
+    );
   }
 
   /// Langkah 3/3 ala mockup: halaman sukses penuh.
@@ -252,42 +221,6 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         ),
       ),
     );
-  }
-
-  /// Poll `GET /v1/articles/<jobId>` sampai 200 (maks ~10 menit).
-  /// Berhenti saat `seq` tersalip (job baru/cancel): entry ditandai dibatalkan.
-  Future<void> _pollArticle(JobEntry entry, int seq) async {
-    for (var i = 0; i < 120; i++) {
-      if (!mounted || seq != _pollSeq) {
-        if (entry.status == 'processing') {
-          entry
-            ..status = 'failed'
-            ..error = 'dibatalkan';
-        }
-        return;
-      }
-      try {
-        if (await fetchArticle(entry.jobId)) {
-          entry.status = 'done';
-          return;
-        }
-      } catch (_) {
-        // Jaringan sempat putus: coba lagi sampai batas poll.
-      }
-      await Future<void>.delayed(const Duration(seconds: 5));
-    }
-    entry
-      ..status = 'failed'
-      ..error = 'timeout: artikel belum jadi setelah 10 menit';
-  }
-
-  void _set(String status, {bool isError = false}) {
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _status = status;
-      _error = isError ? status : null;
-    });
   }
 
   /// Sheet share WA/X/FB/TG/salin (ganti salin langsung).
@@ -633,28 +566,36 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            if (_busy || _error != null || _doneJobId != null)
+            if (_busy)
               Container(
                 width: double.infinity,
                 color: Colors.white,
                 padding:
                     const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                child: _ConvertStatus(
-                  busy: _busy,
-                  error: _error,
-                  status: _status,
-                  doneJobId: _doneJobId,
-                  onCancel: () => setState(() => _pollSeq++),
-                  onRetry: () {
-                    setState(() => _error = null);
-                    _uploadFromGallery();
-                  },
-                  onDismiss: () => setState(() {
-                    _error = null;
-                    _doneJobId = null;
-                  }),
-                  onOpen: () => _openArticle(_doneJobId!),
-                  onCopy: () => _copyArticle(_doneJobId!),
+                child: Container(
+                  padding: const EdgeInsets.all(SabaSpacing.cardPad),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.circular(SabaRadius.card),
+                      border: Border.all(
+                          color: SabaColors.borderSoft)),
+                  child: const Row(
+                    children: [
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 3),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                          child: Text('Mengunggah video…',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold))),
+                    ],
+                  ),
                 ),
               ),
             Expanded(
@@ -760,223 +701,3 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   }
 }
 
-/// Kartu status convert: sibuk (langkah animasi + spinner) / gagal / jadi.
-/// Gaya disamakan kartu feed: putih, radius 16, border #E4E6EB.
-class _ConvertStatus extends StatelessWidget {
-  const _ConvertStatus({
-    required this.busy,
-    required this.error,
-    required this.status,
-    required this.doneJobId,
-    required this.onCancel,
-    required this.onRetry,
-    required this.onDismiss,
-    required this.onOpen,
-    required this.onCopy,
-  });
-
-  final bool busy;
-  final String? error;
-  final String status;
-  final String? doneJobId;
-  final VoidCallback onCancel;
-  final VoidCallback onRetry;
-  final VoidCallback onDismiss;
-  final VoidCallback onOpen;
-  final VoidCallback onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    final isError = error != null;
-    return Container(
-      padding: const EdgeInsets.all(SabaSpacing.cardPad),
-      decoration: BoxDecoration(
-          color: isError ? SabaColors.failBg : Colors.white,
-          borderRadius: BorderRadius.circular(SabaRadius.card),
-          border: Border.all(
-              color: isError
-                  ? SabaColors.fail
-                  : SabaColors.borderSoft)),
-      child: busy
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SabaStepper(current: 2),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3.5,
-                        strokeCap: StrokeCap.round,
-                        color: sabaBlue,
-                        backgroundColor: SabaColors.greyFill,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(child: _StepCycler()),
-                    IconButton(
-                      tooltip: 'Batal',
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close, size: 18),
-                      color: SabaColors.muted2,
-                      onPressed: onCancel,
-                    ),
-                  ],
-                ),
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Langkah 3 Sukses: ikon check handoff; gagal: ikon error fail.
-                if (isError)
-                  const Icon(Icons.error_outline,
-                      color: SabaColors.fail)
-                else
-                  SabaIcons.check(size: 40),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                          isError
-                              ? 'Gagal membuat artikel'
-                              : 'Artikel jadi!',
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 2),
-                      Text(isError ? error! : status,
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: SabaColors.muted2)),
-                      const SizedBox(height: 10),
-                      if (isError)
-                        Row(
-                          children: [
-                            FilledButton.icon(
-                              onPressed: onRetry,
-                              icon: const Icon(Icons.refresh,
-                                  size: 16),
-                              label: const Text('Coba lagi'),
-                            ),
-                            TextButton(
-                                onPressed: onDismiss,
-                                child: const Text('Tutup')),
-                          ],
-                        )
-                      else
-                        Row(
-                          children: [
-                            FilledButton.icon(
-                              onPressed: onOpen,
-                              icon: const Icon(Icons.open_in_new,
-                                  size: 16),
-                              label: const Text('Baca'),
-                            ),
-                            const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              onPressed: onCopy,
-                              icon: const Icon(Icons.copy,
-                                  size: 16),
-                              label:
-                                  const Text('Salin link'),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-}
-
-/// Teks langkah bergilir selagi menunggu (indeterminate, kosmetik):
-/// unduh → transkrip → tulis. Status teknis tetap di subtitle pemanggil.
-class _StepCycler extends StatefulWidget {
-  const _StepCycler();
-
-  @override
-  State<_StepCycler> createState() => _StepCyclerState();
-}
-
-class _StepCyclerState extends State<_StepCycler> {
-  static const _steps = [
-    'Mengunduh video…',
-    'Mentranskrip suara kreator…',
-    'Menulis artikel SEO…',
-  ];
-  int _i = 0;
-  Timer? _t;
-
-  @override
-  void initState() {
-    super.initState();
-    _t = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (mounted) setState(() => _i = (_i + 1) % _steps.length);
-    });
-  }
-
-  @override
-  void dispose() {
-    _t?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: Text(_steps[_i],
-              key: ValueKey(_i),
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.bold)),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            for (var s = 0; s < _steps.length; s++)
-              Container(
-                margin: EdgeInsets.only(
-                    right: s < _steps.length - 1 ? 4 : 0),
-                width: 16,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: s <= _i
-                        ? sabaBlue
-                        : SabaColors.borderSoft,
-                    borderRadius: BorderRadius.circular(999)),
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        const Text('Biasanya 3–5 menit, jangan tutup app ini.',
-            style: TextStyle(fontSize: 11, color: SabaColors.muted2)),
-      ],
-    );
-  }
-}
-
-/// `GET /v1/articles/<jobId>` → true jika 200 (artikel jadi).
-Future<bool> fetchArticle(String jobId) async {
-  final client = HttpClient();
-  try {
-    final req = await client
-        .getUrl(Uri.parse('$apiBase/v1/articles/$jobId'))
-        .timeout(const Duration(seconds: 20));
-    final res = await req.close().timeout(const Duration(seconds: 20));
-    await res.transform(utf8.decoder).join();
-    return res.statusCode == 200;
-  } finally {
-    client.close();
-  }
-}

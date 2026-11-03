@@ -37,6 +37,11 @@ createServer(
     voteLimiter: makeRateLimiter({
       limit: Number(process.env.RATE_LIMIT_VOTE_PER_MIN ?? 30),
     }),
+    publisher: {
+      workerUrl: WORKER_URL,
+      token: TOKEN,
+      mediaDir: MEDIA_DIR,
+    },
   }),
 ).listen(PORT, () => {
   console.log(`api listening on :${PORT}`);

@@ -59,7 +59,7 @@ test('enqueue menyimpan job + opsi attempts/backoff', async (t) => {
   }
 });
 
-test('startWorker implisit: job diproses sampai done (via handler + antrean)', async (t) => {
+test('startWorker implisit: job convert berhenti di draft_ready (via handler + antrean)', async (t) => {
   if (!(await requireRedis(t))) return;
   const { startWorker } = await import('../src/processor.js');
   const done = [];
@@ -92,10 +92,10 @@ test('startWorker implisit: job diproses sampai done (via handler + antrean)', a
     const { id } = await q.enqueue({ url: 'https://x/v' });
     const deadline = Date.now() + 15000;
     while (Date.now() < deadline) {
-      if (done.some(([, s]) => s === 'done')) break;
+      if (done.some(([, s]) => s === 'draft_ready')) break;
       await new Promise((r) => setTimeout(r, 200));
     }
-    assert.ok(done.some(([i, s]) => i === id && s === 'done'), `job ${id} harus done: ${JSON.stringify(done)}`);
+    assert.ok(done.some(([i, s]) => i === id && s === 'draft_ready'), `job ${id} harus draft_ready: ${JSON.stringify(done)}`);
   } finally {
     await worker.close().catch(() => {});
     await q.close();
@@ -133,5 +133,5 @@ test('handler: job link langsung diproses (tanpa redis)', async () => {
     }),
   });
   await handler({ id: 'job_2', data: { url: 'https://x/v' } });
-  assert.deepEqual(calls.map(([, s]) => s), ['processing', 'done']);
+  assert.deepEqual(calls.map(([, s]) => s), ['processing', 'draft_ready']);
 });

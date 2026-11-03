@@ -44,6 +44,18 @@ export function withGeoMeta(jsonLd, { creator, publishedAt = null, nowIso = null
   return JSON.stringify(out);
 }
 
+/// Parse kolom draft Job (JSON string) -> object atau null bila rusak/kosong.
+export function parseDraft(raw) {
+  if (!raw) return null;
+  try {
+    const d = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (d && typeof d === 'object' && !Array.isArray(d)) return d;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // client diinject agar route ter-test tanpa DB.
 export function createDb(client = prisma) {
   return {
@@ -105,11 +117,11 @@ export function createDb(client = prisma) {
       });
     },
 
-    setJobStatus: async (id, status, { url, error = null, articleId = null, creator = null } = {}) =>
+    setJobStatus: async (id, status, { url, error = null, articleId = null, creator = null, draft = undefined } = {}) =>
       client.job.upsert({
         where: { id },
-        create: { id, url: url ?? '', status, error, articleId, creator },
-        update: { status, error, articleId, ...(creator === null ? {} : { creator }) },
+        create: { id, url: url ?? '', status, error, articleId, creator, ...(draft === undefined ? {} : { draft }) },
+        update: { status, error, articleId, ...(creator === null ? {} : { creator }), ...(draft === undefined ? {} : { draft }) },
       }),
 
     getJob: async (id) =>

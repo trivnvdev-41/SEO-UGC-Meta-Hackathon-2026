@@ -20,7 +20,7 @@ import {
 } from "@/lib/articles";
 import { escapeJsonLd } from "@/lib/jsonld";
 import { renderMd } from "@/lib/markdown";
-import { articlePath, articleUrl } from "@/lib/site";
+import { articlePath, articleUrl, kreatorPath } from "@/lib/site";
 import { faqPage, videoObject } from "@/lib/structured";
 import { parseSocialUrl } from "@/lib/video";
 
@@ -86,6 +86,7 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
   const community = (brand || a.creator || (lang === "en" ? "review" : "ulasan")).replace(/^@/, "");
   const ago = timeAgo(a.createdAt, lang);
   const votes = a.votes ?? { up: 0, down: 0, score: 0, myVote: 0 as const };
+  const creatorSlug = (a.creator ?? "").replace(/^@+/, "").trim();
 
   return (
     <main className="min-h-screen bg-canvas font-sans" id="top">
@@ -175,7 +176,15 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
                   </span>
                 ) : null}
               </span>
-              {ago ? (
+              {creatorSlug ? (
+                <Link
+                  href={kreatorPath(creatorSlug, lang)}
+                  className="block text-[13px] text-saba no-underline"
+                >
+                  {lang === "en" ? "by" : "oleh"} {creatorSlug}
+                  {ago ? ` • ${ago}` : ""}
+                </Link>
+              ) : ago ? (
                 <span className="block text-[13px] text-[#727687]">
                   {ago}
                 </span>

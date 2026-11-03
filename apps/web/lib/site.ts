@@ -12,3 +12,13 @@ export function articlePath(id: string, lang: "id" | "en" = "id"): string {
 export function articleUrl(id: string, lang: "id" | "en" = "id"): string {
   return `${SITE_URL}${articlePath(id, lang)}`;
 }
+
+/** Profil kreator: /kreator/<nama> (+ /en). Nama tanpa @, di-encode. */
+export function kreatorPath(slug: string, lang: "id" | "en" = "id"): string {
+  const path = `/kreator/${encodeURIComponent(slug)}`;
+  return lang === "en" ? `/en${path}` : path;
+}
+
+export function kreatorUrl(slug: string, lang: "id" | "en" = "id"): string {
+  return `${SITE_URL}${kreatorPath(slug, lang)}`;
+}

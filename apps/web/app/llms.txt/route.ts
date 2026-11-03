@@ -1,5 +1,11 @@
-import { getArticle, listArticleIds, pickBody } from "@/lib/articles";
-import { articleUrl, SITE_URL } from "@/lib/site";
+import {
+  getArticle,
+  listArticleIds,
+  listCreators,
+  pickBody,
+  type Article,
+} from "@/lib/articles";
+import { articleUrl, kreatorUrl, SITE_URL } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -10,7 +16,7 @@ export async function GET() {
   const ids = await listArticleIds();
   const articles = (
     await Promise.all(ids.map((id) => getArticle(id).catch(() => null)))
-  ).filter((a) => a !== null);
+  ).filter((a): a is Article => a !== null);
   const lines = [
     "# SABA",
     "",
@@ -31,6 +37,15 @@ export async function GET() {
         `  - English: [${oneLine(pickBody(a, "en").title) || a.id}](${articleUrl(a.id, "en")})`,
       ];
     }),
+    "",
+    "## Creators",
+    "",
+    ...listCreators(articles)
+      .slice(0, 20)
+      .map((c) => {
+        const slug = c.name.replace(/^@+/, "").trim();
+        return `- [${c.name} (${c.count} articles)](${kreatorUrl(slug, "id")})`;
+      }),
     "",
     "## How it works",
     "",

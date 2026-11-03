@@ -130,6 +130,25 @@ export function timeAgo(iso: string | undefined, lang: Lang, now = Date.now()): 
   return formatDate(iso, lang);
 }
 
+/// Nama kreator -> slug URL (/kreator/<slug>): buang @, trim.
+export function creatorSlug(name: string): string {
+  return name.replace(/^@+/, "").trim();
+}
+
+/// Daftar kreator unik + jumlah artikel, urut artikel terbanyak.
+export function listCreators(
+  articles: { creator?: string | null }[],
+): { name: string; count: number }[] {
+  const map = new Map<string, number>();
+  for (const a of articles) {
+    const name = (a.creator ?? "").trim();
+    if (!name) continue;
+    map.set(name, (map.get(name) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((x, y) => y.count - x.count || x.name.localeCompare(y.name));
+}
 /// Nama brand dari JSON-LD ("c/<brand>" ala feed), '' bila tak ada.
 export function brandOf(a: Article): string {
   try {

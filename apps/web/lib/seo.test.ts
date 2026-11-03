@@ -218,3 +218,31 @@ describe("brandOf/scoreOf/sortFeed/trendingOf/timeAgo", () => {
     expect(timeAgo("asal", "id", now)).toBe("");
   });
 });
+
+describe("kreator", () => {
+  it("creatorSlug buang @ dan trim", async () => {
+    const { creatorSlug, listCreators } = await import("./articles");
+    const { kreatorPath } = await import("./site");
+    expect(creatorSlug("@hebat")).toBe("hebat");
+    expect(creatorSlug("  Nama ")).toBe("Nama");
+    expect(kreatorPath("hebat", "id")).toBe("/kreator/hebat");
+    expect(kreatorPath("hebat", "en")).toBe("/en/kreator/hebat");
+  });
+
+  it("listCreators unik + urut terbanyak, lewati kosong", async () => {
+    const { listCreators } = await import("./articles");
+    expect(
+      listCreators([
+        { creator: "@a" },
+        { creator: "b" },
+        { creator: "@a" },
+        { creator: "  " },
+        { creator: null },
+        {},
+      ]),
+    ).toEqual([
+      { name: "@a", count: 2 },
+      { name: "b", count: 1 },
+    ]);
+  });
+});

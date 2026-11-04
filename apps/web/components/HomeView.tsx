@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/BrandLogo";
 import { FeedActions } from "@/components/FeedActions";
 import { Reveal } from "@/components/ui/reveal";
 import { Margin as IconSearch } from "@/components/icons";
@@ -124,9 +125,10 @@ export async function HomeView({
             </Link>
             <Link
               href={lang === "en" ? "/en" : "/"}
-              className="text-[17px] font-bold no-underline"
+              aria-label="SABA"
+              className="no-underline"
             >
-              {t.brand}
+              <BrandLogo />
             </Link>
           </div>
           <div className="mt-2 flex gap-1 overflow-x-auto">

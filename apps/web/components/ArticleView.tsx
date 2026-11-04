@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/BrandLogo";
 import { FollowButton, ShareButton } from "@/components/ArticleExtras";
 import { Comments } from "@/components/Comments";
 import { FeedActions } from "@/components/FeedActions";
@@ -104,9 +105,10 @@ export async function ArticleView({ id, lang }: { id: string; lang: Lang }) {
           </a>
           <a
             href={homeHref}
-            className="mx-auto text-[17px] font-bold no-underline"
+            aria-label="SABA"
+            className="mx-auto no-underline"
           >
-            SABA
+            <BrandLogo />
           </a>
           <nav className="absolute right-0 flex items-center gap-1">
             <Link href={articlePath(id, "id")}>

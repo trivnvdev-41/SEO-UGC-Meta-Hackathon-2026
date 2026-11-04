@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BrandLogo } from "@/components/BrandLogo";
 import { avatarTone } from "@/components/HomeView";
 import {
   compactViews,
@@ -82,9 +83,10 @@ export async function KreatorView({
         <header className="relative flex min-h-9 items-center justify-center">
           <Link
             href={homeHref}
-            className="text-[17px] font-bold no-underline"
+            aria-label="SABA"
+            className="no-underline"
           >
-            SABA
+            <BrandLogo />
           </Link>
         </header>
 

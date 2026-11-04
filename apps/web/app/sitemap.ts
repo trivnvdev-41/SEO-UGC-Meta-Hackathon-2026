@@ -5,7 +5,7 @@ import {
   listCreators,
   type Article,
 } from "../lib/articles";
-import { articleUrl, kreatorUrl, SITE_URL } from "../lib/site";
+import { articleUrl, kreatorUrl, SITE_URL, unduhUrl } from "../lib/site";
 
 export const revalidate = 3600;
 
@@ -19,6 +19,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
   return [
     { url: SITE_URL, lastModified: new Date(), priority: 1 },
+    ...(["id", "en"] as const).map((lang) => ({
+      url: unduhUrl(lang),
+      lastModified: new Date(),
+      priority: 0.9,
+      alternates: { languages: { id: unduhUrl("id"), en: unduhUrl("en") } },
+    })),
     ...ids.flatMap((id) =>
       (["id", "en"] as const).map((lang) => ({
         url: articleUrl(id, lang),

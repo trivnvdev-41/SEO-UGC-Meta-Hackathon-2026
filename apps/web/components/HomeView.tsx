@@ -41,6 +41,7 @@ const T = {
     brand: "SABA",
     searchPh: "Cari sunscreen, ampoule, …",
     searchBtn: "Cari",
+    download: "Unduh App",
     latest: "Ulasan terbaru",
     empty: "Belum ada ulasan yang cocok.",
     read: "Baca ulasan",
@@ -53,6 +54,7 @@ const T = {
     brand: "SABA",
     searchPh: "Search sunscreen, ampoule, …",
     searchBtn: "Search",
+    download: "Get App",
     latest: "Latest reviews",
     empty: "No matching reviews yet.",
     read: "Read review",
@@ -129,6 +131,14 @@ export async function HomeView({
               className="no-underline"
             >
               <BrandLogo />
+            </Link>
+            <Link
+              href={lang === "en" ? "/en/unduh" : "/unduh"}
+              aria-label={t.download}
+              className="absolute right-0 flex h-9 items-center gap-1 rounded-full bg-saba px-3 text-xs font-bold text-white no-underline"
+            >
+              <span aria-hidden>↓</span>
+              {t.download}
             </Link>
           </div>
           <div className="mt-2 flex gap-1 overflow-x-auto">

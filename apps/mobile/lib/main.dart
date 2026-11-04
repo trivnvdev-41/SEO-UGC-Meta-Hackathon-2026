@@ -8,7 +8,6 @@ import 'notify.dart';
 import 'profile.dart';
 import 'saba_screens.dart';
 import 'saba_theme.dart';
-import 'saba_widgets.dart';
 import 'share.dart';
 import 'upload_draft_page.dart';
 import 'upload.dart';
@@ -54,7 +53,6 @@ class SharePage extends StatefulWidget {
 
 class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
   bool _busy = false;
-  double _uploadPct = 0; // 0..1, progres real kirim video (Blok A: honest %).
   List<FeedArticle> _feed = [];
   bool _feedLoading = true;
   int _navIndex = 0;
@@ -152,7 +150,6 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     setState(() {
       _navIndex = 0;
       _busy = true;
-      _uploadPct = 0;
     });
     JobRecord? record;
     try {
@@ -161,9 +158,6 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
         creator: ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
         onProgress: (p) {
           if (record != null) JobHistory.progress(record.id, p);
-          if (!mounted) return;
-          // Light throttle: setState per callback but cheap (one bar).
-          setState(() => _uploadPct = p.clamp(0.0, 1.0));
         },
       );
       if (!mounted) return;

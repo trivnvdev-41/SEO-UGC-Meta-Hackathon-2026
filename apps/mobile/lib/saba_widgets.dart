@@ -1,84 +1,74 @@
 // Standard SABA shell (from saba-handoff): 64 header, card, buttons, SVG icons.
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'saba_theme.dart';
 
-/// Rotating status text with fade/slide animation for AI waiting phases.
-/// Example: "Please wait." -> "The AI agents are working now." -> ...
-class RotatingStatusText extends StatefulWidget {
-  const RotatingStatusText({
+/// 07b Upload Progress Transcript card: big % + staged status lines + bar.
+/// Shared by every upload phase (bytes, transcript, publish) so they all
+/// look the same. pct null = indeterminate (server phase, no measurable
+/// progress yet).
+class SabaStageCard extends StatelessWidget {
+  const SabaStageCard({
     super.key,
-    required this.lines,
-    this.interval = const Duration(seconds: 3),
-    this.style,
-    this.textAlign,
+    required this.pct,
+    required this.line1,
+    required this.line2,
+    required this.line3,
+    required this.footer,
   });
 
-  final List<String> lines;
-  final Duration interval;
-  final TextStyle? style;
-  final TextAlign? textAlign;
-
-  @override
-  State<RotatingStatusText> createState() => _RotatingStatusTextState();
-}
-
-class _RotatingStatusTextState extends State<RotatingStatusText> {
-  int _i = 0;
-  Timer? _t;
-
-  @override
-  void initState() {
-    super.initState();
-    _t = Timer.periodic(widget.interval, (_) {
-      if (!mounted) return;
-      setState(() => _i = (_i + 1) % widget.lines.length);
-    });
-  }
-
-  @override
-  void dispose() {
-    _t?.cancel();
-    super.dispose();
-  }
+  /// 0..100, or null for indeterminate.
+  final int? pct;
+  final String line1;
+  final String line2;
+  final String line3;
+  final String footer;
 
   @override
   Widget build(BuildContext context) {
-    if (widget.lines.isEmpty) return const SizedBox.shrink();
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 450),
-      transitionBuilder: (child, anim) => FadeTransition(
-        opacity: anim,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.3),
-            end: Offset.zero,
-          ).animate(anim),
-          child: child,
-        ),
-      ),
-      child: Text(
-        widget.lines[_i % widget.lines.length],
-        key: ValueKey(_i),
-        style: widget.style,
-        textAlign: widget.textAlign ?? TextAlign.center,
+    return SabaCard(
+      child: Column(
+        children: [
+          Text(pct == null ? '…' : '$pct%',
+              style: const TextStyle(
+                  fontSize: 32, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Text(line1,
+              textAlign: TextAlign.center,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Text(line2,
+              textAlign: TextAlign.center,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 2),
+          Text(line3,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: SabaColors.primary)),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(SabaRadius.pill),
+            child: LinearProgressIndicator(
+              value: pct == null ? null : pct! / 100,
+              minHeight: 8,
+              backgroundColor: SabaColors.greyFill,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                  SabaColors.primary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(footer,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13)),
+        ],
       ),
     );
   }
-}
-
-/// Kalimat status baku fase tunggu AI (Inggris, grammar final).
-class SabaWaitLines {
-  static const headline = 'Please wait.';
-  static const working = [
-    'Please wait.',
-    'The AI agents are working now.',
-    'Transcribing your video into text…',
-    'Capturing your important scenes…',
-  ];
 }
 
 /// Standard header for all screens: h=64, white bg, bottom border, centered title.

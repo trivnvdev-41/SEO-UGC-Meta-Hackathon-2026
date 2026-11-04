@@ -578,55 +578,13 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 color: Colors.white,
                 padding:
                     const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                child: Container(
-                  padding: const EdgeInsets.all(SabaSpacing.cardPad),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(SabaRadius.card),
-                      border: Border.all(
-                          color: SabaColors.borderSoft)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Please wait.',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      const RotatingStatusText(
-                        lines: SabaWaitLines.working,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: SabaColors.muted2),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                  SabaRadius.pill),
-                              child: LinearProgressIndicator(
-                                value: _uploadPct > 0 ? _uploadPct : null,
-                                minHeight: 8,
-                                backgroundColor: SabaColors.track,
-                                valueColor:
-                                    const AlwaysStoppedAnimation<Color>(
-                                        SabaColors.primary),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('${(_uploadPct * 100).floor()}%',
-                              style: SabaTextStyles.tabularNumber
-                                  .copyWith(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ],
-                  ),
+                child: SabaStageCard(
+                  pct: (_uploadPct * 100).floor(),
+                  line1: 'Your video is uploading now.',
+                  line2: 'Now sending your video to the server',
+                  line3: 'Hang tight – almost there…',
+                  footer:
+                      'Uploading ${(_uploadPct * 100).floor()}% – please don’t close this page',
                 ),
               ),
             Expanded(

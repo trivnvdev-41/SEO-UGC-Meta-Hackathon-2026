@@ -1,6 +1,8 @@
 // Step 2 Upload per mockup 08: reference links, cover pick (AI preselected),
 // transcript edit, title, Save Draft + Publish. Draft lives in memory;
 // the back button with unsaved edits offers Cancel vs Keep editing.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -250,7 +252,10 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
         backgroundColor: SabaColors.bgWarm,
         appBar: const SabaHeader(title: 'Upload'),
         body: _loading
-            ? const Center(child: _WaitingBody())
+            ? _WaitingBody(onCancel: () {
+                widget.onCancel();
+                Navigator.of(context).pop();
+              })
             : _error != null && _draft == null
                 ? _ErrorBody(
                     error: _error!,
@@ -266,40 +271,13 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
                       const SabaStepper(current: 2),
                       const SizedBox(height: SabaSpacing.gapCard),
                     if (_publishing) ...[
-                      const SabaCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Please wait.',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold)),
-                            SizedBox(height: 4),
-                            RotatingStatusText(
-                              lines: SabaWaitLines.working,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: SabaColors.muted2),
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: 32,
-                                  height: 32,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 3),
-                                ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                    child: Text('Publishing your article…',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: SabaColors.muted2))),
-                              ],
-                            ),
-                          ],
-                        ),
+                      const SabaStageCard(
+                        pct: null,
+                        line1: 'The AI agents are working now.',
+                        line2: 'Now publishing your article',
+                        line3: 'Preparing your share link…',
+                        footer:
+                            'Publishing your article… – please don’t close this page',
                       ),
                       const SizedBox(height: SabaSpacing.gapCard),
                     ],
@@ -607,34 +585,74 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
   }
 }
 
-class _WaitingBody extends StatelessWidget {
-  const _WaitingBody();
+/// 07b - Upload Progress Transcript: big % + staged status lines + bar.
+/// Pct is display-only (draft polling has no server progress), capped at 92
+/// until the draft arrives — the bar never claims 100% before it is real.
+class _WaitingBody extends StatefulWidget {
+  const _WaitingBody({required this.onCancel});
+
+  final VoidCallback onCancel;
+
+  @override
+  State<_WaitingBody> createState() => _WaitingBodyState();
+}
+
+class _WaitingBodyState extends State<_WaitingBody> {
+  static const _cap = 92;
+  int _pct = 0;
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(milliseconds: 150), (_) {
+      if (!mounted || _pct >= _cap) {
+        _t?.cancel();
+        return;
+      }
+      setState(() => _pct += 1);
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SabaStepper(current: 2),
-          SizedBox(height: 16),
-          SizedBox(
-            width: 40,
-            height: 40,
-            child: CircularProgressIndicator(strokeWidth: 3.5),
+    return ListView(
+      padding: const EdgeInsets.all(SabaSpacing.screen),
+      children: [
+        const SabaCard(child: SabaStepper(current: 2)),
+        const SizedBox(height: SabaSpacing.gapCard),
+        SabaStageCard(
+          pct: _pct,
+          line1: 'The AI agents are working now.',
+          line2: 'Now transcribing your video into text',
+          line3: 'Capturing your important scenes…',
+          footer: 'Transcribing $_pct% – please don’t close this page',
+        ),
+        const SizedBox(height: SabaSpacing.gapCard),
+        SizedBox(
+          width: double.infinity,
+          height: SabaSpacing.btnH,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              shape: const StadiumBorder(),
+              side: const BorderSide(color: SabaColors.borderSoft),
+              backgroundColor: Colors.white,
+            ),
+            onPressed: widget.onCancel,
+            child: const Text('Cancel',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black)),
           ),
-          SizedBox(height: 12),
-          Text('Please wait.',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          SizedBox(height: 4),
-          RotatingStatusText(
-            lines: SabaWaitLines.working,
-            style:
-                TextStyle(fontSize: 12, color: SabaColors.muted2),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

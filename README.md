@@ -11,12 +11,12 @@ media. Readers then discuss each review in a forum-style app.
 
 ## Structure
 
-| Path | Contents |
-|---|---|
-| `apps/mobile` | Flutter forum app (**SABA**): home, upload video galeri → `POST /v1/uploads`, vote, komentar, profil |
-| `apps/web` | Next.js SSR/ISR public SEO site (route groups `app/(id)/` + `app/(en)/`) |
-| `apps/api` | Node.js `node:http` gateway + BullMQ queue/consumer + Prisma/PostgreSQL (`Article` + `Job`) |
-| `workers/processor` | Python FastAPI media worker (ephemeral `/tmp`) |
+| Path                  | Contents                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `apps/mobile`       | Flutter forum app (**SABA**): home, upload video galeri → `POST /v1/uploads`, vote, komentar, profil |
+| `apps/web`          | Next.js SSR/ISR public SEO site (route groups `app/(id)/` + `app/(en)/`)                                  |
+| `apps/api`          | Node.js `node:http` gateway + BullMQ queue/consumer + Prisma/PostgreSQL (`Article` + `Job`)             |
+| `workers/processor` | Python FastAPI media worker (ephemeral `/tmp`)                                                              |
 
 ## Run locally
 
@@ -56,26 +56,30 @@ media. Readers then discuss each review in a forum-style app.
 
 Two independent providers, one per role (no fallback between roles):
 
-| Role | Provider | Model |
-|---|---|---|
-| Transcription (STT) | Meta AI | `muse-voice-transcribe-1.0` |
-| Article generation (LLM) | Baseten | `meta-models/muse-spark-open-1026` |
+|  |  |  |
+| - | - | - |
+
+export OPENCODE_API_KEY="oc_sk_6ca8b3ddf6e5_PZUyTIHFx7-Bvgmrvl9bInEOlx9vofos"
+
+OPENCODE_BASE_URL="https://opencode.ai/zen/go/v2"
+
+opencode
 
 Only the model names are shown here — base URLs and API keys live in `.env`
 (`AI_STT_*`, `AI_LLM_*`) and are never committed.
 
 ## Tests
 
-| Suite | Command | Count |
-|---|---|---|
-| API (node:test) | `npm test --prefix apps/api` | 28 |
+| Suite           | Command                        | Count |
+| --------------- | ------------------------------ | ----- |
+| API (node:test) | `npm test --prefix apps/api` | 28    |
 
 > Test API butuh Redis jalan (`REDIS_URL`, default `redis://localhost:6379`);
 > tanpa Redis, 2 test integrasi antrean otomatis skip.
-| Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 36 |
-| Web unit (vitest) | `npm test --prefix apps/web` | 25 |
-| Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 5 |
-| Mobile (flutter) | `cd apps/mobile && flutter test` | 20 |
+> | Worker (unittest) | `PYTHONPATH=workers/processor/src workers/processor/.venv/bin/python -m unittest discover -s workers/processor/test` | 36 |
+> | Web unit (vitest) | `npm test --prefix apps/web` | 25 |
+> | Web E2E (playwright) | `npm run test:e2e --prefix apps/web` | 5 |
+> | Mobile (flutter) | `cd apps/mobile && flutter test` | 20 |
 
 CI (`.github/workflows/ci.yml`) runs the API, worker, web unit/typecheck, and
 mobile suites on every push. E2E needs Postgres + seed data, so it runs locally.
@@ -113,15 +117,15 @@ expose it publicly.
 
 ## Built During Hackathon
 
-- [x] Mobile forum app (Flutter Android): home, upload video galeri → `POST /v1/uploads`, vote, komentar, profil
-- [x] API Gateway (`node:http`) + BullMQ queue + consumer (queue → worker → persist) + Prisma/PostgreSQL (`Article` + `Job`)
-- [x] Python worker: upload → FFmpeg + `/tmp` purge (in `finally`)
-- [x] STT + multimodal article generation, two independent providers via env (`AI_STT_*`, `AI_LLM_*`)
-- [x] Next.js article pages + JSON-LD + social embeds + jelajah/forum pages
-- [x] SEO: path-based i18n (`/article/<id>` ID, `/en/article/<id>` EN), canonical/hreflang, sitemap, robots, escaped JSON-LD
-- [x] Security: domain allowlist, internal service token, rate limit, video size/duration caps
-- [x] Playwright E2E (5 tests)
-- [x] Image upload to S3/R2 (verified against local s3proxy: 2 files uploaded, public URLs return 200)
+- [X] Mobile forum app (Flutter Android): home, upload video galeri → `POST /v1/uploads`, vote, komentar, profil
+- [X] API Gateway (`node:http`) + BullMQ queue + consumer (queue → worker → persist) + Prisma/PostgreSQL (`Article` + `Job`)
+- [X] Python worker: upload → FFmpeg + `/tmp` purge (in `finally`)
+- [X] STT + multimodal article generation, two independent providers via env (`AI_STT_*`, `AI_LLM_*`)
+- [X] Next.js article pages + JSON-LD + social embeds + jelajah/forum pages
+- [X] SEO: path-based i18n (`/article/<id>` ID, `/en/article/<id>` EN), canonical/hreflang, sitemap, robots, escaped JSON-LD
+- [X] Security: domain allowlist, internal service token, rate limit, video size/duration caps
+- [X] Playwright E2E (5 tests)
+- [X] Image upload to S3/R2 (verified against local s3proxy: 2 files uploaded, public URLs return 200)
 
 ## Pre-existing Dependencies
 

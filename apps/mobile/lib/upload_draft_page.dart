@@ -666,7 +666,8 @@ class _WaitingBody extends StatefulWidget {
 
   final VoidCallback onCancel;
 
-  /// 0..100 real upload progress. Null = polling draft (fake bar).
+  /// 0..100 real upload progress. Null = polling draft.
+  /// Displayed as the first 10% of one continuous bar (see continuousPct).
   final int? uploadPct;
 
   @override
@@ -683,12 +684,13 @@ class _WaitingBodyState extends State<_WaitingBody> {
   @override
   void initState() {
     super.initState();
-    _t = Timer.periodic(const Duration(milliseconds: 150), (_) {
+    // Gentle tick (1s): fake progress only, keeps GPU churn low.
+    _t = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _pct >= _cap) {
         _t?.cancel();
         return;
       }
-      setState(() => _pct += 1);
+      setState(() => _pct = (_pct + 7).clamp(0, _cap));
     });
     // Alternate the two status lines every 2.5s.
     _altT = Timer.periodic(const Duration(milliseconds: 2500), (_) {
@@ -706,19 +708,23 @@ class _WaitingBodyState extends State<_WaitingBody> {
 
   @override
   Widget build(BuildContext context) {
+    // One continuous bar: upload fills 0..10, draft polling 10..90.
+    final uploading = widget.uploadPct != null;
+    final pct =
+        continuousPct(uploadPct: widget.uploadPct, draftPct: _pct);
     return ListView(
       padding: const EdgeInsets.all(SabaSpacing.screen),
       children: [
         const SabaCard(child: SabaStepper(current: 2)),
         const SizedBox(height: SabaSpacing.gapCard),
         SabaStageCard(
-          pct: widget.uploadPct ?? _pct,
-          line1: widget.uploadPct != null
+          pct: pct,
+          line1: uploading
               ? 'Uploading your video…'
               : 'The AI agents are working now.',
-          footer: widget.uploadPct != null
+          footer: uploading
               ? 'Uploading ${widget.uploadPct}% – please don’t close this page'
-              : 'Transcribing $_pct% – please don’t close this page',
+              : 'Transcribing $pct% – please don’t close this page',
           middle: AnimatedSwitcher(
             duration: const Duration(milliseconds: 450),
             transitionBuilder: (child, anim) => FadeTransition(
@@ -777,27 +783,29 @@ class _ErrorBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline,
-              size: 48, color: SabaColors.fail),
-          const SizedBox(height: 12),
-          Text(error, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FilledButton(
-                  onPressed: onRetry,
-                  child: const Text('Try again')),
-              const SizedBox(width: 8),
-              TextButton(onPressed: onClose, child: const Text('Close')),
-            ],
-          ),
-        ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline,
+                size: 48, color: SabaColors.fail),
+            const SizedBox(height: 12),
+            Text(error, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton(
+                    onPressed: onRetry,
+                    child: const Text('Try again')),
+                const SizedBox(width: 8),
+                TextButton(onPressed: onClose, child: const Text('Close')),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -19,24 +19,21 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  bool _visible = false;
-
   @override
   void initState() {
     super.initState();
-    // Fade-in logo setelah frame pertama, lalu fade-out mulus ke home.
+    // Static hold, no animation: same white + logo as the native splash,
+    // so system splash -> Flutter splash reads as one continuous screen.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _visible = true);
       precacheImage(const AssetImage('assets/splash.png'), context);
     });
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 400),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
             pageBuilder: (_, _, _) => widget.child,
-            transitionsBuilder: (_, anim, _, child) =>
-                FadeTransition(opacity: anim, child: child),
           ),
         );
       }
@@ -45,14 +42,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: AnimatedOpacity(
-          opacity: _visible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 500),
-          child:
-              Image.asset('assets/splash.png', width: 180, height: 180),
+        child: Image(
+          image: AssetImage('assets/splash.png'),
+          width: 180,
+          height: 180,
         ),
       ),
     );

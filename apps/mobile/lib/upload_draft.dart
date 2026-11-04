@@ -121,6 +121,14 @@ Future<String?> publishDraft(String apiBase, String jobId,
   }
 }
 
+/// Map the two upload phases onto one continuous 0..90 bar:
+/// real upload fills the first 20%, draft polling continues 20..90.
+/// Never hits 100% early, so the bar can't claim completion prematurely.
+int continuousPct({int? uploadPct, required int draftPct}) {
+  if (uploadPct != null) return (uploadPct * 0.2).round().clamp(0, 20);
+  return 20 + (draftPct * 70 ~/ 92).clamp(0, 70);
+}
+
 /// Poll a draft until ready (max ~10 min). Null on timeout/cancel.
 /// `alive` is called each round; return false to stop.
 Future<DraftData?> pollDraft(String apiBase, String jobId,

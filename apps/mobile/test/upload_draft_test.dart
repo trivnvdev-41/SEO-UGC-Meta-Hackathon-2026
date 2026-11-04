@@ -55,4 +55,13 @@ void main() {
     expect(parseRefInput('http://x, teks'), isEmpty);
     expect(parseRefInput('  '), isEmpty);
   });
+
+  test('continuousPct: upload 20% awal, draft lanjut 20..90', () {
+    expect(continuousPct(uploadPct: 0, draftPct: 0), 0);
+    expect(continuousPct(uploadPct: 50, draftPct: 0), 10);
+    expect(continuousPct(uploadPct: 100, draftPct: 0), 20);
+    expect(continuousPct(draftPct: 0), 20);
+    expect(continuousPct(draftPct: 46), 55);
+    expect(continuousPct(draftPct: 92), 90);
+  });
 }

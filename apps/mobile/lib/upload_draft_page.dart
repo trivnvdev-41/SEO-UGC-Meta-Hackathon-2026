@@ -2,6 +2,7 @@
 // transcript edit, title, Save Draft + Publish. Draft lives in memory;
 // the back button with unsaved edits offers Cancel vs Keep editing.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,19 +10,28 @@ import 'package:flutter/services.dart';
 import 'saba_theme.dart';
 import 'saba_widgets.dart';
 import 'social_handle.dart';
+import 'upload.dart';
 import 'upload_draft.dart';
 
 class UploadDraftPage extends StatefulWidget {
   const UploadDraftPage({
     super.key,
-    required this.jobId,
+    this.jobId,
+    this.uploadFile,
+    this.creator,
     required this.apiBase,
     required this.onDone,
     required this.onFail,
     required this.onCancel,
-  });
+  }) : assert(jobId != null || uploadFile != null);
 
-  final String jobId;
+  /// Server job id. Null when [uploadFile] is given (upload runs in-page).
+  final String? jobId;
+
+  /// Pre-picked video to upload in-page, so 7b opens instantly with real %.
+  final File? uploadFile;
+
+  final String? creator;
   final String apiBase;
   final void Function(String publishJobId) onDone;
   final void Function(String jobId, String error) onFail;
@@ -38,6 +48,9 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
   bool _cancelled = false;
   bool _allowBackground = false; // publish jalan terus walau halaman ditutup
   bool _savedFlash = false;
+  String? _jobId; // real job id (widget.jobId or from the in-page upload)
+  JobRecord? _record;
+  double? _uploadPct; // null = not uploading (polling draft instead)
 
   late final TextEditingController _link = TextEditingController();
   late final TextEditingController _transcript = TextEditingController();
@@ -54,7 +67,12 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
   @override
   void initState() {
     super.initState();
-    _waitDraft();
+    if (widget.uploadFile != null) {
+      _startUpload();
+    } else {
+      _jobId = widget.jobId;
+      _waitDraft();
+    }
   }
 
   @override
@@ -66,8 +84,47 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     super.dispose();
   }
 
+  /// Upload the pre-picked file with real progress, then poll the draft.
+  /// 7b is already on screen, so the 7 -> 7b hop is instant.
+  Future<void> _startUpload() async {
+    final file = widget.uploadFile!;
+    setState(() => _uploadPct = 0);
+    try {
+      final id = await uploadFileData(
+        file: file,
+        apiBase: widget.apiBase,
+        creator: widget.creator,
+        onProgress: (p) {
+          if (mounted && !_cancelled) setState(() => _uploadPct = p);
+        },
+      );
+      if (!mounted || _cancelled) return;
+      if (id == null) {
+        setState(() {
+          _uploadPct = null;
+          _error = 'Upload cancelled.';
+        });
+        return;
+      }
+      _record = JobHistory.add(id, 'Video from gallery');
+      setState(() {
+        _jobId = id;
+        _uploadPct = null;
+      });
+      _waitDraft();
+    } catch (e) {
+      if (!mounted || _cancelled) return;
+      setState(() {
+        _uploadPct = null;
+        _error = 'Upload failed: $e';
+      });
+    }
+  }
+
   Future<void> _waitDraft() async {
-    final d = await pollDraft(widget.apiBase, widget.jobId,
+    final jobId = _jobId;
+    if (jobId == null) return;
+    final d = await pollDraft(widget.apiBase, jobId,
         alive: () => mounted && !_cancelled);
     if (!mounted || _cancelled) return;
     if (d == null) {
@@ -174,7 +231,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
   Future<void> _saveDraft() async {
     final d = _draft;
     if (d == null || _publishing) return;
-    final ok = await patchDraft(widget.apiBase, widget.jobId,
+    final ok = await patchDraft(widget.apiBase, _jobId!,
         title: _title.text.trim(),
         coverIndex: _coverIndex,
         transcript: _transcript.text,
@@ -197,7 +254,8 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
 
   Future<void> _publish() async {
     final d = _draft;
-    if (d == null || _publishing) return;
+    final jobId = _jobId;
+    if (d == null || jobId == null || _publishing) return;
     setState(() {
       _publishing = true;
       _error = null;
@@ -205,7 +263,7 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
     });
     bool alive() => !_cancelled || _allowBackground;
     final edited = _transcript.text.trim() != d.transcript.trim();
-    final pubId = await publishDraft(widget.apiBase, widget.jobId,
+    final pubId = await publishDraft(widget.apiBase, jobId,
         title: _title.text.trim().isEmpty ? null : _title.text.trim(),
         coverIndex: _coverIndex,
         transcript: _transcript.text,
@@ -219,22 +277,24 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
           _error = 'Failed to publish. Try again.';
         });
       } else {
-        widget.onFail(widget.jobId, 'publish_gagal');
+        widget.onFail(jobId, 'publish_gagal');
       }
       return;
     }
     final done = await pollArticleDone(widget.apiBase, pubId, alive: alive);
     if (!alive()) return;
     if (done) {
+      final r = _record;
+      if (r != null) JobHistory.done(r.id);
       widget.onDone(pubId);
     } else if (mounted) {
       setState(() {
         _publishing = false;
         _error = 'Article is taking too long. Try again.';
       });
-      widget.onFail(widget.jobId, 'timeout');
+      widget.onFail(jobId, 'timeout');
     } else {
-      widget.onFail(widget.jobId, 'timeout');
+      widget.onFail(jobId, 'timeout');
     }
   }
 
@@ -252,16 +312,29 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
         backgroundColor: SabaColors.bgWarm,
         appBar: const SabaHeader(title: 'Upload'),
         body: _loading
-            ? _WaitingBody(onCancel: () {
-                widget.onCancel();
-                Navigator.of(context).pop();
-              })
+            ? _WaitingBody(
+                uploadPct: _uploadPct == null
+                    ? null
+                    : (_uploadPct! * 100).round().clamp(0, 100),
+                onCancel: () {
+                  _cancelled = true;
+                  final r = _record;
+                  if (r != null) JobHistory.fail(r.id, 'cancelled');
+                  widget.onCancel();
+                  Navigator.of(context).pop();
+                },
+              )
             : _error != null && _draft == null
                 ? _ErrorBody(
                     error: _error!,
                     onRetry: () {
                       setState(() => _error = null);
-                      _waitDraft();
+                      if (_jobId == null && widget.uploadFile != null) {
+                        _cancelled = false;
+                        _startUpload();
+                      } else {
+                        _waitDraft();
+                      }
                     },
                     onClose: () => Navigator.of(context).pop(),
                   )
@@ -589,9 +662,12 @@ class _UploadDraftPageState extends State<UploadDraftPage> {
 /// Pct is display-only (draft polling has no server progress), capped at 92
 /// until the draft arrives — the bar never claims 100% before it is real.
 class _WaitingBody extends StatefulWidget {
-  const _WaitingBody({required this.onCancel});
+  const _WaitingBody({required this.onCancel, this.uploadPct});
 
   final VoidCallback onCancel;
+
+  /// 0..100 real upload progress. Null = polling draft (fake bar).
+  final int? uploadPct;
 
   @override
   State<_WaitingBody> createState() => _WaitingBodyState();
@@ -636,9 +712,13 @@ class _WaitingBodyState extends State<_WaitingBody> {
         const SabaCard(child: SabaStepper(current: 2)),
         const SizedBox(height: SabaSpacing.gapCard),
         SabaStageCard(
-          pct: _pct,
-          line1: 'The AI agents are working now.',
-          footer: 'Transcribing $_pct% – please don’t close this page',
+          pct: widget.uploadPct ?? _pct,
+          line1: widget.uploadPct != null
+              ? 'Uploading your video…'
+              : 'The AI agents are working now.',
+          footer: widget.uploadPct != null
+              ? 'Uploading ${widget.uploadPct}% – please don’t close this page'
+              : 'Transcribing $_pct% – please don’t close this page',
           middle: AnimatedSwitcher(
             duration: const Duration(milliseconds: 450),
             transitionBuilder: (child, anim) => FadeTransition(

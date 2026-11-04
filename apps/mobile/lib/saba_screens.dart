@@ -8,7 +8,7 @@ import 'saba_widgets.dart';
 import 'upload.dart';
 import 'vote.dart';
 
-/// 01 - Splash: S logo on primary, auto-continue.
+/// 01 - Splash: S icon on white, auto-continue.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.child});
 
@@ -19,13 +19,25 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _visible = false;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    // Fade-in logo setelah frame pertama, lalu fade-out mulus ke home.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _visible = true);
+      precacheImage(const AssetImage('assets/splash.png'), context);
+    });
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => widget.child),
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 400),
+            pageBuilder: (_, _, _) => widget.child,
+            transitionsBuilder: (_, anim, _, child) =>
+                FadeTransition(opacity: anim, child: child),
+          ),
         );
       }
     });
@@ -36,7 +48,12 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: Image.asset('assets/logo.png', width: 160, height: 160),
+        child: AnimatedOpacity(
+          opacity: _visible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 500),
+          child:
+              Image.asset('assets/splash.png', width: 180, height: 180),
+        ),
       ),
     );
   }

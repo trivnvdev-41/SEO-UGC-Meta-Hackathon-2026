@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'article_detail.dart';
 import 'edit_profile_page.dart';
@@ -143,7 +146,9 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
     _foreground = state == AppLifecycleState.resumed;
   }
 
-  /// Upload a video from the gallery, then open Step 2 (draft).
+  /// Video upload flow: pick -> open 7b instantly -> upload with real %
+  /// inside the draft page -> poll draft. The old flow awaited the whole
+  /// upload before pushing 7b, so the 7 -> 7b hop felt stuck with no UI.
   /// Used by FAB + Profile page + Inbox (retry).
   Future<void> _uploadFromGallery() async {
     if (_busy) return;
@@ -151,59 +156,44 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
       _navIndex = 0;
       _busy = true;
     });
-    JobRecord? record;
     try {
-      final jobId = await uploadVideo(
-        apiBase: apiBase,
-        creator: ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
-        onProgress: (p) {
-          if (record != null) JobHistory.progress(record.id, p);
-        },
-      );
+      final picked =
+          await ImagePicker().pickVideo(source: ImageSource.gallery);
       if (!mounted) return;
       setState(() => _busy = false);
-      if (jobId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Upload cancelled.')));
-        return;
-      }
-      record = JobHistory.add(jobId, 'Video from gallery');
-      _openDraft(jobId);
+      if (picked == null) return;
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => UploadDraftPage(
+            uploadFile: File(picked.path),
+            creator:
+                ProfileStore.name.isNotEmpty ? ProfileStore.name : null,
+            apiBase: apiBase,
+            onDone: (publishJobId) {
+              if (!_foreground) {
+                notifyJob('Article ready', publishJobId,
+                    payload: publishJobId);
+              }
+              _loadFeed();
+              _openSuccess(publishJobId);
+            },
+            onFail: (failedId, error) {
+              JobHistory.fail(failedId, error);
+              if (!_foreground) {
+                notifyJob('Job $failedId failed', error);
+              }
+            },
+            onCancel: () {},
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed: $e')));
     }
-  }
-
-  /// Mockup-style Step 2/3: full draft page (links, cover, transcript).
-  void _openDraft(String jobId) {
-    if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => UploadDraftPage(
-          jobId: jobId,
-          apiBase: apiBase,
-          onDone: (publishJobId) {
-            JobHistory.done(jobId);
-            if (!_foreground) {
-              notifyJob('Article ready', publishJobId,
-                  payload: publishJobId);
-            }
-            _loadFeed();
-            _openSuccess(publishJobId);
-          },
-          onFail: (failedId, error) {
-            JobHistory.fail(failedId, error);
-            if (!_foreground) {
-              notifyJob('Job $failedId failed', error);
-            }
-          },
-          onCancel: () => JobHistory.fail(jobId, 'cancelled'),
-        ),
-      ),
-    );
   }
 
   /// Mockup-style Step 3/3: full success page.
@@ -544,10 +534,11 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 children: [
                   const Expanded(
                     child: Center(
-                      child: Text('SABA',
-                          style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800)),
+                      child: Image(
+                        image: AssetImage('assets/logo.png'),
+                        height: 28,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   GestureDetector(

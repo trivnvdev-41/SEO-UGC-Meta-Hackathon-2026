@@ -63,6 +63,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/logo.png
+    - assets/splash.png
 
   fonts:
     - family: Inter

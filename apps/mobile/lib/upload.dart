@@ -67,7 +67,23 @@ Future<String?> uploadVideo({
 }) async {
   final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
   if (picked == null) return null;
-  final file = File(picked.path);
+  return uploadFileData(
+    file: File(picked.path),
+    apiBase: apiBase,
+    creator: creator,
+    references: references,
+    onProgress: onProgress,
+  );
+}
+
+/// Upload an already-picked video file. Same contract as [uploadVideo].
+Future<String?> uploadFileData({
+  required File file,
+  required String apiBase,
+  String? creator,
+  List<String> references = const [],
+  void Function(double)? onProgress,
+}) async {
   final len = await file.length();
   if (len == 0) throw Exception('upload: empty file');
   final client = HttpClient();

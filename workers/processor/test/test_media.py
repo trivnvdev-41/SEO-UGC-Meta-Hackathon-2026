@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from processor.media import (
+    N_FRAMES,
     check_size,
     extract_cmd,
     job_dir,
@@ -11,6 +12,7 @@ from processor.media import (
     pipeline,
     probe_duration,
     purge,
+    spread_fps,
     video_inbox,
 )
 
@@ -105,7 +107,7 @@ class MediaTest(unittest.TestCase):
             d.mkdir()
             (d / "frame_001.jpg").write_bytes(b"x")
             (d / "frame_002.jpg").write_bytes(b"x")
-            got = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
+            got = sorted(str(p) for p in d.glob("frame_*.jpg"))[:N_FRAMES]
         self.assertEqual([Path(p).name for p in got],
                          ["frame_001.jpg", "frame_002.jpg"])
         self.assertTrue(media.FRAME_PATTERN.endswith(".jpg"))
@@ -123,11 +125,21 @@ class MediaTest(unittest.TestCase):
 
     def test_extract_cmd_satu_pass_audio_dan_frame(self):
         cmd = extract_cmd(Path("/tmp/j/v.mp4"), Path("/tmp/j/a.mp3"),
-                          Path("/tmp/j/frame_%03d.jpg"))
+                          Path("/tmp/j/frame_%03d.jpg"), fps="0.0889")
         self.assertEqual(cmd.count("-i"), 1)
         self.assertIn("libmp3lame", cmd)
-        self.assertIn("fps=1/3", cmd)
+        self.assertIn("fps=0.0889", cmd)
+        self.assertIn(str(N_FRAMES), cmd)
         self.assertEqual(cmd[0], "ffmpeg")
+
+    def test_spread_fps_merata_sepanjang_durasi(self):
+        # Video 90 dtk: 8 frame tersebar ~11 dtk sekali, frame terakhir ~detik 79.
+        fps = float(spread_fps(90.0))
+        self.assertAlmostEqual(fps, 8 / 90, places=4)
+        self.assertGreaterEqual((N_FRAMES - 1) / fps, 75)
+        # Video pendek: min 1 dtk antar frame, bukan fps raksasa.
+        self.assertEqual(spread_fps(4.0), "1.0000")
+        self.assertEqual(spread_fps(0.0), "1/3")
 
     def test_probe_duration_tak_terbaca(self):
         from types import SimpleNamespace

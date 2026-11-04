@@ -23,6 +23,9 @@ _DEFAULT_MAX_MB = 50
 _DEFAULT_MAX_SECONDS = 180
 _FFMPEG_TIMEOUT = 60
 _SOCKET_TIMEOUT = 30
+# Samakan dengan batas vision provider (ai._MAX_IMAGES): semua frame yang
+# diekstrak ikut dikirim ke AI, tak ada frame buta yang tak bisa dipilih.
+N_FRAMES = 8
 
 
 def _check_job_id(job_id: str) -> str:
@@ -52,11 +55,25 @@ def job_dir(job_id: str) -> Path:
     return TMP_ROOT / _check_job_id(job_id)
 
 
-def extract_cmd(video: Path, audio: Path, pattern: Path) -> list[str]:
-    """Satu pass ffmpeg: audio.mp3 + 10 frame sekaligus (hemat 1x decode)."""
+def spread_fps(duration: float) -> str:
+    """Frame rate agar N_FRAMES tersebar merata sepanjang durasi video.
+
+    Video 90 dtk -> 1 frame per ~11 dtk (produk di akhir ikut terlihat),
+    bukan 8 frame di 24 detik pertama. Min 1 dtk antar frame agar video
+    pendek tak menghasilkan frame nyaris duplikat.
+    """
+    if duration <= 0:
+        return "1/3"
+    return f"{min(N_FRAMES / duration, 1.0):.4f}"
+
+
+def extract_cmd(video: Path, audio: Path, pattern: Path,
+                fps: str = "1/3") -> list[str]:
+    """Satu pass ffmpeg: audio.mp3 + N_FRAMES frame sekaligus (hemat 1x decode)."""
     return ["ffmpeg", "-y", "-i", str(video),
             "-map", "0:a?", "-acodec", "libmp3lame", "-q:a", "4", str(audio),
-            "-map", "0:v?", "-vf", "fps=1/3", "-frames:v", "10", str(pattern)]
+            "-map", "0:v?", "-vf", f"fps={fps}", "-frames:v", str(N_FRAMES),
+            str(pattern)]
 
 
 def video_inbox(job_id: str) -> Path | None:
@@ -90,14 +107,15 @@ def pipeline(job_id: str, run=subprocess.run,
     if raw is None:
         raise ValueError("no_video")
     check_size(raw)
-    if probe_duration(raw, run) > max_seconds():
+    duration = probe_duration(raw, run)
+    if duration > max_seconds():
         raise ValueError("video_too_long")
     d = job_dir(job_id)
     d.mkdir(parents=True, exist_ok=True)
     audio = d / AUDIO_NAME
-    run(extract_cmd(raw, audio, d / FRAME_PATTERN),
+    run(extract_cmd(raw, audio, d / FRAME_PATTERN, spread_fps(duration)),
         check=True, timeout=_FFMPEG_TIMEOUT)
-    frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:10]
+    frames = sorted(str(p) for p in d.glob("frame_*.jpg"))[:N_FRAMES]
     return {"job_id": job_id, "video": str(raw),
             "audio": str(audio), "frames": frames,
             "creator": creator or None, "local": True}

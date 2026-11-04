@@ -102,6 +102,24 @@ class AiTest(unittest.TestCase):
         self.assertTrue(imgs[0]["image_url"]["url"].startswith(
             "data:image/jpeg;base64,"))
 
+    def test_kirim_semua_frame_tanpa_buta(self):
+        # Anti-regresi: 8 frame ekstrak -> 8 gambar terkirim, tak ada frame
+        # yang tak bisa dipilih AI (dulu 10 ekstrak, 8 terkirim).
+        from processor.media import N_FRAMES
+        cap = {}
+        payload = json.dumps(
+            {"choices": [{"message": {"content": "{}"}}]}
+        ).encode()
+        with patch("urllib.request.urlopen",
+                   _fake_urlopen_factory(cap, payload)):
+            ai.generate_article("teks", [f"B{i}" for i in range(N_FRAMES)],
+                                "K", model="m", base="https://t")
+        body = json.loads(cap["body"])
+        imgs = [c for c in body["messages"][0]["content"]
+                if c["type"] == "image_url"]
+        self.assertEqual(len(imgs), N_FRAMES)
+        self.assertEqual(len(imgs), ai._MAX_IMAGES)
+
     def test_prompt_sebut_kreator_di_judul(self):
         cap = {}
         payload = json.dumps(

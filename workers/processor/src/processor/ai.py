@@ -16,6 +16,8 @@ import urllib.request
 from pathlib import Path
 
 _TIMEOUT = 120
+# = jumlah frame ekstrak (media.N_FRAMES): semua frame ikut dikirim,
+# tak ada frame buta yang tak bisa dipilih AI.
 _MAX_IMAGES = 8  # provider max 8 (was 10 -> 400 Too many images)
 _ROLES = ("stt", "llm")
 

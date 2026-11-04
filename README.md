@@ -52,6 +52,18 @@ media. Readers then discuss each review in a forum-style app.
 7. Mobile (optional): `cd apps/mobile && flutter run --dart-define=API_BASE=http://10.0.2.2:4301`
 8. See `apps/api/README.md` and each `apps/*` and `workers/*` README for details.
 
+## AI providers
+
+Two independent providers, one per role (no fallback between roles):
+
+| Role | Provider | Model |
+|---|---|---|
+| Transcription (STT) | Meta AI | `muse-voice-transcribe-1.0` |
+| Article generation (LLM) | Baseten | `meta-models/muse-spark-open-1026` |
+
+Only the model names are shown here — base URLs and API keys live in `.env`
+(`AI_STT_*`, `AI_LLM_*`) and are never committed.
+
 ## Tests
 
 | Suite | Command | Count |

@@ -33,27 +33,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: SabaColors.primary,
+    return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('S',
-                style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 64,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white)),
-            SizedBox(height: 8),
-            Text('SABA',
-                style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white)),
-          ],
-        ),
+        child: Image.asset('assets/logo.png', width: 160, height: 160),
       ),
     );
   }

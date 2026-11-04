@@ -5,25 +5,28 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'saba_theme.dart';
 
 /// 07b Upload Progress Transcript card: big % + staged status lines + bar.
-/// Shared by every upload phase (bytes, transcript, publish) so they all
-/// look the same. pct null = indeterminate (server phase, no measurable
-/// progress yet).
+/// Shared by the transcript and publish waits. pct null = indeterminate
+/// (server phase, no measurable progress yet).
 class SabaStageCard extends StatelessWidget {
   const SabaStageCard({
     super.key,
     required this.pct,
     required this.line1,
-    required this.line2,
-    required this.line3,
+    this.line2,
+    this.line3,
     required this.footer,
+    this.middle,
   });
 
   /// 0..100, or null for indeterminate.
   final int? pct;
   final String line1;
-  final String line2;
-  final String line3;
+  final String? line2;
+  final String? line3;
   final String footer;
+
+  /// If non-null, replaces the line2/line3 texts (e.g. an AnimatedSwitcher).
+  final Widget? middle;
 
   @override
   Widget build(BuildContext context) {
@@ -38,18 +41,27 @@ class SabaStageCard extends StatelessWidget {
               textAlign: TextAlign.center,
               style:
                   const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(line2,
-              textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(line3,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: SabaColors.primary)),
+          if (middle != null) ...[
+            const SizedBox(height: 2),
+            middle!,
+          ] else ...[
+            if (line2 != null) ...[
+              const SizedBox(height: 2),
+              Text(line2!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+            if (line3 != null) ...[
+              const SizedBox(height: 2),
+              Text(line3!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: SabaColors.primary)),
+            ],
+          ],
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(SabaRadius.pill),

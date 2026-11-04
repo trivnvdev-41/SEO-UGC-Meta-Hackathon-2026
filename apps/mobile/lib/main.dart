@@ -572,21 +572,6 @@ class _SharePageState extends State<SharePage> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            if (_busy)
-              Container(
-                width: double.infinity,
-                color: Colors.white,
-                padding:
-                    const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                child: SabaStageCard(
-                  pct: (_uploadPct * 100).floor(),
-                  line1: 'Your video is uploading now.',
-                  line2: 'Now sending your video to the server',
-                  line3: 'Hang tight – almost there…',
-                  footer:
-                      'Uploading ${(_uploadPct * 100).floor()}% – please don’t close this page',
-                ),
-              ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(12),

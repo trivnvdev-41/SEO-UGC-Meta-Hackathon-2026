@@ -600,7 +600,9 @@ class _WaitingBody extends StatefulWidget {
 class _WaitingBodyState extends State<_WaitingBody> {
   static const _cap = 92;
   int _pct = 0;
+  bool _alt = false;
   Timer? _t;
+  Timer? _altT;
 
   @override
   void initState() {
@@ -612,11 +614,17 @@ class _WaitingBodyState extends State<_WaitingBody> {
       }
       setState(() => _pct += 1);
     });
+    // Alternate the two status lines every 2.5s.
+    _altT = Timer.periodic(const Duration(milliseconds: 2500), (_) {
+      if (!mounted) return;
+      setState(() => _alt = !_alt);
+    });
   }
 
   @override
   void dispose() {
     _t?.cancel();
+    _altT?.cancel();
     super.dispose();
   }
 
@@ -630,9 +638,31 @@ class _WaitingBodyState extends State<_WaitingBody> {
         SabaStageCard(
           pct: _pct,
           line1: 'The AI agents are working now.',
-          line2: 'Now transcribing your video into text',
-          line3: 'Capturing your important scenes…',
           footer: 'Transcribing $_pct% – please don’t close this page',
+          middle: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 450),
+            transitionBuilder: (child, anim) => FadeTransition(
+              opacity: anim,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.3),
+                  end: Offset.zero,
+                ).animate(anim),
+                child: child,
+              ),
+            ),
+            child: Text(
+              _alt
+                  ? 'Capturing your important scenes…'
+                  : 'Now transcribing your video into text',
+              key: ValueKey(_alt),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: SabaColors.primary),
+            ),
+          ),
         ),
         const SizedBox(height: SabaSpacing.gapCard),
         SizedBox(

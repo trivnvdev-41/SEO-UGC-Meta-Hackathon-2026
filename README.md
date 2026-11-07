@@ -6,8 +6,10 @@ uploads into SEO-ready web articles — with **JSON-LD schema** and the
 extra reference for the article; videos are never pulled from social
 media. Readers then discuss each review in a forum-style app.
 
-> Nama produk: **SABA**. Slug teknis semuanya `saba` (DB/user `saba`,
-> channel `saba/share`, applicationId `ink.saba.app`).
+**Live:** [saba.ink](https://saba.ink)
+
+> Nama produk: **SABA**. Slug teknis semuanya `saba` (domain `saba.ink`, DB/user
+> `saba`, channel `saba/share`, applicationId `ink.saba.app`).
 
 ## Structure
 
@@ -56,17 +58,13 @@ media. Readers then discuss each review in a forum-style app.
 
 Two independent providers, one per role (no fallback between roles):
 
-|  |  |  |
-| - | - | - |
+| Role               | Provider    | Model                            |
+| ------------------ | ----------- | -------------------------------- |
+| Transcription (STT)| **Meta** ASR| `muse-voice-transcribe-1.0`      |
+| Article generation | **Baseten** | `meta-models/muse-spark-open-1026` |
 
-export OPENCODE_API_KEY="oc_sk_6ca8b3ddf6e5_PZUyTIHFx7-Bvgmrvl9bInEOlx9vofos"
-
-OPENCODE_BASE_URL="https://opencode.ai/zen/go/v2"
-
-opencode
-
-Only the model names are shown here — base URLs and API keys live in `.env`
-(`AI_STT_*`, `AI_LLM_*`) and are never committed.
+Only the provider and model names are shown here — base URLs and API keys live in
+`.env` (`AI_STT_*`, `AI_LLM_*`) and are never committed.
 
 ## Tests
 
